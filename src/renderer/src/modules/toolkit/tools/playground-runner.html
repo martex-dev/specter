@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      SPECTER playground runner. Loaded in <iframe sandbox="allow-scripts"> (opaque
+      origin: no access to SPECTER, its storage or IPC). This document's own CSP
+      allows inline scripts for the user's code but blocks ALL network access.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' data: blob:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; font-src data: blob:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <title>Playground</title>
+  </head>
+  <body>
+    <script>
+      ;(function () {
+        function hook() {
+          var send = function (msg) {
+            try {
+              parent.postMessage(Object.assign({ __specterPlayground: true }, msg), '*')
+            } catch (e) {}
+          }
+          var fmt = function (v, depth) {
+            depth = depth || 0
+            try {
+              if (typeof v === 'string') return depth ? JSON.stringify(v) : v
+              if (typeof v === 'function') return 'ƒ ' + (v.name || 'anonymous') + '()'
+              if (typeof v === 'symbol' || typeof v === 'bigint') return String(v) + (typeof v === 'bigint' ? 'n' : '')
+              if (v === undefined) return 'undefined'
+              if (v instanceof Error) return v.stack || v.name + ': ' + v.message
+              if (typeof Element !== 'undefined' && v instanceof Element) return v.outerHTML.slice(0, 300)
+              if (v && typeof v === 'object') {
+                var seen = []
+                return JSON.stringify(
+                  v,
+                  function (k, x) {
+                    if (typeof x === 'function') return 'ƒ ' + (x.name || 'anonymous') + '()'
+                    if (typeof x === 'bigint') return x.toString() + 'n'
+                    if (x === undefined) return '[undefined]'
+                    if (x && typeof x === 'object') {
+                      if (seen.indexOf(x) >= 0) return '[Circular]'
+                      seen.push(x)
+                      if (x instanceof Map) return { '[Map]': Array.from(x.entries()) }
+                      if (x instanceof Set) return { '[Set]': Array.from(x.values()) }
+                    }
+                    return x
+                  },
+                  2
+                ).slice(0, 20000)
+              }
+              return String(v)
+            } catch (e) {
+              return String(v)
+            }
+          }
+          ;['log', 'info', 'warn', 'error', 'debug'].forEach(function (level) {
+            var orig = console[level]
+            console[level] = function () {
+              var args = Array.prototype.slice.call(arguments)
+              send({ type: 'console', level: level, text: args.map(function (a) { return fmt(a) }).join(' ') })
+              try {
+                orig.apply(console, args)
+              } catch (e) {}
+            }
+          })
+          console.clear = function () {
+            send({ type: 'clear' })
+          }
+          console.table = function (d) {
+            send({ type: 'console', level: 'log', text: fmt(d) })
+          }
+          window.addEventListener('error', function (e) {
+            send({ type: 'console', level: 'error', text: (e.error && e.error.stack) || e.message + (e.lineno ? ' (line ' + e.lineno + ')' : '') })
+          })
+          window.addEventListener('unhandledrejection', function (e) {
+            send({ type: 'console', level: 'error', text: 'Unhandled rejection: ' + fmt(e.reason) })
+          })
+          window.addEventListener('securitypolicyviolation', function (e) {
+            send({ type: 'console', level: 'warn', text: 'Blocked by sandbox (no network access): ' + (e.blockedURI || e.violatedDirective) })
+          })
+          window.addEventListener('load', function () {
+            send({ type: 'loaded' })
+          })
+        }
+
+        var escScript = function (s) {
+          return String(s || '').replace(/<\/script/gi, '<\\/script')
+        }
+
+        window.addEventListener('message', function (e) {
+          if (e.source !== parent || !e.data || e.data.type !== 'run') return
+          var d = e.data
+          var head = '<meta charset="utf-8"><script>(' + hook.toString() + ')()<\/script><style>' + (d.css || '') + '</style>'
+          var tail = '<script>' + escScript(d.js) + '\n//# sourceURL=playground.js<\/script>'
+          var html = d.html || ''
+          var doc
+          if (/<html[\s>]/i.test(html) || /<!doctype/i.test(html)) {
+            doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + head }) : html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + head + '</head>' })
+            doc = /<\/body>/i.test(doc) ? doc.replace(/<\/body>/i, tail + '</body>') : doc + tail
+          } else {
+            doc = '<!doctype html><html><head>' + head + '</head><body>' + html + tail + '</body></html>'
+          }
+          document.open()
+          document.write(doc)
+          document.close()
+        })
+        parent.postMessage({ __specterPlayground: true, type: 'ready' }, '*')
+      })()
+    </script>
+  </body>
+</html>
