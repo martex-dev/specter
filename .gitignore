@@ -1,0 +1,16 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.env
+.env.*
+*.db
+*.db-journal
+*.sqlite
+.vite/
+coverage/
+test-results/
+.specter-e2e/
+.claude/
+*.tsbuildinfo
