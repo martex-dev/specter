@@ -1,0 +1,48 @@
+{
+  "name": "specter",
+  "productName": "SPECTER",
+  "version": "0.1.0",
+  "description": "SPECTER — The Power Browser. A Chromium-based desktop browser with local-first power tools.",
+  "main": "out/main/index.js",
+  "author": "SPECTER Contributors",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:e2e": "npm run build && node tests/e2e/run.mjs",
+    "dist": "npm run build && electron-builder --win --x64"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "dompurify": "^3.4.16",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "lightweight-charts": "^5.2.1",
+    "lucide-react": "^1.48.0",
+    "marked": "^18.0.14",
+    "playwright": "^1.63.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^5.0.2",
+    "zustand": "^5.0.15"
+  },
+  "allowScripts": {
+    "electron@44.4.5": true,
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
+  }
+}
