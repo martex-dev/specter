@@ -1,0 +1,111 @@
+/* Automation, plugins, media, widgets & cockpit */
+
+/* ---------------- rules */
+.ar-list { padding: 0 }
+.ar-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line) }
+.ar-row:last-child { border-bottom: none }
+.ar-row.off .ar-name, .ar-row.off .ar-flow { opacity: 0.55 }
+.ar-name { font-size: 13px; font-weight: 500; color: var(--fg-0) }
+.ar-flow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px }
+.ar-chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11px; color: var(--fg-1); background: var(--bg-2); border: 1px solid var(--line); max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ar-chip.trigger { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); background: var(--accent-dim) }
+.ar-chip.action::before { content: '→'; color: var(--fg-3); margin-right: 2px }
+.ar-meta { text-align: right; font-size: 11px; color: var(--fg-1); min-width: 120px }
+.ar-step td { background: var(--bg-2); font-size: 11.5px }
+.at-card { padding: 14px 16px }
+
+/* ---------------- editor */
+.ae-field { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.ae-field.grow { flex: 1 }
+.ae-section { border: 1px solid var(--line); border-radius: var(--radius-l); padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--bg-1) }
+.ae-section-h { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12.5px; color: var(--fg-0) }
+.ae-step { width: 18px; height: 18px; border-radius: 5px; display: inline-grid; place-items: center; font-family: var(--font-mono); font-size: 10.5px; background: var(--accent-dim); color: var(--accent) }
+.ae-row { gap: 8px; align-items: flex-end; flex-wrap: wrap }
+.ae-action { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line) }
+.ae-index { width: 18px; padding-top: 22px; color: var(--fg-2); font-size: 11px; text-align: center }
+.ae-error { color: var(--bad); font-size: 12px; padding: 8px 10px; border-radius: var(--radius); background: color-mix(in srgb, var(--bad) 10%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 25%, transparent) }
+.ae-test { font-size: 11.5px; padding: 8px 10px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line) }
+.input.invalid { border-color: var(--bad) }
+
+/* ---------------- event viewer */
+.ev-row { display: flex; align-items: center; gap: 10px; padding: 6px 14px; border-bottom: 1px solid var(--line); font-size: 12px }
+.ev-row:hover { background: var(--bg-2) }
+.ev-time { font-size: 11px; width: 78px; flex: none }
+.ev-name { flex: none; min-width: 150px; justify-content: center }
+.ev-payload { flex: 1; font-family: var(--font-mono); font-size: 11px; color: var(--fg-1) }
+.ev-use { opacity: 0; flex: none }
+.ev-row:hover .ev-use { opacity: 1 }
+
+/* ---------------- plugins */
+.pl-card { padding: 16px }
+.pl-card.on { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)) }
+.pl-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--bg-3); border: 1px solid var(--line); color: var(--accent); flex: none }
+.pl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line) }
+.pl-perm { gap: 8px; height: 24px }
+.pl-cmd { gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line) }
+.pl-cmd:last-child { border-bottom: none }
+.pl-errors { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); background: color-mix(in srgb, var(--bad) 8%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 25%, transparent); color: var(--fg-1) }
+.pl-sample { margin: 0; padding: 12px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line); font-size: 11.5px; overflow: auto }
+
+/* ---------------- media */
+.am-card { padding: 10px 12px; border-radius: var(--radius-l); background: var(--bg-2); border: 1px solid var(--line) }
+.am-card.compact { padding: 8px 10px }
+.am-title { font-size: 12.5px; font-weight: 500; color: var(--fg-0) }
+.am-progress { height: 5px; margin-top: 10px; border-radius: 3px; background: var(--bg-4); cursor: pointer; overflow: hidden }
+.am-progress > div { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s linear }
+.am-progress.live { cursor: default }
+.am-controls { gap: 4px; margin-top: 8px }
+.am-play { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-4) }
+.am-rate { height: 24px; font-size: 11px; width: 62px; padding: 0 4px }
+.am-range { width: 76px; accent-color: var(--accent) }
+
+/* ---------------- widgets */
+.aw-dash-bar { margin-bottom: 10px; gap: 8px }
+.aw-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start }
+.aw-dash.compact .aw-grid { gap: 10px }
+.aw-card { display: flex; flex-direction: column; min-width: 0; background: color-mix(in srgb, var(--bg-2) 80%, transparent) }
+.aw-card.size-s { grid-column: span 1 }
+.aw-card.size-m { grid-column: span 2 }
+.aw-card.size-l { grid-column: 1 / -1 }
+.aw-card.editing { border-style: dashed; cursor: grab }
+.aw-card-h { display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 8px 0 12px; border-bottom: 1px solid var(--line) }
+.aw-body { padding: 10px 12px; min-width: 0 }
+.aw-body .ntp-card { border: none; padding: 0; background: none }
+.aw-size > button { height: 20px; padding: 0 7px; font-size: 10.5px }
+.aw-grip { cursor: grab }
+.aw-scroll { overflow: auto }
+.aw-clock-main { font-family: var(--font-display); font-size: 34px; font-weight: 300; color: var(--fg-0); letter-spacing: -0.02em; line-height: 1.1 }
+.aw-clock-second { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); gap: 4px 8px; flex-wrap: wrap }
+.aw-clock-second .num { white-space: nowrap }
+.aw-task { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 4px; border-radius: 6px; font-size: 12.5px; cursor: pointer }
+.aw-task:hover { background: var(--bg-3) }
+.aw-task input { accent-color: var(--accent) }
+.aw-task-x { opacity: 0 }
+.aw-task:hover .aw-task-x { opacity: 1 }
+.aw-links { display: grid; gap: 6px }
+.aw-link { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg-1); color: var(--fg-1); font-size: 12px; cursor: pointer; min-width: 0 }
+.aw-link:hover { background: var(--bg-3); color: var(--fg-0) }
+.aw-add-ntp { margin: 0 auto }
+
+/* ---------------- cockpit */
+.cp-root { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg-0) }
+.cp-bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--bg-1); flex: none; overflow-x: auto }
+.cp-brand { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-0); margin-right: 4px }
+.cp-div { height: 18px; width: 1px; background: var(--line); margin: 0 4px }
+.cp-bar > * { flex: none }
+.cp-bar .btn, .cp-bar .seg > button { white-space: nowrap }
+.cp-bar .seg > button { height: 22px; padding: 0 8px; font-size: 11px }
+.cp-grid { flex: 1; min-height: 0; overflow: auto; display: grid; gap: 10px; padding: 8px; grid-auto-flow: row dense }
+.cp-grid.dragging webview { pointer-events: none }
+.cp-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--bg-1); overflow: hidden }
+.cp-panel.editing { border-style: dashed; border-color: var(--line-strong) }
+.cp-panel-h { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 10px; border-bottom: 1px solid var(--line); background: var(--bg-1); flex: none }
+.cp-title { font-size: 11.5px; color: var(--fg-1) }
+.cp-span { font-size: 10.5px; color: var(--fg-2); padding: 0 4px }
+.cp-body { flex: 1; min-height: 0; overflow: auto; position: relative }
+.cp-body.web { overflow: hidden }
+.cp-web { position: absolute; inset: 0; background: #fff }
+.cp-web-loading { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); opacity: 0.6; z-index: 1; animation: cp-pulse 1.2s ease-in-out infinite }
+.cp-web-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; text-align: center; background: var(--bg-1); color: var(--fg-2); font-size: 12px; z-index: 2 }
+.cp-empty { height: 100% }
+@keyframes cp-pulse { 0%, 100% { opacity: 0.25 } 50% { opacity: 0.8 } }
