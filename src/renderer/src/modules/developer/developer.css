@@ -1,0 +1,733 @@
+/* Developer module: projects, git, terminal. Colors come from theme variables;
+   the ANSI palette is defined here as variables tuned for the dark themes. */
+
+.dev-root {
+  --ansi-0: #3b4048;
+  --ansi-1: #ff6b73;
+  --ansi-2: #5fd39a;
+  --ansi-3: #f2c14e;
+  --ansi-4: #79a6ff;
+  --ansi-5: #c792ea;
+  --ansi-6: #5ccfe6;
+  --ansi-7: #c8ccd4;
+  --ansi-8: #6b7280;
+  --ansi-9: #ff8b92;
+  --ansi-10: #86e8b5;
+  --ansi-11: #ffd479;
+  --ansi-12: #9fc0ff;
+  --ansi-13: #dcb0ff;
+  --ansi-14: #8fe3f2;
+  --ansi-15: #f3f4f6;
+  --diff-add: rgba(63, 207, 142, 0.1);
+  --diff-add-strong: rgba(63, 207, 142, 0.22);
+  --diff-del: rgba(240, 97, 109, 0.1);
+  --diff-del-strong: rgba(240, 97, 109, 0.22);
+}
+:root[data-scheme='light'] .dev-root {
+  --ansi-0: #1f2328;
+  --ansi-1: #cf222e;
+  --ansi-2: #1a7f37;
+  --ansi-3: #9a6700;
+  --ansi-4: #0969da;
+  --ansi-5: #8250df;
+  --ansi-6: #1b7c83;
+  --ansi-7: #57606a;
+  --ansi-8: #6e7781;
+  --ansi-9: #a40e26;
+  --ansi-10: #116329;
+  --ansi-11: #7d4e00;
+  --ansi-12: #218bff;
+  --ansi-13: #a475f9;
+  --ansi-14: #3192aa;
+  --ansi-15: #24292f;
+}
+
+/* ---------- Workspace page ---------- */
+
+.dev-page {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+.dev-side {
+  border-right: 1px solid var(--line);
+  background: var(--bg-0);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dev-side-h {
+  padding: 18px 16px 10px;
+}
+.dev-side-h .page-kicker {
+  margin-bottom: 2px;
+}
+.dev-side-h h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+}
+.dev-side-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+.dev-side-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+.dev-plist {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 8px 12px;
+}
+.dev-pitem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  cursor: default;
+  border: 1px solid transparent;
+}
+.dev-pitem:hover {
+  background: var(--bg-2);
+}
+.dev-pitem.on {
+  background: var(--bg-2);
+  border-color: var(--line-strong);
+}
+.dev-pitem .pi-glyph {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--bg-3);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.dev-pitem.on .pi-glyph {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.dev-pitem .pi-name {
+  font-weight: 550;
+  color: var(--fg-0);
+}
+.dev-pitem .pi-meta {
+  font-size: 11px;
+  color: var(--fg-2);
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.dev-main {
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+}
+.dev-main-inner {
+  padding: 26px 30px 60px;
+  max-width: 1280px;
+}
+.dev-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.dev-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.dev-path {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-2);
+  margin-top: 4px;
+  user-select: text;
+}
+.dev-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.dev-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.dev-tabs button {
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--fg-2);
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dev-tabs button:hover {
+  color: var(--fg-0);
+}
+.dev-tabs button.on {
+  color: var(--fg-0);
+  border-bottom-color: var(--accent);
+}
+.dev-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 12.5px;
+}
+.dev-kv > span:nth-child(odd) {
+  color: var(--fg-2);
+}
+.dev-kv > span:nth-child(even) {
+  color: var(--fg-0);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dev-script {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.dev-script:last-child {
+  border-bottom: none;
+}
+.dev-script .sc-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-0);
+  min-width: 90px;
+}
+.dev-script .sc-cmd {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dev-readme {
+  max-height: 560px;
+  overflow: auto;
+}
+.dev-readme img {
+  max-width: 100%;
+}
+.dev-lang-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg-3);
+  margin: 8px 0 10px;
+}
+.dev-lang-bar > i {
+  display: block;
+  height: 100%;
+}
+
+/* ---------- Files ---------- */
+
+.dev-files {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 520px;
+}
+.dev-tree {
+  max-height: 640px;
+  overflow: auto;
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+.dev-node {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  cursor: default;
+  border-radius: 4px;
+  margin: 0 4px;
+}
+.dev-node:hover {
+  background: var(--bg-2);
+}
+.dev-node.on {
+  background: var(--accent-dim);
+  color: var(--fg-0);
+}
+.dev-node.ignored {
+  color: var(--fg-3);
+}
+.dev-node svg {
+  flex: none;
+  color: var(--fg-2);
+}
+.dev-viewer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.dev-code {
+  flex: 1;
+  overflow: auto;
+  max-height: 640px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 8px 0;
+  user-select: text;
+  tab-size: 4;
+}
+.dev-code .ln {
+  display: inline-block;
+  width: 4.2em;
+  padding-right: 1em;
+  text-align: right;
+  color: var(--fg-3);
+  user-select: none;
+}
+.dev-hit {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  cursor: default;
+}
+.dev-hit:hover {
+  background: var(--bg-2);
+}
+.dev-hit .h-path {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.dev-hit .h-snip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-2);
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.dev-hit mark,
+.dev-mark {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 2px;
+}
+
+/* ---------- Git ---------- */
+
+.git-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-size: 12.5px;
+}
+.git-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.git-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  color: var(--fg-0);
+  max-width: 260px;
+}
+.git-group-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+}
+.git-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  cursor: default;
+  min-width: 0;
+}
+.git-file:hover {
+  background: var(--bg-2);
+}
+.git-file.on {
+  background: var(--accent-dim);
+}
+.git-file .gf-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  width: 14px;
+  text-align: center;
+  flex: none;
+}
+.git-file .gf-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+.git-file .gf-actions {
+  display: none;
+  gap: 2px;
+}
+.git-file:hover .gf-actions,
+.git-file.on .gf-actions {
+  display: flex;
+}
+.gc-M,
+.gc-T {
+  color: var(--warn);
+}
+.gc-A,
+.gc-\? {
+  color: var(--ok);
+}
+.gc-D {
+  color: var(--bad);
+}
+.gc-R,
+.gc-C {
+  color: var(--info);
+}
+.gc-U {
+  color: var(--bad);
+}
+.git-commit-box {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.git-commit-box textarea {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  font-family: var(--font-ui);
+  padding: 7px 9px;
+  height: auto;
+}
+.git-log-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: default;
+  align-items: baseline;
+  min-width: 0;
+}
+.git-log-item:hover {
+  background: var(--bg-2);
+}
+.git-log-item.on {
+  background: var(--accent-dim);
+}
+.git-log-item .gl-hash {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  flex: none;
+}
+.git-log-item .gl-subj {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.git-log-item .gl-meta {
+  color: var(--fg-3);
+  font-size: 11px;
+  flex: none;
+}
+.git-output {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  margin: 0;
+}
+
+/* Diff viewer */
+.diff {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  user-select: text;
+}
+.diff-file + .diff-file {
+  margin-top: 12px;
+}
+.diff-file-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.diff-body {
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow-x: auto;
+}
+.diff table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.diff td {
+  padding: 0 8px;
+  white-space: pre;
+  vertical-align: top;
+}
+.diff td.no {
+  width: 1%;
+  min-width: 3.4em;
+  text-align: right;
+  color: var(--fg-3);
+  user-select: none;
+  padding: 0 6px;
+}
+.diff td.sign {
+  width: 1%;
+  user-select: none;
+  padding: 0 2px 0 6px;
+  color: var(--fg-3);
+}
+.diff tr.add td {
+  background: var(--diff-add);
+}
+.diff tr.add td.sign,
+.diff tr.add td.no {
+  background: var(--diff-add-strong);
+  color: var(--up);
+}
+.diff tr.del td {
+  background: var(--diff-del);
+}
+.diff tr.del td.sign,
+.diff tr.del td.no {
+  background: var(--diff-del-strong);
+  color: var(--down);
+}
+.diff tr.hunk td {
+  background: var(--accent-dim);
+  color: var(--fg-2);
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.diff tr.meta td {
+  color: var(--fg-3);
+  font-style: italic;
+}
+
+/* ---------- Terminal ---------- */
+
+.term {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-0);
+}
+.term-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+  min-height: 36px;
+}
+.term-tabs-scroll {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+.term-tabs-scroll::-webkit-scrollbar {
+  height: 0;
+}
+.term-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 9px;
+  border-radius: var(--radius-s);
+  font-size: 12px;
+  color: var(--fg-2);
+  white-space: nowrap;
+  cursor: default;
+  max-width: 200px;
+  border: 1px solid transparent;
+}
+.term-tab:hover {
+  background: var(--bg-2);
+  color: var(--fg-1);
+}
+.term-tab.on {
+  background: var(--bg-3);
+  color: var(--fg-0);
+  border-color: var(--line-strong);
+}
+.term-tab .tt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  flex: none;
+}
+.term-tab .tt-dot.run {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.term-tab .tt-dot.dead {
+  background: var(--bad);
+}
+.term-tab .tt-x {
+  opacity: 0;
+}
+.term-tab:hover .tt-x,
+.term-tab.on .tt-x {
+  opacity: 1;
+}
+.term-out {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 4px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--fg-0);
+  user-select: text;
+  white-space: pre;
+  font-feature-settings: 'calt' 0;
+}
+.term-out.wrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.term-line {
+  min-height: 1.45em;
+}
+.term-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--bg-0);
+}
+.term-in .ti-cwd {
+  color: #8fb5e8;
+  color: var(--ansi-12);
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+  flex: none;
+}
+.term-in .ti-sym {
+  color: var(--accent);
+  font-weight: 700;
+  flex: none;
+}
+.term-in input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg-0);
+  font: inherit;
+  padding: 3px 0;
+}
+.term-in input::placeholder {
+  color: var(--fg-3);
+}
+.term-foot {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 3px 12px 5px;
+  font-size: 10.5px;
+  color: var(--fg-3);
+  background: var(--bg-0);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.term-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--fg-2);
+  padding: 20px;
+}
+
+/* ---------- Overlays ---------- */
+
+.dev-clone-out {
+  height: 200px;
+}
