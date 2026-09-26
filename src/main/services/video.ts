@@ -44,7 +44,13 @@ function remember(site: string | null, rate: number): void {
   for (const d of dropped) run('DELETE FROM video_speeds WHERE profile_id = ? AND site = ?', profile, d)
 }
 
-/** Forgets one site's speed, or every site's (clearing browsing history does this too). */
+/** Forgets the speeds remembered since a time, with the browsing history of the same period. */
+export function forgetVideoSpeedsSince(since: number): void {
+  run('DELETE FROM video_speeds WHERE profile_id = ? AND updated_at >= ?', activeProfileId(), since)
+  memory = null
+}
+
+/** Forgets one site's speed, or every site's. */
 export function forgetVideoSpeeds(site: string | null): void {
   if (site === null) {
     mem().clear()

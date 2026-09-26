@@ -57,6 +57,7 @@ export function registerProfilesIpc(): void {
     run('DELETE FROM bookmarks WHERE profile_id = ?', id)
     run('DELETE FROM workspaces WHERE profile_id = ?', id)
     run('DELETE FROM window_sessions WHERE profile_id = ?', id)
+    run('DELETE FROM video_speeds WHERE profile_id = ?', id)
     try {
       // Sidebar web apps are per profile too (table owned by the optional webapps module).
       run('DELETE FROM webapps WHERE profile_id = ?', id)

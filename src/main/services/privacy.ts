@@ -16,6 +16,7 @@ import { TRACKER_DOMAINS } from './trackers'
 import { makeTrackerMatcher, registrableDomain } from '@shared/domains'
 import { createLogger } from '../logger'
 import { adblockBeforeRequest, adblockCSP } from './adblock'
+import { forgetVideoSpeedsSince } from './video'
 import type { BlockedRequest } from '@shared/ipc'
 
 const log = createLogger('privacy')
@@ -175,6 +176,8 @@ export async function clearBrowsingData(o: import('@shared/ipc').ClearDataOption
     run('DELETE FROM history WHERE visited_at >= ? AND profile_id = ?', since, activeProfile().id)
     run('DELETE FROM searches WHERE ts >= ?', since)
     run('DELETE FROM closed_tabs WHERE closed_at >= ?', since)
+    // Remembered video speeds list the sites you watched on.
+    forgetVideoSpeedsSince(since)
   }
   if (o.downloads) run("DELETE FROM downloads WHERE started_at >= ? AND state != 'progressing'", since)
   if (o.permissions) run('DELETE FROM permissions')
