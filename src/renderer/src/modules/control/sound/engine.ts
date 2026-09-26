@@ -5,12 +5,26 @@ import type { SoundEvent, SoundThemeId } from '@shared/modules/control'
 import { on } from '../../../lib/ipc'
 import { useBrowser } from '../../../stores/browser'
 import { useControl } from '../store'
-import { resolveSoundTheme, SoundLimiter, soundFor, type ConcreteSoundTheme, type Voice } from './schedule'
+import { resolveSoundTheme, SoundLimiter, soundFor, soundLength, type ConcreteSoundTheme, type Voice } from './schedule'
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
 let noise: AudioBuffer | null = null
 const limiter = new SoundLimiter()
+let idleTimer: number | undefined
+
+/**
+ * Suspends the context once the last scheduled sound has finished. A running
+ * AudioContext keeps an output stream (and its render thread) open for good,
+ * which keeps Windows from sleeping and costs CPU long after the last blip —
+ * even after sounds are turned off. audio() resumes it for the next sound.
+ */
+function suspendWhenIdle(c: AudioContext, afterSec: number): void {
+  clearTimeout(idleTimer)
+  idleTimer = window.setTimeout(() => {
+    if (c.state === 'running') void c.suspend().catch(() => undefined)
+  }, (afterSec + 1) * 1000)
+}
 
 function audio(): { ctx: AudioContext; master: GainNode } {
   if (!ctx) {
@@ -96,7 +110,9 @@ export function playSound(ev: SoundEvent, opts: { theme?: ConcreteSoundTheme; vo
     const { ctx: c, master: m } = audio()
     m.gain.setValueAtTime(volume * 0.35, c.currentTime)
     const t0 = c.currentTime + 0.005
-    for (const v of soundFor(theme, ev)) playVoice(c, m, v, t0)
+    const voices = soundFor(theme, ev)
+    for (const v of voices) playVoice(c, m, v, t0)
+    suspendWhenIdle(c, soundLength(voices))
     return true
   } catch {
     return false
