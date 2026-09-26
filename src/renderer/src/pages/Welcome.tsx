@@ -1,14 +1,13 @@
 // First-launch onboarding: short, skippable, six steps.
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, Cpu, Download, KeyRound, Palette, Search, Sparkles } from 'lucide-react'
-import type { ImportResult, ImportSource } from '@shared/ipc'
+import { ArrowRight, Check, Cpu, Download, Palette, Search, Sparkles } from 'lucide-react'
 import { SEARCH_ENGINES } from '@shared/settings'
-import { invoke, invokeRaw } from '../lib/ipc'
+import { invokeRaw } from '../lib/ipc'
 import { ThemeGallery } from '../components/ThemeGallery'
 import { loadUrl } from '../stores/browser'
 import { setSetting, useSetting } from '../stores/settings'
 import { SpecterMark, Switch } from '../components/ui'
-import { PasswordImport } from '../components/PasswordImport'
+import { ProfileImport } from '../components/ProfileImport'
 import type { PageProps } from './registry'
 
 const STEPS = ['Welcome', 'Appearance', 'Import', 'Local AI', 'Search', 'Done']
@@ -141,89 +140,15 @@ function StepAppearance() {
 }
 
 function StepImport() {
-  const [sources, setSources] = useState<ImportSource[] | null>(null)
-  const [picked, setPicked] = useState<{ id: ImportSource['id']; path: string } | null>(null)
-  const [what, setWhat] = useState({ bookmarks: true, history: true })
-  const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<ImportResult | null>(null)
-  useEffect(() => {
-    invoke('import:sources')
-      .then((s) => {
-        setSources(s)
-        if (s[0]) setPicked({ id: s[0].id, path: s[0].profiles[0].path })
-      })
-      .catch(() => setSources([]))
-  }, [])
   return (
     <div className="col" style={{ gap: 14 }}>
       <h2 className="section-title" style={{ fontSize: 17 }}>
-        <Download size={17} /> Import browser data?
+        <Download size={17} /> Bring over your browser?
       </h2>
       <p className="muted" style={{ margin: 0, lineHeight: 1.5 }}>
-        Bring bookmarks and history from another browser on this PC. Passwords come over from Chrome’s export file — see below.
+        Each Chrome profile can come over into a SPECTER profile of its own — bookmarks and history right away, then its passwords from Chrome’s export. You can do this later in Settings → Profiles.
       </p>
-      {sources === null && <div className="muted">Looking for browsers…</div>}
-      {sources?.length === 0 && <div className="muted">No supported browsers were found. You can import a bookmarks HTML file later from the Bookmarks page.</div>}
-      {sources && sources.length > 0 && (
-        <>
-          <select
-            className="select"
-            style={{ height: 34 }}
-            value={picked ? picked.id + '|' + picked.path : ''}
-            onChange={(e) => {
-              const [id, path] = e.target.value.split('|')
-              setPicked({ id: id as ImportSource['id'], path })
-              setResult(null)
-            }}
-          >
-            {sources.flatMap((s) =>
-              s.profiles.map((p) => (
-                <option key={s.id + p.path} value={s.id + '|' + p.path}>
-                  {s.name} — {p.name}
-                </option>
-              ))
-            )}
-          </select>
-          <div className="row" style={{ gap: 18 }}>
-            <label className="row">
-              <Switch on={what.bookmarks} onChange={(v) => setWhat({ ...what, bookmarks: v })} /> Bookmarks
-            </label>
-            <label className="row">
-              <Switch on={what.history} onChange={(v) => setWhat({ ...what, history: v })} /> History
-            </label>
-            <span className="spacer" />
-            <button
-              className="btn"
-              disabled={busy || !picked || (!what.bookmarks && !what.history)}
-              onClick={async () => {
-                if (!picked) return
-                setBusy(true)
-                try {
-                  setResult(await invoke('import:run', picked.id, picked.path, what))
-                } finally {
-                  setBusy(false)
-                }
-              }}
-            >
-              {busy ? 'Importing…' : 'Import now'}
-            </button>
-          </div>
-          {result && (
-            <div className="card" style={{ padding: 12, fontSize: 12.5 }}>
-              <Check size={13} className="ok" /> Imported {result.bookmarks} bookmarks and {result.history.toLocaleString()} history entries.
-              {result.errors.map((e) => (
-                <div key={e} className="bad" style={{ marginTop: 4 }}>
-                  {e}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-      <h3 className="section-title" style={{ margin: '6px 0 0' }}>
-        <KeyRound size={14} /> Passwords from Chrome
-      </h3>
-      <PasswordImport compact />
+      <ProfileImport />
     </div>
   )
 }
