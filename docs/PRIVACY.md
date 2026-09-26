@@ -24,6 +24,8 @@ Chromium's, isolated per SPECTER profile.
 | Google Lens image search | Google (the image URL) | only when you choose it from the image menu |
 | Diagnostics connectivity check | `www.gstatic.com/generate_204` | only when you run diagnostics |
 | New-tab shortcut icons | the shortcut's own site (`/favicon.ico`) | when the new tab page is shown |
+| Automatic updates (installed Windows build) | `github.com` releases of `martex-dev/specter` (and GitHub's download servers for the installer) | **on by default** (Settings → About): 30 s after start and every 6 h, in a separate network session without cookies; only release metadata is requested, no browsing data |
+| Release check (portable / unpacked builds) | `api.github.com` (the repository in Settings → About) | **off by default**; at most daily when enabled, or when you press Check now |
 
 ## Protections
 

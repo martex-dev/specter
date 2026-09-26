@@ -49,3 +49,14 @@ mac:
   target: [dmg]
   category: public.app-category.productivity
 npmRebuild: false
+# Auto-updates (electron-updater): generates release/latest.yml + the installer
+# .blockmap and bakes resources/app-update.yml into the app. Upload
+# SPECTER-Setup-<version>.exe, its .blockmap and latest.yml to the GitHub
+# release (tag v<version>). Builds are unsigned: no publisherName is written, so
+# electron-updater skips signature verification (it verifies automatically once
+# builds are code-signed).
+publish:
+  provider: github
+  owner: martex-dev
+  repo: specter
+  releaseType: release
