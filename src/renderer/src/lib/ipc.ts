@@ -40,3 +40,9 @@ export function takeEarlyCommands(): IpcEvents['command:run'][] {
   stopEarly()
   return out
 }
+
+/** A rejected invoke's message without Electron's "Error invoking remote method 'x': Error: " prefix. */
+export function ipcErrorText(err: unknown): string {
+  const m = err instanceof Error ? err.message : String(err)
+  return m.replace(/^Error invoking remote method '[^']+':\s*(\w*Error:\s*)?/, '')
+}
