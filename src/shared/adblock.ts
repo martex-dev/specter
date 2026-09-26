@@ -2,6 +2,7 @@
 //
 // Lists come straight from their maintainers (uBlock Origin's CDN, which also
 // mirrors EasyList), so fixes such as YouTube's reach SPECTER within hours.
+// Each list's own "! Expires:" header decides how often it is refreshed.
 
 const UBO = 'https://ublockorigin.github.io/uAssets'
 
@@ -83,8 +84,18 @@ export const RESOURCES_URL = 'https://raw.githubusercontent.com/ghostery/adblock
 
 export const DEFAULT_FILTER_LISTS = FILTER_LISTS.filter((l) => l.default).map((l) => l.id)
 
-/** Lists are refreshed in the background when older than this. */
+/** Refresh interval for lists that don't say ("! Expires: …"), and the bounds for those that do. */
 export const LIST_MAX_AGE_MS = 24 * 3600_000
+const MIN_AGE_MS = 4 * 3600_000
+const MAX_AGE_MS = 7 * 24 * 3600_000
+
+/** Refresh interval a list asks for in its header ("! Expires: 12 hours"), clamped to 4 h – 7 days. */
+export function listMaxAge(text: string): number {
+  const m = /^!\s*Expires:\s*(\d+)\s*(hours?|days?|h|d)\b/im.exec(text.slice(0, 4000))
+  if (!m) return LIST_MAX_AGE_MS
+  const ms = Number(m[1]) * (m[2].startsWith('h') ? 3600_000 : 24 * 3600_000)
+  return Math.min(MAX_AGE_MS, Math.max(MIN_AGE_MS, ms))
+}
 
 export interface AdblockListState {
   id: string

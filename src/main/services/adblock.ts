@@ -2,14 +2,15 @@
 //
 // - Network filtering runs inside privacy.ts's webRequest hooks (Electron allows
 //   one listener per event), through adblockBeforeRequest / adblockCSP.
-// - Lists are downloaded to <userData>/adblock, refreshed daily, and compiled in
-//   a worker thread; the compiled engine is cached so startup costs ~10 ms.
+// - Lists are downloaded to <userData>/adblock, refreshed as often as each list
+//   asks, and compiled in a worker thread; the compiled engine is cached so
+//   startup costs ~10 ms.
 import { app, session as electronSession, type Session } from 'electron'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FiltersEngine, Request } from '@ghostery/adblocker'
-import { FILTER_LISTS, LIST_MAX_AGE_MS, RESOURCES_URL, countRules, isAllowlisted, listMirrors, type AdblockStatus } from '@shared/adblock'
+import { FILTER_LISTS, LIST_MAX_AGE_MS, RESOURCES_URL, countRules, isAllowlisted, listMaxAge, listMirrors, type AdblockStatus } from '@shared/adblock'
 import { hostname } from '@shared/url'
 import { broadcast, handle } from '../ipc'
 import { createLogger } from '../logger'
@@ -21,7 +22,8 @@ const log = createLogger('adblock')
 type RequestType = Parameters<typeof Request.fromRawDetails>[0]['type']
 type Refresh = 'missing' | 'stale' | 'all'
 interface Meta {
-  files: Record<string, { updatedAt: number; rules: number }>
+  /** maxAge: refresh interval the list asks for in its "! Expires:" header. */
+  files: Record<string, { updatedAt: number; rules: number; maxAge?: number }>
 }
 
 let engine: FiltersEngine | null = null
@@ -126,7 +128,7 @@ function loadCachedEngine(): boolean {
 
 function isStale(meta: Meta, url: string): boolean {
   const f = meta.files[url]
-  return !f || !existsSync(listFile(url)) || Date.now() - f.updatedAt > LIST_MAX_AGE_MS
+  return !f || !existsSync(listFile(url)) || Date.now() - f.updatedAt > (f.maxAge ?? LIST_MAX_AGE_MS)
 }
 
 /** Downloads what `refresh` asks for, then recompiles the engine if its inputs changed. */
@@ -150,7 +152,7 @@ function rebuild(refresh: Refresh): Promise<void> {
         for (const [i, r] of results.entries()) {
           if (r.status === 'fulfilled') {
             writeAtomic(listFile(r.value.u), r.value.text)
-            meta.files[r.value.u] = { updatedAt: Date.now(), rules: r.value.u === RESOURCES_URL ? 0 : countRules(r.value.text) }
+            meta.files[r.value.u] = { updatedAt: Date.now(), rules: r.value.u === RESOURCES_URL ? 0 : countRules(r.value.text), maxAge: listMaxAge(r.value.text) }
           } else {
             errors.push(`${new URL(wanted[i]).pathname.split('/').pop()}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`)
           }
@@ -197,7 +199,7 @@ export function initAdblock(): void {
     if (loadCachedEngine()) setTimeout(() => void rebuild('stale'), 60_000)
     else void rebuild('stale')
   }
-  // Hourly check; lists older than a day are refreshed in the background.
+  // Hourly check; lists past their refresh interval are updated in the background.
   setInterval(() => {
     if (getSetting('privacy.adblock') && !building) {
       const meta = readMeta()
