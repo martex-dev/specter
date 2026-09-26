@@ -127,7 +127,7 @@ export async function addProject(path: string): Promise<ProjectInfo> {
   if (typeof path !== 'string' || !path.trim()) throw new Error('No folder given')
   const norm = normalizePath(path)
   if (!exists(norm)) throw new Error('Folder not found: ' + norm)
-  if (/^[a-zA-Z]:\\?$/.test(norm) || norm === '/') throw new Error('Refusing to register a whole drive as a project â€” pick a project folder.')
+  if (/^[a-zA-Z]:\\?$/.test(norm) || norm === '/') throw new Error('Refusing to register a whole drive as a project — pick a project folder.')
   const roots = getSetting('developer.projectRoots') ?? []
   if (!roots.some((r) => samePath(r, norm))) setSetting('developer.projectRoots', [...roots, norm])
   await syncWithSettings()
