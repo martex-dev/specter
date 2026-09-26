@@ -772,7 +772,8 @@ export async function switchWorkspace(wsId: string): Promise<void> {
       await invoke('window:focus', owner)
       return
     }
-    set((st) => ({ open: { ...st.open, [wsId]: toRuntime(w, true) }, openOrder: [...st.openOrder, wsId], workspaces: list }))
+    // A second click during the awaits above may already have opened it.
+    set((st) => (st.open[wsId] ? { workspaces: list } : { open: { ...st.open, [wsId]: toRuntime(w, true) }, openOrder: [...st.openOrder, wsId], workspaces: list }))
   }
   set({ activeWsId: wsId })
   const ws = S().open[wsId]
@@ -873,6 +874,10 @@ export async function suspendTab(tabId: string): Promise<void> {
   let mem: number | null = null
   if (wcId !== null) {
     ;[scrollY, mem] = await Promise.all([invoke('guest:scrollY', wcId).catch(() => undefined), invoke('guest:pageMemory', wcId).catch(() => null)])
+    // The user may have switched to the tab meanwhile: suspending it now would reload it in view.
+    const s = S()
+    const now = findTab(tabId)
+    if (!now || now.tab.suspended || (now.ws.id === s.activeWsId && visibleTabIds(now.ws).includes(tabId))) return
   }
   updateTab(tabId, { suspended: true, scrollY, pendingScrollY: scrollY, memoryReleasedKB: mem ?? undefined, loading: false, audible: false, devtoolsDocked: false })
 }
