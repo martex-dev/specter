@@ -21,7 +21,7 @@ import {
 import type { DownloadInfo, SplitPreset } from '@shared/types'
 import { invoke, on } from '../lib/ipc'
 import { runCommand, shortcutFor } from '../lib/commands'
-import { goBack, goForward, loadUrl, reload, setLayout, stop, useActiveTab, useActiveWs, useBrowser } from '../stores/browser'
+import { goBack, goForward, reload, setLayout, stop, useActiveTab, useActiveWs, useBrowser } from '../stores/browser'
 import { getSetting, useSetting } from '../stores/settings'
 import { openMenu, toggleSidePanel, useUi, type MenuItem } from '../stores/ui'
 import { Omnibox } from './Omnibox'
@@ -90,7 +90,7 @@ export function Toolbar() {
             <RotateCw size={15} />
           </button>
         )}
-        <button className="icon-btn extra" onClick={() => tab && loadUrl(tab.id, getSetting('general.homepage') || 'specter://newtab')} data-tip="Home" aria-label="Home">
+        <button className="icon-btn extra" onClick={() => runCommand('browser.home')} data-tip="Home" aria-label="Home">
           <Home size={16} />
         </button>
       </div>
