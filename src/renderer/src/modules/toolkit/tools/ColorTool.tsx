@@ -95,11 +95,14 @@ export default function ColorTool({ query }: ToolProps) {
   const [bg, setBg] = useToolState('color.bg', '#14161b')
   const [lastGood, setLastGood] = useState<RGBA>(() => parseColor('#a3b1ff')!)
 
+  // Depend on the string, not the URLSearchParams object: the page gets a new
+  // object on every parent re-render (e.g. a window resize), which re-applied
+  // ?c= and threw away the user's edits.
+  const fromUrl = query.get('c') || query.get('color')
   useEffect(() => {
-    const q = query.get('c') || query.get('color')
-    if (q) setValue(q)
+    if (fromUrl) setValue(fromUrl)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query])
+  }, [fromUrl])
 
   const parsed = resolveColor(value)
   useEffect(() => {
