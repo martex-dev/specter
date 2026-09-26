@@ -12,6 +12,7 @@ import { guestById, hostWindowOf, registerGuestTab } from '../guest'
 import { lastFocusedCtx, ctxForSender } from '../windows'
 import { listPermissions } from './permissions'
 import { activeSession } from './profiles'
+import { videoCommand } from './video'
 import { createLogger } from '../logger'
 
 const log = createLogger('page')
@@ -331,6 +332,8 @@ export function registerPageIpc(): void {
   })
   handle('guest:mediaControl', async (_e, wcId, action, value) => {
     const v = Number(value ?? 0)
+    // Through video tools, so the speed is kept (sites reset it) and remembered; directly if its page script isn't there.
+    if (action === 'rate' && (await videoCommand(guestById(wcId), 'set', v || 1)) !== undefined) return
     const body: Record<string, string> = {
       play: 'm.play()',
       pause: 'm.pause()',

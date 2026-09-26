@@ -56,8 +56,10 @@
 .am-progress.live { cursor: default }
 .am-controls { gap: 4px; margin-top: 8px }
 .am-play { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-4) }
-.am-rate { height: 24px; font-size: 11px; width: 62px; padding: 0 4px }
-.am-range { width: 76px; accent-color: var(--accent) }
+.am-rate { height: 24px; font-size: 11px; width: 58px; padding: 0 4px }
+.am-range { width: 76px; min-width: 36px; flex: 0 1 76px; accent-color: var(--accent) }
+.am-speed { display: flex; align-items: center; gap: 1px }
+.am-speed .icon-btn { width: 20px }
 
 /* ---------------- widgets */
 .aw-dash-bar { margin-bottom: 10px; gap: 8px }

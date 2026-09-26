@@ -1,12 +1,14 @@
 // Media controls: every tab with media in this window, with transport,
 // volume, speed, picture-in-picture, mute and "go to tab".
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, FastForward, Music, Pause, PictureInPicture2, Play, Rewind, Volume2, VolumeX } from 'lucide-react'
+import { ArrowUpRight, FastForward, Minus, Music, Pause, PictureInPicture2, Play, Plus, Rewind, Volume2, VolumeX } from 'lucide-react'
 import type { MediaState } from '@shared/ipc'
+import { formatSpeed, sameSpeed, stepSpeed } from '@shared/video'
 import { invoke } from '../../lib/ipc'
 import { wcIdFor } from '../../lib/webviews'
 import { Favicon } from '../../components/ui'
 import { activateTab, activeTab, setMuted, useBrowser } from '../../stores/browser'
+import { useSetting } from '../../stores/settings'
 import { toast, toggleSidePanel } from '../../stores/ui'
 
 interface MediaTab {
@@ -51,6 +53,7 @@ function MediaCard({ tab, compact }: { tab: MediaTab; compact?: boolean }) {
   const [state, setState] = useState<MediaState | null>(null)
   const [missing, setMissing] = useState(false)
   const wcId = tab.suspended ? null : wcIdFor(tab.id)
+  const step = useSetting('video.step')
 
   useEffect(() => {
     if (wcId === null) return
@@ -173,14 +176,22 @@ function MediaCard({ tab, compact }: { tab: MediaTab; compact?: boolean }) {
             data-tip="Player volume"
           />
         )}
-        <select className="select am-rate" disabled={disabled} value={String(state?.rate ?? 1)} onChange={(e) => control('rate', Number(e.target.value))} aria-label="Playback speed">
-          {!RATES.includes(state?.rate ?? 1) && <option value={String(state?.rate)}>{state?.rate}×</option>}
-          {RATES.map((r) => (
-            <option key={r} value={String(r)}>
-              {r}×
-            </option>
-          ))}
-        </select>
+        <div className="am-speed">
+          <button className="icon-btn sm" disabled={disabled || (state?.rate ?? 1) <= 0.07} onClick={() => control('rate', stepSpeed(state?.rate ?? 1, -1, step))} data-tip="Slower" aria-label="Slower">
+            <Minus size={12} />
+          </button>
+          <select className="select am-rate" disabled={disabled} value={String(state?.rate ?? 1)} onChange={(e) => control('rate', Number(e.target.value))} aria-label="Playback speed">
+            {!RATES.some((r) => sameSpeed(r, state?.rate ?? 1)) && <option value={String(state?.rate)}>{formatSpeed(state?.rate ?? 1)}</option>}
+            {RATES.map((r) => (
+              <option key={r} value={String(r)}>
+                {formatSpeed(r)}
+              </option>
+            ))}
+          </select>
+          <button className="icon-btn sm" disabled={disabled || (state?.rate ?? 1) >= 16} onClick={() => control('rate', stepSpeed(state?.rate ?? 1, 1, step))} data-tip="Faster" aria-label="Faster">
+            <Plus size={12} />
+          </button>
+        </div>
         <button className="icon-btn sm" disabled={disabled || !state?.hasVideo} onClick={() => control('pip')} data-tip={state?.hasVideo ? 'Picture-in-picture' : 'Picture-in-picture (video only)'} aria-label="Picture in picture">
           <PictureInPicture2 size={14} />
         </button>
