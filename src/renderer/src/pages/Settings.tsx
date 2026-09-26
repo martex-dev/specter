@@ -23,11 +23,12 @@ import {
   Trash2,
   Plus
 } from 'lucide-react'
-import { SEARCH_ENGINES, type SettingKey, type Settings as SettingsT, type ThemeId } from '@shared/settings'
+import { SEARCH_ENGINES, type SettingKey, type Settings as SettingsT } from '@shared/settings'
 import { DEFAULT_KEYBINDINGS, eventToAccelerator, normalizeAccelerator, resolveBindings } from '@shared/keys'
 import type { AppInfo } from '@shared/ipc'
 import type { Profile } from '@shared/types'
 import { invoke, invokeRaw } from '../lib/ipc'
+import { ThemeGallery } from '../components/ThemeGallery'
 import { THEMES } from '../lib/themes'
 import { listCommands, getCommand } from '../lib/commands'
 import { settingsSections } from '../lib/registry'
@@ -35,7 +36,7 @@ import { WORKSPACE_COLORS } from '../lib/icons'
 import { loadUrl, useBrowser } from '../stores/browser'
 import { getSetting, setSetting, useSetting } from '../stores/settings'
 import { toast } from '../stores/ui'
-import { Kbd, Switch } from '../components/ui'
+import { Kbd, Seg, Switch } from '../components/ui'
 import { confirmAction, promptText } from '../components/prompt'
 import type { PageProps } from './registry'
 
@@ -134,45 +135,16 @@ function General() {
 }
 
 function Appearance() {
-  const theme = useSetting('appearance.theme')
-  const accent = useSetting('appearance.accent')
   return (
     <>
-      <Group title="Theme">
-        <div className="grid-4" style={{ gap: 10, padding: '14px 0' }}>
-          {(Object.keys(THEMES) as ThemeId[]).map((id) => {
-            const t = THEMES[id]
-            return (
-              <button key={id} onClick={() => setSetting('appearance.theme', id)} style={{ padding: 0, border: theme === id ? '2px solid var(--accent)' : '1px solid var(--line-strong)', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: t.bg1, textAlign: 'left' }}>
-                <div style={{ height: 14, background: t.bg0 }} />
-                <div style={{ padding: '10px 10px 12px' }}>
-                  <div style={{ height: 6, width: '40%', borderRadius: 3, background: t.accent }} />
-                  <div style={{ fontSize: 11.5, marginTop: 10, color: t.fg0, fontFamily: t.font }}>{t.name}</div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-        <Row title="Accent color" desc="Overrides the theme’s accent.">
-          <div className="row" style={{ gap: 6 }}>
-            {['', '#a3b1ff', '#7dd3fc', '#5eead4', '#86efac', '#fcd34d', '#fca5a5', '#f0abfc', '#e2e8f0'].map((c) => (
-              <button
-                key={c || 'default'}
-                onClick={() => setSetting('appearance.accent', c)}
-                aria-label={c || 'Theme default'}
-                data-tip={c || 'Theme default'}
-                style={{ width: 22, height: 22, borderRadius: '50%', cursor: 'pointer', border: accent === c ? '2px solid var(--fg-0)' : '1px solid var(--line-strong)', background: c || 'conic-gradient(var(--accent) 0 50%, var(--bg-3) 0)' }}
-              />
-            ))}
-            <input type="color" value={accent || '#a3b1ff'} onChange={(e) => setSetting('appearance.accent', e.target.value)} style={{ width: 28, height: 24, border: 'none', background: 'none', cursor: 'pointer' }} aria-label="Custom accent" />
-          </div>
-        </Row>
-        <TextSetting k="appearance.fontFamily" title="Interface font" desc="Leave empty for the theme default (Segoe UI Variable)." placeholder="e.g. Inter, 'IBM Plex Sans'" />
-      </Group>
-      <Group title="Layout">
+      <div className="setting-group-title">Themes</div>
+      <ThemeGallery />
+      <AutoThemeGroup />
+      <Group title="Typography & layout">
+        <TextSetting k="appearance.fontFamily" title="Interface font" desc="Leave empty for the theme’s own font." placeholder="e.g. Inter, 'IBM Plex Sans'" />
         <Choice k="appearance.density" title="Density" options={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} />
         <Toggle k="appearance.showBookmarksBar" title="Show bookmarks bar" />
-        <Toggle k="appearance.showSideRail" title="Show tool rail" desc="The slim icon rail on the right for AI, notes, downloads and tools." />
+        <Toggle k="appearance.showSideRail" title="Show sidebar" desc="The dock of apps, widgets and tools." />
         <Toggle k="appearance.showStatusBar" title="Show status bar" />
         <Toggle k="appearance.showHud" title="Show title-bar telemetry (HUD)" desc="Compact readouts: tabs, trackers blocked, and optional system / market / AI indicators." />
       </Group>
@@ -189,6 +161,49 @@ function Appearance() {
         />
       </Group>
     </>
+  )
+}
+
+function AutoThemeGroup() {
+  const auto = useSetting('appearance.auto')
+  const set = (patch: Partial<typeof auto>) => setSetting('appearance.auto', { ...auto, ...patch })
+  const themeSelect = (value: string, onChange: (v: string) => void) => (
+    <select className="select" value={value} onChange={(e) => onChange(e.target.value)}>
+      {THEMES.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.name}
+        </option>
+      ))}
+    </select>
+  )
+  return (
+    <Group title="Automatic theme">
+      <Row title="Switch themes automatically" desc="Follow Windows’ light/dark mode, or change at set times of day.">
+        <Seg
+          value={auto.mode}
+          options={[
+            { value: 'off', label: 'Off' },
+            { value: 'system', label: 'Follow Windows' },
+            { value: 'schedule', label: 'Schedule' }
+          ]}
+          onChange={(v) => set({ mode: v as typeof auto.mode })}
+        />
+      </Row>
+      {auto.mode !== 'off' && (
+        <>
+          <Row title={auto.mode === 'system' ? 'Light mode theme' : 'Day theme'}>{themeSelect(auto.dayTheme, (v) => set({ dayTheme: v as never }))}</Row>
+          <Row title={auto.mode === 'system' ? 'Dark mode theme' : 'Night theme'}>{themeSelect(auto.nightTheme, (v) => set({ nightTheme: v as never }))}</Row>
+        </>
+      )}
+      {auto.mode === 'schedule' && (
+        <Row title="Day starts / night starts">
+          <div className="row">
+            <input className="input" type="time" value={auto.dayStart} onChange={(e) => set({ dayStart: e.target.value })} />
+            <input className="input" type="time" value={auto.nightStart} onChange={(e) => set({ nightStart: e.target.value })} />
+          </div>
+        </Row>
+      )}
+    </Group>
   )
 }
 

@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Check, Cpu, Download, Palette, Search, Sparkles } from 'lucide-react'
 import type { ImportResult, ImportSource } from '@shared/ipc'
-import { SEARCH_ENGINES, type ThemeId } from '@shared/settings'
+import { SEARCH_ENGINES } from '@shared/settings'
 import { invoke, invokeRaw } from '../lib/ipc'
-import { THEMES } from '../lib/themes'
+import { ThemeGallery } from '../components/ThemeGallery'
 import { loadUrl } from '../stores/browser'
 import { setSetting, useSetting } from '../stores/settings'
 import { SpecterMark, Switch } from '../components/ui'
@@ -112,31 +112,16 @@ function StepWelcome() {
 }
 
 function StepAppearance() {
-  const theme = useSetting('appearance.theme')
   const motion = useSetting('appearance.motion')
   return (
     <div className="col" style={{ gap: 14 }}>
       <h2 className="section-title" style={{ fontSize: 17 }}>
-        <Palette size={17} /> Choose an appearance
+        <Palette size={17} /> Pick your look
       </h2>
-      <div className="grid-4" style={{ gap: 10 }}>
-        {(Object.keys(THEMES) as ThemeId[]).map((id) => {
-          const t = THEMES[id]
-          return (
-            <button key={id} onClick={() => setSetting('appearance.theme', id)} style={{ padding: 0, border: theme === id ? '2px solid var(--accent)' : '1px solid var(--line-strong)', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: t.bg1, textAlign: 'left' }}>
-              <div style={{ height: 14, background: t.bg0, display: 'flex', gap: 3, alignItems: 'center', padding: '0 6px' }}>
-                <i style={{ width: 22, height: 6, borderRadius: 3, background: t.bg1 }} />
-                <i style={{ width: 16, height: 6, borderRadius: 3, background: t.bg3 }} />
-              </div>
-              <div style={{ padding: '10px 10px 12px' }}>
-                <div style={{ height: 8, width: '70%', borderRadius: 4, background: t.bg3, marginBottom: 6 }} />
-                <div style={{ height: 6, width: '40%', borderRadius: 3, background: t.accent }} />
-                <div style={{ fontSize: 11.5, marginTop: 10, color: t.fg0, fontFamily: t.font }}>{t.name}</div>
-              </div>
-            </button>
-          )
-        })}
-      </div>
+      <p className="muted" style={{ margin: 0 }}>
+        Each theme changes the whole interface — tabs, layout, type and effects. You can fine-tune colours later in Settings → Appearance.
+      </p>
+      <ThemeGallery compact />
       <div className="setting">
         <div className="st-text">
           <div className="st-title">Animations</div>
