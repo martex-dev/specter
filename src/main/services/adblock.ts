@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FiltersEngine, Request } from '@ghostery/adblocker'
-import { FILTER_LISTS, LIST_MAX_AGE_MS, RESOURCES_URL, countRules, isAllowlisted, type AdblockStatus } from '@shared/adblock'
+import { FILTER_LISTS, LIST_MAX_AGE_MS, RESOURCES_URL, countRules, isAllowlisted, listMirrors, type AdblockStatus } from '@shared/adblock'
 import { hostname } from '@shared/url'
 import { broadcast, handle } from '../ipc'
 import { createLogger } from '../logger'
@@ -73,11 +73,20 @@ let fetchSession: Session | null = null
 async function download(url: string): Promise<string> {
   // A private in-memory session: list downloads carry no cookies and leave no cache.
   fetchSession ??= electronSession.fromPartition('specter-adblock-lists', { cache: false })
-  const res = await fetchSession.fetch(url, { signal: AbortSignal.timeout(60_000), cache: 'no-store' })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const text = await res.text()
-  if (text.length < 64) throw new Error('empty response')
-  return text
+  let lastErr: unknown
+  for (const u of listMirrors(url)) {
+    try {
+      const res = await fetchSession.fetch(u, { signal: AbortSignal.timeout(60_000), cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const text = await res.text()
+      // An HTML error page or an empty body is never a filter list.
+      if (text.length < 64 || /^\s*<(!doctype|html)/i.test(text)) throw new Error('not a filter list')
+      return text
+    } catch (err) {
+      lastErr = err
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
 }
 
 function compileInWorker(filters: string, resources: string | null): Promise<Uint8Array> {

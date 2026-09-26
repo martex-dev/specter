@@ -66,6 +66,15 @@ export const FILTER_LISTS: FilterList[] = [
   }
 ]
 
+/** Fallback hosts for a list URL, tried in order when the primary fails. */
+export function listMirrors(url: string): string[] {
+  const out = [url]
+  if (url.startsWith(UBO + '/')) out.push('https://ublockorigin.pages.dev/' + url.slice(UBO.length + 1))
+  const m = /\/thirdparties\/(easylist|easyprivacy)\.txt$/.exec(url)
+  if (m) out.push(`https://easylist.to/easylist/${m[1]}.txt`)
+  return out
+}
+
 /**
  * Scriptlet and redirect implementations (uBlock Origin's, converted to the
  * engine's format by the Ghostery adblocker project). Always loaded.
