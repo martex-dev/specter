@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRightLeft, Camera, Copy, Download, GitCompare, Layers, Pencil, Play, Plus, RotateCcw, Trash2, Upload } from 'lucide-react'
-import type { SavedLayout, Workspace, WorkspaceSnapshot } from '@shared/types'
+import type { SavedLayout, Workspace, WorkspaceSnapshot, WorkspaceState } from '@shared/types'
 import { invoke } from '../lib/ipc'
 import { WORKSPACE_COLORS, WORKSPACE_ICONS, workspaceIcon } from '../lib/icons'
 import { timeAgo } from '../lib/format'
-import { activeWs, createWorkspaceAndSwitch, newTab, refreshWorkspaceList, restoreSnapshotIntoWorkspace, setLayout, switchWorkspace, useBrowser, flushAll } from '../stores/browser'
+import { activeWs, createWorkspaceAndSwitch, newTab, refreshWorkspaceList, restoreSnapshotIntoWorkspace, setLayout, switchWorkspace, useBrowser, flushAll, uid } from '../stores/browser'
 import { openMenu, toast } from '../stores/ui'
 import { confirmAction, promptText } from '../components/prompt'
 import { Favicon, Modal } from '../components/ui'
@@ -20,7 +20,13 @@ export default function Workspaces({ sub }: PageProps) {
   const [layouts, setLayouts] = useState<SavedLayout[]>([])
   const ws = workspaces.find((w) => w.id === sel) ?? workspaces[0]
 
-  const loadSnaps = () => ws && invoke('workspaces:snapshots', ws.id).then(setSnaps)
+  const loadSnaps = () =>
+    ws &&
+    invoke('workspaces:snapshots', ws.id).then((list) => {
+      setSnaps(list)
+      // Drop picks for snapshots that no longer exist (deleted), or "Compare" opens with undefined.
+      setPick((p) => p.filter((id) => list.some((s) => s.id === id)))
+    })
   useEffect(() => {
     refreshWorkspaceList()
     invoke('workspaces:layouts').then(setLayouts)
@@ -160,7 +166,7 @@ export default function Workspaces({ sub }: PageProps) {
                 onClick={async () => {
                   const name = await promptText({ title: 'Duplicate workspace', initial: ws.name + ' copy' })
                   if (!name) return
-                  await invoke('workspaces:create', { name, icon: ws.icon, color: ws.color, state: { ...ws.state, tabs: ws.state.tabs.map((t) => ({ ...t, id: 't_' + Math.random().toString(36).slice(2), suspended: true })) } })
+                  await invoke('workspaces:create', { name, icon: ws.icon, color: ws.color, state: withFreshTabIds(ws.state) })
                   refreshWorkspaceList()
                 }}
               >
@@ -241,14 +247,22 @@ export default function Workspaces({ sub }: PageProps) {
                 <button
                   className="btn sm"
                   onClick={async () => {
-                    await invoke('workspaces:create', { name: `${ws.name} · ${s.label}`.slice(0, 60), icon: ws.icon, color: ws.color, state: s.state })
+                    await invoke('workspaces:create', { name: `${ws.name} · ${s.label}`.slice(0, 60), icon: ws.icon, color: ws.color, state: withFreshTabIds(s.state) })
                     refreshWorkspaceList()
                     toast({ kind: 'ok', title: 'Snapshot opened as new workspace' })
                   }}
                 >
                   As new
                 </button>
-                <button className="icon-btn sm" onClick={() => invoke('workspaces:deleteSnapshot', s.id).then(loadSnaps)} aria-label="Delete snapshot">
+                <button
+                  className="icon-btn sm"
+                  onClick={async () => {
+                    if (!(await confirmAction(`Delete snapshot “${s.label}”?`, `Its ${s.tabCount} saved tabs can't be restored afterwards.`, 'Delete', true))) return
+                    await invoke('workspaces:deleteSnapshot', s.id)
+                    loadSnaps()
+                  }}
+                  aria-label="Delete snapshot"
+                >
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -290,6 +304,27 @@ export default function Workspaces({ sub }: PageProps) {
       {activeWs() && null}
     </div>
   )
+}
+
+/**
+ * Copy of a workspace state with new tab ids (tab ids must be unique across the
+ * workspaces open in a window — they key webviews and tab lookups), keeping the
+ * active tab and split panes pointing at the copied tabs.
+ */
+function withFreshTabIds(state: WorkspaceState): WorkspaceState {
+  const ids = new Map<string, string>()
+  const tabs = state.tabs.map((t) => {
+    const id = uid()
+    ids.set(t.id, id)
+    return { ...t, id, suspended: true }
+  })
+  const panes = state.layout.panes.map((p) => ids.get(p)).filter((p): p is string => !!p)
+  return {
+    ...state,
+    tabs,
+    activeTabId: ids.get(state.activeTabId ?? '') ?? tabs[0]?.id,
+    layout: panes.length > 1 ? { ...state.layout, panes } : { preset: 'single', panes: [] }
+  }
 }
 
 function CompareModal({ a, b, onClose }: { a: WorkspaceSnapshot; b: WorkspaceSnapshot; onClose: () => void }) {
