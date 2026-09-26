@@ -23,6 +23,7 @@ import { registerNotificationsIpc } from './services/notifications'
 import { registerDiagnosticsIpc } from './services/diagnostics'
 import { registerUpdatesIpc } from './services/updates'
 import { registerModules } from './modules'
+import { desktopUserAgent } from '@shared/modules/webapps'
 
 // Allow tests / portable installs to isolate the profile directory.
 if (process.env.SPECTER_USER_DATA) app.setPath('userData', process.env.SPECTER_USER_DATA)
@@ -144,6 +145,8 @@ async function bootstrapProfile(): Promise<void> {
 
 app.whenReady().then(async () => {
   const t0 = performance.now()
+  // Present as plain Chrome: some sites (e.g. Google sign-in) refuse user agents that mention Electron.
+  app.userAgentFallback = desktopUserAgent(app.userAgentFallback)
   Menu.setApplicationMenu(null)
   installGuestHardening()
   registerIpc()
@@ -203,6 +206,9 @@ app.on('before-quit', (e) => {
 
 app.on('will-quit', () => {
   closeDatabase()
+  // Some pages (seen with Discord in a sidebar panel) keep the process alive
+  // after every window closed. Everything is flushed by now, so force exit.
+  setTimeout(() => app.exit(0), 3000).unref()
 })
 
 process.on('uncaughtException', (err) => log.error('uncaught exception', err))
