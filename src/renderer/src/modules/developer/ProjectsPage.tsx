@@ -414,7 +414,8 @@ function Overview({ project, detail }: { project: ProjectInfo; detail: ProjectDe
               <span>Files</span>
               <span className="num">
                 {(indexing && prog ? prog.files : idx.files).toLocaleString()}
-                {idx.truncated && !indexing && <span className="warn"> (capped at 50,000)</span>}
+                {/* truncated is also set when the user stops indexing — that is not the file cap. */}
+                {idx.truncated && !indexing && <span className="warn">{idx.state === 'cancelled' ? ' (partial — indexing was stopped)' : ' (capped at 50,000)'}</span>}
               </span>
               <span>Folders</span>
               <span className="num">{(indexing && prog ? prog.dirs : idx.dirs).toLocaleString()}</span>
