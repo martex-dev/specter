@@ -31,15 +31,14 @@ const toBookmark = (r: Row): Bookmark => ({
   favicon: r.favicon ?? undefined
 })
 
-export const barFolderId = (): string => 'bar_' + activeProfileId()
-export const otherFolderId = (): string => 'other_' + activeProfileId()
+export const barFolderId = (profileId = activeProfileId()): string => 'bar_' + profileId
+export const otherFolderId = (profileId = activeProfileId()): string => 'other_' + profileId
 
-export function ensureBookmarkRoots(): void {
-  const p = activeProfileId()
-  if (!get('SELECT id FROM bookmarks WHERE id = ?', barFolderId()))
-    run("INSERT INTO bookmarks(id, parent_id, kind, title, sort, created_at, profile_id) VALUES(?, NULL, 'folder', 'Bookmarks Bar', 0, ?, ?)", barFolderId(), Date.now(), p)
-  if (!get('SELECT id FROM bookmarks WHERE id = ?', otherFolderId()))
-    run("INSERT INTO bookmarks(id, parent_id, kind, title, sort, created_at, profile_id) VALUES(?, NULL, 'folder', 'Other Bookmarks', 1, ?, ?)", otherFolderId(), Date.now(), p)
+export function ensureBookmarkRoots(p = activeProfileId()): void {
+  if (!get('SELECT id FROM bookmarks WHERE id = ?', barFolderId(p)))
+    run("INSERT INTO bookmarks(id, parent_id, kind, title, sort, created_at, profile_id) VALUES(?, NULL, 'folder', 'Bookmarks Bar', 0, ?, ?)", barFolderId(p), Date.now(), p)
+  if (!get('SELECT id FROM bookmarks WHERE id = ?', otherFolderId(p)))
+    run("INSERT INTO bookmarks(id, parent_id, kind, title, sort, created_at, profile_id) VALUES(?, NULL, 'folder', 'Other Bookmarks', 1, ?, ?)", otherFolderId(p), Date.now(), p)
 }
 
 export function listBookmarks(): Bookmark[] {
@@ -67,10 +66,11 @@ export function bookmarkBatch<T>(fn: () => T): T {
   }
 }
 
-export function addBookmark(b: Partial<Bookmark> & { title: string; kind: Bookmark['kind'] }): Bookmark {
-  ensureBookmarkRoots()
+/** Adds a bookmark or folder; importers pass the profile they're filling (default: the active one). */
+export function addBookmark(b: Partial<Bookmark> & { title: string; kind: Bookmark['kind'] }, profileId = activeProfileId()): Bookmark {
+  ensureBookmarkRoots(profileId)
   const id = uid('bm_')
-  const parent = b.parentId ?? barFolderId()
+  const parent = b.parentId ?? barFolderId(profileId)
   const sort = (get<{ m: number }>('SELECT COALESCE(MAX(sort), -1) AS m FROM bookmarks WHERE parent_id = ?', parent)?.m ?? -1) + 1
   run(
     'INSERT INTO bookmarks(id, parent_id, kind, title, url, tags, workspace_id, sort, created_at, favicon, profile_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
@@ -84,7 +84,7 @@ export function addBookmark(b: Partial<Bookmark> & { title: string; kind: Bookma
     sort,
     Date.now(),
     b.favicon ?? null,
-    activeProfileId()
+    profileId
   )
   changed()
   return toBookmark(get<Row>('SELECT * FROM bookmarks WHERE id = ?', id)!)
