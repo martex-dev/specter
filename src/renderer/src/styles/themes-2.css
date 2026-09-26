@@ -1,0 +1,1560 @@
+/* Theme packs, part 2: Blueprint, Brutal, Retro, Holo, Glitch — their tab
+   shapes and identities. Ambient animation only runs when [data-effects='on']. */
+
+@property --holo-a {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+/* ================================================================ tab shapes */
+
+/* ---- sheet: drafting-sheet tabs with a dimension line on the active one ---- */
+[data-tabs='sheet'] .tab {
+  height: calc(var(--titlebar-h) - 9px);
+  margin-right: 5px;
+  border-radius: 0;
+  border: 1px dashed var(--line-strong);
+  border-bottom: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-basis: 200px;
+}
+[data-tabs='sheet'] .tab::after {
+  display: none;
+}
+[data-tabs='sheet'] .tab:hover {
+  background: color-mix(in srgb, var(--fg-0) 5%, transparent);
+  border-style: solid;
+}
+[data-tabs='sheet'] .tab.active {
+  background: var(--bg-1);
+  border: 1px solid var(--accent);
+  border-bottom: none;
+  color: var(--fg-0);
+}
+[data-tabs='sheet'] .tab.active::before {
+  /* dimension line |<-------->| */
+  left: -1px;
+  right: -1px;
+  top: -6px;
+  height: 5px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) center / 100% 1px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left / 1px 100% no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right / 1px 100% no-repeat;
+}
+[data-tabs='sheet'] .tab.pinned {
+  width: 44px;
+  flex-basis: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* ---- sticker: brutalist blocks with hard offset shadows ---- */
+[data-tabs='sticker'] .titlebar,
+[data-tabs='sticker'] .tabstrip,
+[data-tabs='sticker'] .tabstrip-scroll {
+  align-items: center;
+}
+[data-tabs='sticker'] .tabstrip-scroll {
+  padding: 0 6px 4px 2px;
+}
+[data-tabs='sticker'] .tab {
+  height: 27px;
+  margin: 0 8px 0 0;
+  border-radius: 0;
+  border: 2px solid var(--fg-0);
+  background: var(--bg-2);
+  color: var(--fg-0);
+  box-shadow: 3px 3px 0 var(--fg-0);
+  font-weight: 700;
+  flex-basis: 190px;
+  transition:
+    transform 120ms var(--ease),
+    box-shadow 120ms var(--ease),
+    background var(--dur) var(--ease);
+}
+[data-tabs='sticker'] .tab::after,
+[data-tabs='sticker'] .tab.active::before {
+  display: none;
+}
+[data-tabs='sticker'] .tab:hover {
+  background: var(--bg-3);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--fg-0);
+}
+[data-tabs='sticker'] .tab.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+  transform: rotate(-1.5deg);
+  box-shadow: 4px 4px 0 var(--fg-0);
+}
+[data-tabs='sticker'] .tab.active .tab-close,
+[data-tabs='sticker'] .tab.active .tab-audio {
+  color: var(--accent-fg);
+}
+[data-tabs='sticker'] .tab.pinned {
+  width: 36px;
+  flex-basis: 36px;
+  padding: 0;
+  justify-content: center;
+}
+[data-tabs='sticker'] .tab-group-line {
+  bottom: -7px;
+  height: 3px;
+  left: 0;
+  right: 0;
+}
+
+/* ---- bevel: classic desktop taskbar buttons ---- */
+[data-tabs='bevel'] .titlebar,
+[data-tabs='bevel'] .tabstrip,
+[data-tabs='bevel'] .tabstrip-scroll {
+  align-items: center;
+}
+[data-tabs='bevel'] .tab {
+  height: 24px;
+  margin-right: 3px;
+  border-radius: 0;
+  padding: 0 4px 0 6px;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  box-shadow:
+    inset -1px -1px var(--line-strong),
+    inset 1px 1px #ffffff,
+    inset -2px -2px var(--line),
+    inset 2px 2px var(--bg-3);
+  font-size: 11.5px;
+  flex-basis: 170px;
+}
+[data-tabs='bevel'] .tab::after,
+[data-tabs='bevel'] .tab.active::before {
+  display: none;
+}
+[data-tabs='bevel'] .tab:hover {
+  background: var(--bg-1);
+}
+[data-tabs='bevel'] .tab.active {
+  font-weight: 700;
+  box-shadow:
+    inset 1px 1px var(--line-strong),
+    inset -1px -1px #ffffff,
+    inset 2px 2px var(--line),
+    inset -2px -2px var(--bg-3);
+  background: repeating-conic-gradient(#ffffff 0 25%, var(--bg-1) 0 50%) 0 0 / 2px 2px;
+}
+[data-tabs='bevel'] .tab.active .tab-title {
+  background: var(--bg-1);
+  padding: 0 2px;
+}
+[data-tabs='bevel'] .tab-close {
+  border-radius: 0;
+  width: 16px;
+  height: 14px;
+  background: var(--bg-1);
+  box-shadow:
+    inset -1px -1px var(--line-strong),
+    inset 1px 1px #ffffff;
+  opacity: 1;
+  color: var(--fg-0);
+}
+[data-tabs='bevel'] .tab.pinned {
+  width: 30px;
+  flex-basis: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* ---- holo: pearl capsules with a prism border ---- */
+[data-tabs='holo'] .titlebar,
+[data-tabs='holo'] .tabstrip,
+[data-tabs='holo'] .tabstrip-scroll {
+  align-items: center;
+}
+[data-tabs='holo'] .tab {
+  height: 29px;
+  margin: 0 3px;
+  border-radius: 999px;
+  padding: 0 6px 0 11px;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(color-mix(in srgb, var(--solid-1) 70%, transparent), color-mix(in srgb, var(--solid-1) 70%, transparent)) padding-box,
+    linear-gradient(var(--line-strong), var(--line-strong)) border-box;
+  flex-basis: 200px;
+}
+[data-tabs='holo'] .tab::after,
+[data-tabs='holo'] .tab.active::before {
+  display: none;
+}
+[data-tabs='holo'] .tab:hover {
+  background:
+    linear-gradient(var(--solid-1), var(--solid-1)) padding-box,
+    linear-gradient(115deg, var(--accent), var(--accent-3), var(--accent-2)) border-box;
+}
+[data-tabs='holo'] .tab.active {
+  color: var(--fg-0);
+  font-weight: 600;
+  background:
+    linear-gradient(var(--solid-2), var(--solid-2)) padding-box,
+    conic-gradient(from var(--holo-a), var(--accent), var(--accent-3), var(--accent-2), var(--accent)) border-box;
+  box-shadow:
+    0 4px 18px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--accent-3) 10%, transparent);
+}
+[data-effects='on'][data-tabs='holo'] .tab.active {
+  animation: holo-spin 6s linear infinite;
+}
+[data-tabs='holo'] .tab.pinned {
+  width: 36px;
+  flex-basis: 36px;
+  padding: 0;
+  justify-content: center;
+}
+[data-tabs='holo'] .tab-close {
+  border-radius: 50%;
+}
+[data-tabs='holo'] .tab-group-line {
+  left: 14px;
+  right: 14px;
+  bottom: -3px;
+  border-radius: 2px;
+}
+@keyframes holo-spin {
+  to {
+    --holo-a: 360deg;
+  }
+}
+
+/* ---- notch: glitch panels with a cut corner ---- */
+[data-tabs='notch'] .tab {
+  height: calc(var(--titlebar-h) - 8px);
+  border-radius: 0;
+  margin-right: 3px;
+  padding: 0 14px 0 12px;
+  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+  background: color-mix(in srgb, var(--bg-2) 80%, transparent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  flex-basis: 200px;
+}
+[data-tabs='notch'] .tab::after {
+  display: none;
+}
+[data-tabs='notch'] .tab:hover {
+  background: var(--bg-3);
+}
+[data-tabs='notch'] .tab.active {
+  background: var(--bg-1);
+  color: var(--fg-0);
+  text-shadow:
+    -1px 0 color-mix(in srgb, var(--accent) 80%, transparent),
+    1px 0 color-mix(in srgb, var(--accent-2) 80%, transparent);
+}
+[data-tabs='notch'] .tab.active::before {
+  left: 0;
+  right: auto;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  height: auto;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+[data-effects='on'][data-tabs='notch'] .tab:hover .tab-title {
+  animation: glitch-jitter 260ms steps(2) 2;
+}
+[data-tabs='notch'] .tab.pinned {
+  width: 46px;
+  flex-basis: 46px;
+  padding: 0 8px 0 10px;
+}
+
+/* ================================================================ BLUEPRINT */
+
+[data-theme='blueprint'] .app-backdrop {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 80px 80px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 80px 80px,
+    linear-gradient(color-mix(in srgb, var(--line) 45%, transparent) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 45%, transparent) 1px, transparent 1px) 0 0 / 16px 16px,
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 70%),
+    var(--bg-0);
+}
+[data-theme='blueprint'][data-effects='on'] .app-backdrop::after {
+  /* plotter head sweeping the sheet */
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--accent-2), transparent);
+  box-shadow: 0 0 18px var(--accent-2);
+  opacity: 0.35;
+  animation: bp-sweep 14s linear infinite;
+}
+@keyframes bp-sweep {
+  from {
+    left: -2%;
+  }
+  to {
+    left: 102%;
+  }
+}
+[data-theme='blueprint'] .titlebar,
+[data-theme='blueprint'] .statusbar,
+[data-theme='blueprint'] .main {
+  background: transparent;
+}
+[data-theme='blueprint'] .toolbar,
+[data-theme='blueprint'] .bookmarks-bar {
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+}
+[data-theme='blueprint'] .toolbar {
+  border-top: 1px solid var(--accent);
+}
+[data-theme='blueprint'] .toolbar::after {
+  /* ruler ticks along the toolbar edge */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, var(--line-strong) 0 1px, transparent 1px 8px) bottom / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, var(--accent-2) 0 1px, transparent 1px 80px) bottom / 100% 7px no-repeat;
+  opacity: 0.7;
+}
+[data-theme='blueprint'] .toolbar-bottom-line {
+  display: none;
+}
+[data-theme='blueprint'] .brand {
+  color: var(--accent);
+}
+[data-theme='blueprint'] .ws-pill {
+  border-radius: 0;
+  border: 1px solid var(--accent);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+[data-theme='blueprint'] .omnibox {
+  border-radius: 0;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--bg-0) 60%, transparent);
+  font-family: var(--font-mono);
+}
+[data-theme='blueprint'] .omnibox.focused {
+  border-color: var(--accent);
+  box-shadow:
+    -6px 0 0 -5px var(--accent),
+    6px 0 0 -5px var(--accent);
+}
+[data-theme='blueprint'] .btn,
+[data-theme='blueprint'] .input,
+[data-theme='blueprint'] .select,
+[data-theme='blueprint'] .seg {
+  border-radius: 0;
+}
+[data-theme='blueprint'] .btn {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  border-style: solid;
+}
+[data-theme='blueprint'] .btn.primary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+[data-theme='blueprint'] .btn.primary:hover {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='blueprint'] .card,
+[data-theme='blueprint'] .ntp-card,
+[data-theme='blueprint'] .pop,
+[data-theme='blueprint'] .modal,
+[data-theme='blueprint'] .palette {
+  border-radius: 0;
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  background:
+    linear-gradient(var(--accent-2), var(--accent-2)) top left / 9px 1px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) top left / 1px 9px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) top right / 9px 1px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) top right / 1px 9px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom left / 9px 1px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom left / 1px 9px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom right / 9px 1px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom right / 1px 9px no-repeat,
+    color-mix(in srgb, var(--bg-1) 92%, transparent);
+}
+[data-theme='blueprint'] .pop,
+[data-theme='blueprint'] .palette {
+  background-color: var(--solid-1);
+}
+[data-theme='blueprint'] .label,
+[data-theme='blueprint'] .page-kicker,
+[data-theme='blueprint'] .ntp-card-h {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-2);
+}
+[data-theme='blueprint'] .page-title,
+[data-theme='blueprint'] .section-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+[data-theme='blueprint'] .rail.dock,
+[data-theme='blueprint'] .sidepanel {
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+}
+[data-theme='blueprint'] .dock-btn {
+  border-radius: 0;
+}
+[data-theme='blueprint'] .dock-btn.on {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+[data-theme='blueprint'] .dock-btn.on::before {
+  background: var(--accent-2);
+}
+[data-theme='blueprint'] .sidepanel-h {
+  border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+[data-theme='blueprint'] .statusbar {
+  border-top: 1px solid var(--line-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-theme='blueprint'] .ntp {
+  background: transparent;
+}
+[data-theme='blueprint'] .ntp-brand {
+  /* drawing title block */
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  border: 1px solid var(--accent);
+  padding: 8px 16px;
+  position: relative;
+  color: var(--fg-0);
+  background: color-mix(in srgb, var(--bg-0) 70%, transparent);
+}
+[data-theme='blueprint'] .ntp-brand::before {
+  content: 'DWG · 01';
+  position: absolute;
+  left: -1px;
+  top: -18px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent-2);
+}
+[data-theme='blueprint'] .ntp-brand::after {
+  content: 'SCALE 1:1';
+  position: absolute;
+  right: -1px;
+  bottom: -18px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent-2);
+}
+[data-theme='blueprint'] .ntp-greeting {
+  margin-top: 16px;
+}
+[data-theme='blueprint'] .ntp-clock {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 84px;
+  letter-spacing: 0.02em;
+  padding: 0 22px 10px;
+  background:
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom / 100% 1px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--accent-2), var(--accent-2)) bottom right / 1px 12px no-repeat;
+}
+[data-theme='blueprint'] .ntp-date {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+}
+[data-theme='blueprint'] .ntp-search {
+  border-radius: 0;
+  border: 1px dashed var(--accent);
+  background: color-mix(in srgb, var(--bg-0) 80%, transparent);
+  box-shadow: none;
+  font-family: var(--font-mono);
+}
+[data-theme='blueprint'] .quick-link,
+[data-theme='blueprint'] .quick-link .ql-icon {
+  border-radius: 0;
+}
+[data-theme='blueprint'] .quick-link:hover {
+  border: 1px dashed var(--line-strong);
+}
+[data-theme='blueprint'] .switch,
+[data-theme='blueprint'] .switch::after {
+  border-radius: 0;
+}
+
+/* ================================================================ BRUTAL */
+
+[data-theme='brutal'] body,
+[data-theme='brutal'] .app {
+  font-weight: 500;
+}
+[data-theme='brutal'] ::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='brutal'] .app-backdrop {
+  background:
+    radial-gradient(color-mix(in srgb, var(--fg-0) 22%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+    var(--bg-0);
+}
+[data-theme='brutal'] .titlebar,
+[data-theme='brutal'] .main {
+  background: transparent;
+}
+[data-theme='brutal'] .brand {
+  color: var(--fg-0);
+  background: var(--accent);
+  border: 2px solid var(--fg-0);
+  box-shadow: 2px 2px 0 var(--fg-0);
+  padding: 2px;
+}
+[data-theme='brutal'] .ws-pill {
+  border: 2px solid var(--fg-0);
+  border-radius: 0;
+  background: var(--accent-2);
+  color: var(--bg-2);
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 var(--fg-0);
+}
+[data-theme='brutal'] .toolbar {
+  background: var(--bg-1);
+  border-top: 3px solid var(--fg-0);
+  border-bottom: 3px solid var(--fg-0);
+}
+[data-theme='brutal'] .toolbar-bottom-line {
+  display: none;
+}
+[data-theme='brutal'] .bookmarks-bar {
+  background: var(--bg-1);
+  border-bottom: 3px solid var(--fg-0);
+}
+[data-theme='brutal'] .omnibox {
+  border: 2px solid var(--fg-0);
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: 3px 3px 0 var(--fg-0);
+  font-weight: 600;
+}
+[data-theme='brutal'] .omnibox.focused {
+  box-shadow: 6px 6px 0 var(--fg-0);
+  transform: translate(-2px, -2px);
+}
+[data-theme='brutal'] .icon-btn {
+  border-radius: 0;
+}
+[data-theme='brutal'] .icon-btn:hover {
+  background: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: inset 0 0 0 2px var(--fg-0);
+}
+[data-theme='brutal'] .btn,
+[data-theme='brutal'] .input,
+[data-theme='brutal'] .select,
+[data-theme='brutal'] .seg {
+  border: 2px solid var(--fg-0);
+  border-radius: 0;
+}
+[data-theme='brutal'] .btn {
+  background: var(--bg-2);
+  color: var(--fg-0);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  box-shadow: 3px 3px 0 var(--fg-0);
+  transition:
+    transform 90ms var(--ease),
+    box-shadow 90ms var(--ease);
+}
+[data-theme='brutal'] .btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--fg-0);
+}
+[data-theme='brutal'] .btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--fg-0);
+}
+[data-theme='brutal'] .btn.primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='brutal'] .input:focus,
+[data-theme='brutal'] .select:focus {
+  box-shadow: 3px 3px 0 var(--accent-2);
+}
+[data-theme='brutal'] .card,
+[data-theme='brutal'] .ntp-card,
+[data-theme='brutal'] .pop,
+[data-theme='brutal'] .modal,
+[data-theme='brutal'] .palette,
+[data-theme='brutal'] .toast {
+  border: 2px solid var(--fg-0);
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: 6px 6px 0 var(--fg-0);
+}
+[data-theme='brutal'] .menu-item {
+  border-radius: 0;
+  font-weight: 600;
+}
+[data-theme='brutal'] .menu-item:hover,
+[data-theme='brutal'] .menu-item.sel {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='brutal'] .switch {
+  border: 2px solid var(--fg-0);
+  border-radius: 0;
+}
+[data-theme='brutal'] .switch::after {
+  border-radius: 0;
+  border: 2px solid var(--fg-0);
+}
+[data-theme='brutal'] .rail.dock {
+  background: var(--bg-1);
+  border-left: 3px solid var(--fg-0);
+}
+[data-theme='brutal'] .rail.dock-left {
+  border-left: none;
+  border-right: 3px solid var(--fg-0);
+}
+[data-theme='brutal'] .dock-btn {
+  border-radius: 0;
+  border: 2px solid transparent;
+  color: var(--fg-0);
+}
+[data-theme='brutal'] .dock-btn:hover {
+  border-color: var(--fg-0);
+  background: var(--bg-2);
+  box-shadow: 2px 2px 0 var(--fg-0);
+}
+[data-theme='brutal'] .dock-btn.on {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--fg-0);
+  box-shadow: 3px 3px 0 var(--fg-0);
+}
+[data-theme='brutal'] .dock-btn.on::before {
+  display: none;
+}
+[data-theme='brutal'] .dock-badge {
+  border: 2px solid var(--fg-0);
+  box-shadow: none;
+  border-radius: 0;
+}
+[data-theme='brutal'] .sidepanel {
+  border-left: 3px solid var(--fg-0);
+  background: var(--bg-1);
+}
+[data-theme='brutal'] .sidepanel-h {
+  background: var(--accent-2);
+  border-bottom: 3px solid var(--fg-0);
+  color: var(--bg-2);
+}
+[data-theme='brutal'] .sidepanel-h h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 13px;
+}
+[data-theme='brutal'] .sidepanel-h .icon-btn {
+  color: var(--bg-2);
+}
+[data-theme='brutal'] .statusbar {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-top: 3px solid var(--fg-0);
+  font-weight: 700;
+}
+[data-theme='brutal'] .page-title,
+[data-theme='brutal'] .section-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+[data-theme='brutal'] .page-kicker,
+[data-theme='brutal'] .label {
+  display: inline-block;
+  background: var(--fg-0);
+  color: var(--bg-2);
+  padding: 1px 6px;
+  font-weight: 800;
+}
+[data-theme='brutal'] .ntp {
+  background: transparent;
+  overflow: hidden;
+}
+[data-theme='brutal'] .ntp::before {
+  /* marquee strip */
+  content: 'SPECTER ✦ BROWSE LOUD ✦ NO ACCOUNT NEEDED ✦ LOCAL FIRST ✦ SPECTER ✦ BROWSE LOUD ✦ NO ACCOUNT NEEDED ✦ LOCAL FIRST ✦ SPECTER ✦ BROWSE LOUD ✦ NO ACCOUNT NEEDED ✦ LOCAL FIRST ✦ ';
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  padding: 6px 0;
+  width: max-content;
+  background: var(--fg-0);
+  color: var(--accent);
+  border-bottom: 3px solid var(--fg-0);
+  pointer-events: none;
+}
+[data-theme='brutal'][data-effects='on'] .ntp::before {
+  animation: brutal-marquee 40s linear infinite;
+}
+@keyframes brutal-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+[data-theme='brutal'] .ntp-brand {
+  font-family: var(--font-display);
+  background: var(--accent-3);
+  color: #ffffff;
+  border: 2px solid var(--fg-0);
+  box-shadow: 4px 4px 0 var(--fg-0);
+  padding: 4px 12px;
+  transform: rotate(-3deg);
+  margin-top: 10px;
+}
+[data-theme='brutal'] .ntp-clock {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 104px;
+  letter-spacing: -0.04em;
+  color: var(--fg-0);
+  text-shadow: 5px 5px 0 var(--accent);
+}
+[data-theme='brutal'] .ntp-greeting {
+  background: var(--accent-2);
+  color: var(--bg-2);
+  border: 2px solid var(--fg-0);
+  padding: 2px 10px;
+  font-weight: 800;
+}
+[data-theme='brutal'] .ntp-date {
+  color: var(--fg-0);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+[data-theme='brutal'] .ntp-search {
+  border: 3px solid var(--fg-0);
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: 6px 6px 0 var(--fg-0);
+  height: 56px;
+  font-weight: 600;
+}
+[data-theme='brutal'] .quick-link {
+  border-radius: 0;
+}
+[data-theme='brutal'] .quick-link:hover {
+  border: 2px solid var(--fg-0);
+  background: var(--bg-2);
+  box-shadow: 4px 4px 0 var(--fg-0);
+}
+[data-theme='brutal'] .quick-link .ql-icon {
+  border-radius: 0;
+  border: 2px solid var(--fg-0);
+}
+
+/* ================================================================ RETRO */
+
+[data-theme='retro'] {
+  --bevel-out:
+    inset -1px -1px var(--line-strong),
+    inset 1px 1px #ffffff,
+    inset -2px -2px var(--line),
+    inset 2px 2px var(--bg-3);
+  --bevel-in:
+    inset 1px 1px var(--line),
+    inset -1px -1px #ffffff,
+    inset 2px 2px var(--line-strong),
+    inset -2px -2px var(--bg-3);
+  --caption: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+[data-theme='retro'] body,
+[data-theme='retro'] .app {
+  font-size: 11.5px;
+}
+[data-theme='retro'] ::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='retro'] .app-backdrop {
+  background: var(--bg-0);
+}
+[data-theme='retro'] .titlebar {
+  background: var(--caption);
+  color: var(--accent-fg);
+}
+[data-theme='retro'] .titlebar .brand,
+[data-theme='retro'] .titlebar .hud,
+[data-theme='retro'] .titlebar .hud-item,
+[data-theme='retro'] .titlebar .hud-item b {
+  color: var(--accent-fg);
+}
+[data-theme='retro'] .ws-pill {
+  border-radius: 0;
+  border: none;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  box-shadow: var(--bevel-out);
+  font-weight: 700;
+}
+[data-theme='retro'] .toolbar {
+  background: var(--bg-1);
+  box-shadow:
+    inset 0 1px #ffffff,
+    inset 0 -1px var(--line);
+}
+[data-theme='retro'] .toolbar-bottom-line {
+  display: none;
+}
+[data-theme='retro'] .bookmarks-bar {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+}
+[data-theme='retro'] .omnibox {
+  border-radius: 0;
+  border: none;
+  background: var(--bg-2);
+  box-shadow: var(--bevel-in);
+}
+[data-theme='retro'] .omnibox.focused {
+  box-shadow: var(--bevel-in);
+}
+[data-theme='retro'] .icon-btn {
+  border-radius: 0;
+}
+[data-theme='retro'] .icon-btn:hover {
+  background: var(--bg-1);
+  box-shadow:
+    inset -1px -1px var(--line),
+    inset 1px 1px #ffffff;
+}
+[data-theme='retro'] .icon-btn:active,
+[data-theme='retro'] .icon-btn.on {
+  background: var(--bg-1);
+  box-shadow:
+    inset 1px 1px var(--line),
+    inset -1px -1px #ffffff;
+}
+[data-theme='retro'] .btn {
+  border: none;
+  border-radius: 0;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  box-shadow: var(--bevel-out);
+  font-size: 11.5px;
+  justify-content: center;
+}
+[data-theme='retro'] .btn:not(.sm):not(.ghost) {
+  min-width: 72px;
+}
+[data-theme='retro'] .btn:hover {
+  background: var(--bg-1);
+}
+[data-theme='retro'] .btn:active {
+  box-shadow: var(--bevel-in);
+  padding-top: 1px;
+}
+[data-theme='retro'] .btn.primary {
+  background: var(--bg-1);
+  color: var(--fg-0);
+  outline: 1px solid var(--fg-0);
+  outline-offset: -1px;
+  font-weight: 700;
+}
+[data-theme='retro'] .input,
+[data-theme='retro'] .select,
+[data-theme='retro'] textarea {
+  border: none;
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: var(--bevel-in);
+}
+[data-theme='retro'] .seg {
+  border-radius: 0;
+  border: none;
+  box-shadow: var(--bevel-in);
+  background: var(--bg-1);
+}
+[data-theme='retro'] .seg > button {
+  border-radius: 0;
+}
+[data-theme='retro'] .switch {
+  border-radius: 0;
+  border: none;
+  background: var(--bg-2);
+  box-shadow: var(--bevel-in);
+}
+[data-theme='retro'] .switch::after {
+  border-radius: 0;
+  background: var(--bg-1);
+  box-shadow: var(--bevel-out);
+}
+[data-theme='retro'] .card,
+[data-theme='retro'] .pop,
+[data-theme='retro'] .modal,
+[data-theme='retro'] .palette,
+[data-theme='retro'] .toast,
+[data-theme='retro'] .ntp-card {
+  border: none;
+  border-radius: 0;
+  background: var(--bg-1);
+  box-shadow: var(--bevel-out);
+  color: var(--fg-0);
+}
+[data-theme='retro'] .pop,
+[data-theme='retro'] .palette,
+[data-theme='retro'] .modal {
+  box-shadow:
+    var(--bevel-out),
+    2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+[data-theme='retro'] .menu-item {
+  border-radius: 0;
+  color: var(--fg-0);
+}
+[data-theme='retro'] .menu-item:hover,
+[data-theme='retro'] .menu-item.sel,
+[data-theme='retro'] .palette-item.sel {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='retro'] .ntp-card-h,
+[data-theme='retro'] .sidepanel-h {
+  background: var(--caption);
+  color: var(--accent-fg);
+  font-weight: 700;
+  border: none;
+}
+[data-theme='retro'] .ntp-card-h {
+  margin: -14px -16px 10px;
+  padding: 3px 8px;
+}
+[data-theme='retro'] .ntp-card-h *,
+[data-theme='retro'] .sidepanel-h *,
+[data-theme='retro'] .sidepanel-h .icon-btn {
+  color: var(--accent-fg);
+}
+[data-theme='retro'] .sidepanel-h {
+  height: 26px;
+  margin: 3px;
+}
+[data-theme='retro'] .sidepanel {
+  background: var(--bg-1);
+  box-shadow: var(--bevel-out);
+  border: none;
+}
+[data-theme='retro'] .rail.dock {
+  background: var(--bg-1);
+  box-shadow:
+    inset 1px 0 #ffffff,
+    inset -1px 0 var(--line);
+  border: none;
+}
+[data-theme='retro'] .dock-btn {
+  border-radius: 0;
+  color: var(--fg-0);
+}
+[data-theme='retro'] .dock-btn:hover {
+  background: var(--bg-1);
+  box-shadow:
+    inset -1px -1px var(--line),
+    inset 1px 1px #ffffff;
+}
+[data-theme='retro'] .dock-btn.on {
+  background: repeating-conic-gradient(#ffffff 0 25%, var(--bg-1) 0 50%) 0 0 / 2px 2px;
+  box-shadow: var(--bevel-in);
+  color: var(--fg-0);
+}
+[data-theme='retro'] .dock-btn.on::before {
+  display: none;
+}
+[data-theme='retro'] .statusbar {
+  background: var(--bg-1);
+  border-top: 1px solid #ffffff;
+  color: var(--fg-0);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  padding: 2px 4px;
+  height: calc(var(--statusbar-h) + 2px);
+}
+[data-theme='retro'] .sb-item {
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px var(--line),
+    inset -1px -1px #ffffff;
+}
+[data-theme='retro'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: repeating-conic-gradient(#ffffff 0 25%, var(--bg-1) 0 50%) 0 0 / 2px 2px;
+}
+[data-theme='retro'] ::-webkit-scrollbar-thumb {
+  background: var(--bg-1);
+  border-radius: 0;
+  border: none;
+  box-shadow: var(--bevel-out);
+}
+[data-theme='retro'] .ntp {
+  background: var(--accent-3);
+}
+[data-theme='retro'] .ntp-brand {
+  /* start button */
+  background: var(--bg-1);
+  color: var(--fg-0);
+  box-shadow: var(--bevel-out);
+  padding: 4px 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+}
+[data-theme='retro'] .ntp-clock,
+[data-theme='retro'] .ntp-greeting,
+[data-theme='retro'] .ntp-date {
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #000000;
+}
+[data-theme='retro'] .ntp-clock {
+  font-weight: 700;
+  font-size: 60px;
+  letter-spacing: 0;
+}
+[data-theme='retro'] .ntp-search {
+  border: none;
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow:
+    var(--bevel-in),
+    0 0 0 3px var(--bg-1),
+    0 0 0 4px var(--line-strong);
+}
+[data-theme='retro'] .quick-link {
+  border-radius: 0;
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #000000;
+}
+[data-theme='retro'] .quick-link:hover {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  border: 1px dotted #ffffff;
+}
+[data-theme='retro'] .quick-link .ql-icon {
+  border-radius: 0;
+}
+
+/* ================================================================ HOLO */
+
+[data-theme='holo'] {
+  --holo: linear-gradient(115deg, var(--accent), var(--accent-3) 35%, var(--accent-2) 65%, var(--accent));
+}
+[data-theme='holo'] .app-backdrop {
+  background: var(--bg-0);
+}
+[data-theme='holo'] .app-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from var(--holo-a) at 60% 40%, color-mix(in srgb, var(--accent) 35%, transparent), color-mix(in srgb, var(--accent-3) 35%, transparent), color-mix(in srgb, var(--accent-2) 35%, transparent), color-mix(in srgb, var(--accent) 35%, transparent));
+  filter: blur(90px);
+  opacity: 0.75;
+}
+[data-theme='holo'][data-scheme='dark'] .app-backdrop::before {
+  opacity: 0.45;
+}
+[data-theme='holo'] .app-backdrop::after {
+  /* twinkling sparkles */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 18%, #ffffff 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 12%, #ffffff 0 1px, transparent 2px),
+    radial-gradient(circle at 64% 72%, #ffffff 0 1px, transparent 2px),
+    radial-gradient(circle at 28% 84%, #ffffff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 90% 58%, #ffffff 0 1px, transparent 2px),
+    radial-gradient(circle at 44% 36%, #ffffff 0 1px, transparent 2px);
+  opacity: 0.7;
+}
+[data-theme='holo'][data-effects='on'] .app-backdrop::before {
+  animation: holo-spin 40s linear infinite;
+}
+[data-theme='holo'][data-effects='on'] .app-backdrop::after {
+  animation: holo-twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes holo-twinkle {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 0.8;
+  }
+}
+[data-theme='holo'] .titlebar,
+[data-theme='holo'] .statusbar,
+[data-theme='holo'] .main {
+  background: transparent;
+}
+[data-theme='holo'] .toolbar,
+[data-theme='holo'] .bookmarks-bar,
+[data-theme='holo'] .rail.dock,
+[data-theme='holo'] .sidepanel {
+  background: color-mix(in srgb, var(--solid-1) 62%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+}
+[data-theme='holo'] .toolbar {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(color-mix(in srgb, var(--solid-1) 80%, transparent), color-mix(in srgb, var(--solid-1) 80%, transparent)) padding-box,
+    var(--holo) border-box;
+}
+[data-theme='holo'] .content {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--solid-1), var(--solid-1)) padding-box,
+    var(--holo) border-box;
+  box-shadow:
+    0 24px 70px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 2px 10px rgba(0, 0, 0, 0.08);
+}
+[data-theme='holo'] .brand {
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-3) 60%, transparent));
+}
+[data-theme='holo'] .ws-pill {
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--solid-2), var(--solid-2)) padding-box,
+    var(--holo) border-box;
+  font-weight: 600;
+}
+[data-theme='holo'] .omnibox {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--solid-2) 80%, transparent);
+}
+[data-theme='holo'] .omnibox.focused {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--solid-2), var(--solid-2)) padding-box,
+    conic-gradient(from var(--holo-a), var(--accent), var(--accent-3), var(--accent-2), var(--accent)) border-box;
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+[data-theme='holo'][data-effects='on'] .omnibox.focused {
+  animation: holo-spin 4s linear infinite;
+}
+[data-theme='holo'] .btn {
+  border-radius: 999px;
+}
+[data-theme='holo'] .btn.primary {
+  border: none;
+  color: #ffffff;
+  background: var(--holo);
+  background-size: 250% 100%;
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 35%, transparent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+[data-theme='holo'][data-effects='on'] .btn.primary {
+  animation: holo-slide 5s ease-in-out infinite alternate;
+}
+@keyframes holo-slide {
+  to {
+    background-position: 100% 0;
+  }
+}
+[data-theme='holo'] .card,
+[data-theme='holo'] .ntp-card,
+[data-theme='holo'] .pop,
+[data-theme='holo'] .palette,
+[data-theme='holo'] .modal {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(color-mix(in srgb, var(--solid-2) 88%, transparent), color-mix(in srgb, var(--solid-2) 88%, transparent)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 55%, transparent), color-mix(in srgb, var(--accent-3) 40%, transparent), color-mix(in srgb, var(--accent-2) 55%, transparent)) border-box;
+  backdrop-filter: blur(18px);
+}
+[data-theme='holo'] .pop,
+[data-theme='holo'] .palette,
+[data-theme='holo'] .modal {
+  background:
+    linear-gradient(var(--solid-2), var(--solid-2)) padding-box,
+    var(--holo) border-box;
+}
+[data-theme='holo'] .dock-btn {
+  border-radius: 12px;
+}
+[data-theme='holo'] .dock-btn.on {
+  color: #ffffff;
+  background: var(--holo);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+[data-theme='holo'] .dock-btn.on::before {
+  background: var(--holo);
+}
+[data-theme='holo'] .page-title,
+[data-theme='holo'] .ntp-clock {
+  background: linear-gradient(100deg, var(--fg-0) 10%, var(--accent) 35%, var(--accent-3) 50%, var(--accent-2) 65%, var(--fg-0) 90%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme='holo'][data-effects='on'] .ntp-clock {
+  animation: holo-shimmer 7s ease-in-out infinite alternate;
+}
+@keyframes holo-shimmer {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+[data-theme='holo'] .ntp {
+  background: transparent;
+}
+[data-theme='holo'] .ntp-clock {
+  font-weight: 250;
+  font-size: 88px;
+  letter-spacing: -0.04em;
+}
+[data-theme='holo'] .ntp-brand {
+  letter-spacing: 0.4em;
+  font-weight: 300;
+}
+[data-theme='holo'] .ntp-search {
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(color-mix(in srgb, var(--solid-2) 90%, transparent), color-mix(in srgb, var(--solid-2) 90%, transparent)) padding-box,
+    var(--holo) border-box;
+  box-shadow: 0 16px 50px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+[data-theme='holo'] .quick-link:hover {
+  background: color-mix(in srgb, var(--solid-2) 70%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+[data-theme='holo'] .switch.on,
+[data-theme='holo'] .switch[aria-checked='true'] {
+  background: var(--holo);
+  border-color: transparent;
+}
+
+/* ================================================================ GLITCH */
+
+[data-theme='glitch'] .app-backdrop {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    radial-gradient(80% 60% at 20% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    radial-gradient(70% 60% at 100% 100%, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 70%),
+    var(--bg-0);
+}
+[data-theme='glitch'] .app-backdrop::before {
+  /* static noise */
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme='glitch'][data-effects='on'] .app-backdrop::after {
+  /* horizontal tear rolling down the screen */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent-2) 9%, transparent) 40%, color-mix(in srgb, var(--accent) 9%, transparent) 60%, transparent);
+  animation: glitch-roll 9s linear infinite;
+}
+@keyframes glitch-roll {
+  from {
+    top: -10%;
+  }
+  to {
+    top: 110%;
+  }
+}
+@keyframes glitch-jitter {
+  0% {
+    transform: translate(0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, 0);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+@keyframes glitch-slice {
+  0%,
+  86%,
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translate(0);
+  }
+  88% {
+    clip-path: inset(18% 0 58% 0);
+    transform: translate(-6px, 0);
+  }
+  90% {
+    clip-path: inset(62% 0 12% 0);
+    transform: translate(5px, 0);
+  }
+  92% {
+    clip-path: inset(34% 0 40% 0);
+    transform: translate(-3px, 0);
+  }
+  94% {
+    clip-path: inset(0 0 0 0);
+    transform: translate(2px, 0);
+  }
+}
+[data-theme='glitch'] .titlebar,
+[data-theme='glitch'] .statusbar,
+[data-theme='glitch'] .main {
+  background: transparent;
+}
+[data-theme='glitch'] .toolbar {
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--accent) 70%, transparent),
+    0 2px 0 color-mix(in srgb, var(--accent-2) 45%, transparent);
+}
+[data-theme='glitch'] .toolbar-bottom-line {
+  display: none;
+}
+[data-theme='glitch'] .bookmarks-bar {
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+}
+[data-theme='glitch'] .brand {
+  color: var(--fg-0);
+  filter: drop-shadow(-1.5px 0 var(--accent)) drop-shadow(1.5px 0 var(--accent-2));
+}
+[data-theme='glitch'] .ws-pill {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-1));
+  border: none;
+}
+[data-theme='glitch'] .omnibox {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  font-family: var(--font-mono);
+  background: color-mix(in srgb, var(--bg-2) 85%, transparent);
+}
+[data-theme='glitch'] .omnibox.focused {
+  clip-path: none;
+  border-color: var(--accent);
+  box-shadow:
+    -2px -2px 0 color-mix(in srgb, var(--accent) 60%, transparent),
+    2px 2px 0 color-mix(in srgb, var(--accent-2) 60%, transparent);
+}
+[data-theme='glitch'] .btn {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+[data-theme='glitch'] .btn:hover {
+  text-shadow:
+    -1px 0 var(--accent),
+    1px 0 var(--accent-2);
+}
+[data-theme='glitch'][data-effects='on'] .btn:hover {
+  animation: glitch-jitter 220ms steps(2) 1;
+}
+[data-theme='glitch'] .btn.primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  box-shadow: 3px 0 0 var(--accent-2);
+}
+[data-theme='glitch'] .card,
+[data-theme='glitch'] .ntp-card,
+[data-theme='glitch'] .pop,
+[data-theme='glitch'] .palette,
+[data-theme='glitch'] .modal {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  border-color: var(--line-strong);
+  border-left: 2px solid var(--accent);
+  box-shadow: none;
+}
+[data-theme='glitch'] .pop,
+[data-theme='glitch'] .palette,
+[data-theme='glitch'] .modal {
+  background: var(--solid-1);
+}
+[data-theme='glitch'] .input,
+[data-theme='glitch'] .select,
+[data-theme='glitch'] .seg,
+[data-theme='glitch'] .switch,
+[data-theme='glitch'] .switch::after,
+[data-theme='glitch'] .menu-item {
+  border-radius: 0;
+}
+[data-theme='glitch'] .menu-item:hover,
+[data-theme='glitch'] .menu-item.sel {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+[data-theme='glitch'] .dock-btn {
+  border-radius: 0;
+}
+[data-theme='glitch'] .dock-btn:hover svg {
+  filter: drop-shadow(-1.5px 0 var(--accent)) drop-shadow(1.5px 0 var(--accent-2));
+}
+[data-theme='glitch'][data-effects='on'] .dock-btn:hover svg {
+  animation: glitch-jitter 200ms steps(2) 2;
+}
+[data-theme='glitch'] .dock-btn.on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--fg-0);
+}
+[data-theme='glitch'] .dock-btn.on::before {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+[data-theme='glitch'] .rail.dock,
+[data-theme='glitch'] .sidepanel {
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+}
+[data-theme='glitch'] .sidepanel-h,
+[data-theme='glitch'] .label,
+[data-theme='glitch'] .page-kicker,
+[data-theme='glitch'] .ntp-card-h,
+[data-theme='glitch'] .statusbar {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+[data-theme='glitch'] .label,
+[data-theme='glitch'] .page-kicker {
+  color: var(--accent-2);
+}
+[data-theme='glitch'] .statusbar {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+[data-theme='glitch'] .page-title,
+[data-theme='glitch'] .ntp-clock {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  text-shadow:
+    -2px 0 color-mix(in srgb, var(--accent) 85%, transparent),
+    2px 0 color-mix(in srgb, var(--accent-2) 85%, transparent);
+}
+[data-theme='glitch'] .ntp {
+  background: transparent;
+}
+[data-theme='glitch'] .ntp::before {
+  content: '▚ SPECTER // SIGNAL LOCKED ▞';
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--accent-2);
+  opacity: 0.7;
+}
+[data-theme='glitch'] .ntp-clock {
+  font-size: 96px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-theme='glitch'][data-effects='on'] .ntp-clock {
+  animation: glitch-slice 5.5s steps(1) infinite;
+}
+[data-theme='glitch'] .ntp-brand {
+  font-family: var(--font-mono);
+  letter-spacing: 0.5em;
+  color: var(--fg-1);
+}
+[data-theme='glitch'] .ntp-search {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  box-shadow: none;
+  font-family: var(--font-mono);
+}
+[data-theme='glitch'] .quick-link,
+[data-theme='glitch'] .quick-link .ql-icon {
+  border-radius: 0;
+}
+[data-theme='glitch'] .quick-link:hover {
+  border-color: var(--line-strong);
+  border-left: 2px solid var(--accent);
+}
+
+/* ---------------------------------------------------------------- shared */
+
+/* Let theme backdrops show through the new tab page. */
+[data-theme='blueprint'] .content:has(.ntp),
+[data-theme='brutal'] .content:has(.ntp),
+[data-theme='holo'] .content:has(.ntp),
+[data-theme='glitch'] .content:has(.ntp) {
+  background: transparent;
+}
+[data-theme='blueprint'] :is(.pane-body.internal, .internal-page, .viewport, .pane):has(.ntp),
+[data-theme='brutal'] :is(.pane-body.internal, .internal-page, .viewport, .pane):has(.ntp),
+[data-theme='holo'] :is(.pane-body.internal, .internal-page, .viewport, .pane):has(.ntp),
+[data-theme='glitch'] :is(.pane-body.internal, .internal-page, .viewport, .pane):has(.ntp) {
+  background: transparent;
+}
+[data-theme='holo'] .content:has(.ntp) {
+  background:
+    linear-gradient(color-mix(in srgb, var(--solid-1) 40%, transparent), color-mix(in srgb, var(--solid-1) 40%, transparent)) padding-box,
+    var(--holo) border-box;
+  backdrop-filter: blur(6px);
+}
+[data-theme='blueprint'] .internal-page,
+[data-theme='glitch'] .internal-page {
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+}
