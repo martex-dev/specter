@@ -4,7 +4,7 @@ import { BookmarkPlus, Minus, Pause, Play, Plus, Square, X } from 'lucide-react'
 import type { ReaderArticle } from '@shared/types'
 import { invoke } from '../lib/ipc'
 import { wcIdFor } from '../lib/webviews'
-import { updateTab } from '../stores/browser'
+import { loadUrl, newTab, updateTab } from '../stores/browser'
 import { toast } from '../stores/ui'
 import { runCommand } from '../lib/commands'
 import { Seg } from '../components/ui'
@@ -52,6 +52,22 @@ export function ReaderView({ tabId }: { tabId: string }) {
   const close = () => {
     speechSynthesis.cancel()
     updateTab(tabId, { reader: false })
+  }
+
+  // Article links live in SPECTER's own document, whose navigation is blocked (and whose
+  // window.open goes to the system browser): route them to the tab like page links.
+  const onLink = (e: React.MouseEvent) => {
+    const a = (e.target as HTMLElement).closest('a')
+    if (!a || (e.type === 'auxclick' && e.button !== 1)) return
+    e.preventDefault()
+    const href = a.getAttribute('href') ?? ''
+    if (href.startsWith('#')) {
+      scrollRef.current?.querySelector(`[id="${CSS.escape(href.slice(1))}"]`)?.scrollIntoView()
+      return
+    }
+    if (!/^https?:/i.test(a.href)) return
+    if (e.button === 1 || e.ctrlKey || e.metaKey || e.shiftKey) newTab(a.href, { background: !e.shiftKey, openerId: tabId })
+    else loadUrl(tabId, a.href)
   }
 
   const speak = () => {
@@ -184,7 +200,7 @@ export function ReaderView({ tabId }: { tabId: string }) {
             <div style={{ color: p.muted, fontSize: '0.78em', marginBottom: 28 }}>
               {[article.byline, `${Math.max(1, Math.round(article.textContent.split(/\s+/).length / 230))} min read`].filter(Boolean).join(' · ')}
             </div>
-            <div dangerouslySetInnerHTML={{ __html: html }} />
+            <div dangerouslySetInnerHTML={{ __html: html }} onClick={onLink} onAuxClick={onLink} />
           </article>
         )}
       </div>
