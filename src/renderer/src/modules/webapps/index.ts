@@ -112,6 +112,11 @@ export function register(): void {
     if (id) setRuntime(id, { blockedPermission: { permission: req.permission, origin: req.origin } })
   })
 
+  // Right-click inside an app's page (the page context menu only serves tabs).
+  on('guest:contextMenu', (p) => {
+    if (appIdForWcId(p.webContentsId)) void import('./contextMenu').then((m) => m.showAppContextMenu(p))
+  })
+
   // Ctrl+wheel / pinch zoom inside an app: remember the new factor.
   onRaw<{ id: string; args?: { wcId?: number; factor?: number } }>('command:run', ({ id, args }) => {
     if (id !== 'internal.zoomChanged' || !args?.wcId || !args.factor) return
