@@ -619,6 +619,18 @@ export function registerCoreCommands(): void {
       }
     },
     {
+      id: 'page.fontsList',
+      title: 'Fonts on this page',
+      category: 'Page',
+      icon: CaseSensitive,
+      keywords: ['whatfont', 'font', 'typography', 'typeface', 'web fonts', 'list'],
+      description: 'Every font family the page renders, with the platform font behind it and its web fonts.',
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
+        if (wcId !== null) void toggleFontInspector(wcId, { enable: true, panel: true })
+      }
+    },
+    {
       id: 'page.copyText',
       title: 'Copy clean page text',
       category: 'Page',
