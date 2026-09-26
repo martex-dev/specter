@@ -169,7 +169,21 @@ export default function DiffTool() {
         </div>
       )}
       <Pane label={stats.added || stats.removed ? 'Differences' : 'No differences'} style={{ flex: 1 }}>
-        {!da && !db ? <div className="empty">Paste two texts to compare.</div> : !stats.added && !stats.removed ? <div className="empty">The texts are identical{ws || ic ? ' (with the current ignore options)' : ''}.</div> : mode === 'side' ? <SideBySide rows={rows} context={context} /> : <Unified lines={lines} context={context} />}
+        {!da && !db ? (
+          <div className="empty">Paste two texts to compare.</div>
+        ) : !stats.added && !stats.removed ? (
+          <div className="empty">
+            {da === db
+              ? 'The texts are identical.'
+              : ws || ic
+                ? 'No differences with the current ignore options.'
+                : 'No line differences — the texts differ only in line endings (CRLF / LF) or the final newline.'}
+          </div>
+        ) : mode === 'side' ? (
+          <SideBySide rows={rows} context={context} />
+        ) : (
+          <Unified lines={lines} context={context} />
+        )}
       </Pane>
     </div>
   )
