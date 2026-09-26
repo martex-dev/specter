@@ -248,7 +248,10 @@ export function buildContextRequest(sel: ContextSelection = S().ctx): AiContextR
     else if (page.readable && page.wcId !== null) req.selection = { wcId: page.wcId, url: page.url, title: page.title }
   }
   if (sel.tabs.length) {
+    // A picked tab that has since become the current tab is already attached as the page.
+    const current = req.page ? activeTab()?.id : undefined
     req.tabs = sel.tabs
+      .filter((id) => id !== current)
       .map((id) => findTab(id)?.tab)
       .filter((t): t is NonNullable<typeof t> => !!t)
       .map((t) => ({ wcId: t.suspended ? null : wcIdFor(t.id), url: t.url, title: t.title }))
