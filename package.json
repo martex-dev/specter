@@ -1,7 +1,7 @@
 {
   "name": "specter",
   "productName": "SPECTER",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "SPECTER — The Power Browser. A Chromium-based desktop browser with local-first power tools.",
   "main": "out/main/index.js",
   "author": "SPECTER Contributors",
