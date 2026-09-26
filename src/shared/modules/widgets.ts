@@ -299,6 +299,22 @@ export interface FxRates {
   stale?: string
 }
 
+/**
+ * Parses a typed amount in either notation: "1,234.5", "1.234,5", "12,5", "1 234", "1'234.50".
+ * When both separators occur the last one is the decimal point; a separator that
+ * repeats ("1,234,567" / "1.234.567") groups thousands. Returns NaN for junk.
+ */
+export function parseAmount(input: string): number {
+  const s = input.replace(/[\s  ']/g, '')
+  const dot = s.lastIndexOf('.')
+  const comma = s.lastIndexOf(',')
+  let n = s
+  if (dot >= 0 && comma >= 0) n = comma > dot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '')
+  else if (comma >= 0) n = s.indexOf(',') !== comma ? s.replace(/,/g, '') : s.replace(',', '.')
+  else if (dot >= 0 && s.indexOf('.') !== dot) n = s.replace(/\./g, '')
+  return Number(n)
+}
+
 /** Converts `amount` of `from` into `to` via USD cross rates. */
 export function fxConvert(rates: Record<string, number>, amount: number, from: string, to: string): number | null {
   const rf = from === 'USD' ? 1 : rates[from]

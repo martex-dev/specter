@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBandwidth, compass, cToF, fxConvert, jitter, median, percentile, toMbps, wmoInfo } from '@shared/modules/widgets'
+import { aggregateBandwidth, compass, cToF, fxConvert, jitter, parseAmount, median, percentile, toMbps, wmoInfo } from '@shared/modules/widgets'
 
 describe('widgets WMO weather codes', () => {
   it('maps every documented WMO code to a label and icon kind', () => {
@@ -66,5 +66,17 @@ describe('widgets currency conversion', () => {
     expect(fxConvert(rates, 90, 'EUR', 'USD')).toBeCloseTo(100, 10)
     expect(fxConvert(rates, 0.8, 'GBP', 'JPY')).toBeCloseTo(150, 10)
     expect(fxConvert(rates, 1, 'EUR', 'XXX')).toBeNull()
+  })
+  it('parses amounts typed in either notation', () => {
+    expect(parseAmount('100')).toBe(100)
+    expect(parseAmount('1,234.5')).toBe(1234.5)
+    expect(parseAmount('1.234,5')).toBe(1234.5)
+    expect(parseAmount('12,5')).toBe(12.5)
+    expect(parseAmount('1,234,567')).toBe(1234567)
+    expect(parseAmount('1.234.567')).toBe(1234567)
+    expect(parseAmount('1 234,50')).toBe(1234.5)
+    expect(parseAmount("1'234.50")).toBe(1234.5)
+    expect(parseAmount('0.5')).toBe(0.5)
+    expect(parseAmount('abc')).toBeNaN()
   })
 })

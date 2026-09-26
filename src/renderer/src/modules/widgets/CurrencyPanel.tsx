@@ -1,7 +1,7 @@
 // Currency converter side panel — open.er-api.com (fallback Frankfurter/ECB), favourite pairs.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeftRight, Star, X } from 'lucide-react'
-import { fxConvert, type FxRates } from '@shared/modules/widgets'
+import { fxConvert, parseAmount, type FxRates } from '@shared/modules/widgets'
 import { invoke } from '../../lib/ipc'
 import { errorText, useKv, useVisibleInterval } from './store'
 import { ErrorState, Loading, SourceLine } from './ui'
@@ -73,9 +73,8 @@ export default function CurrencyPanel() {
     }
   }, [])
 
-  const compact = amount.replace(/\s/g, '')
-  // "1,234.5" → 1234.5 ; "12,5" → 12.5
-  const amt = Number(compact.includes('.') ? compact.replace(/,/g, '') : compact.replace(',', '.'))
+  // "1,234.5" → 1234.5 ; "12,5" → 12.5 ; "1.234,5" → 1234.5
+  const amt = parseAmount(amount)
   const result = rates ? fxConvert(rates.rates, amt, from, to) : null
   const unit = rates ? fxConvert(rates.rates, 1, from, to) : null
   const isFav = pairs.some(([a, b]) => a === from && b === to)
