@@ -176,7 +176,7 @@ function validateTx(t: PortfolioTxInput): PortfolioTxInput {
   const asset = normalizeSymbol(t.asset)
   if (!asset) throw new Error('Invalid asset symbol')
   if (!TX_TYPES.includes(t.type)) throw new Error('Invalid transaction type')
-  if (!(t.quantity > 0)) throw new Error('Quantity must be positive')
+  if (!(t.quantity > 0) || !isFinite(t.quantity)) throw new Error('Quantity must be positive')
   if (!(t.price >= 0) || !isFinite(t.price)) throw new Error('Price must be zero or positive')
   if (!(t.fee >= 0) || !isFinite(t.fee)) throw new Error('Fee must be zero or positive')
   if (!isFinite(t.date)) throw new Error('Invalid date')
