@@ -1,4 +1,4 @@
-import { app, shell, webContents, type DownloadItem, type Session } from 'electron'
+import { app, shell, type DownloadItem, type Session } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DownloadInfo, DownloadState } from '@shared/types'
@@ -7,10 +7,11 @@ import { broadcast, handle } from '../ipc'
 import { bus } from '../bus'
 import { getSetting } from './settings'
 import { notify } from './notifications'
+import { activeSession } from './profiles'
 import { createLogger } from '../logger'
 
 const log = createLogger('downloads')
-const live = new Map<string, { item: DownloadItem; info: DownloadInfo; lastBytes: number; lastTs: number }>()
+const live = new Map<string, { item: DownloadItem; info: DownloadInfo; lastBytes: number; lastTs: number; removed?: boolean }>()
 const attached = new WeakSet<Session>()
 
 type Row = {
@@ -64,11 +65,12 @@ export function downloadDirectory(): string {
 }
 
 function uniquePath(dir: string, filename: string): string {
-  const safe = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 200) || 'download'
-  let candidate = join(dir, safe)
-  const dot = safe.lastIndexOf('.')
-  const base = dot > 0 ? safe.slice(0, dot) : safe
-  const ext = dot > 0 ? safe.slice(dot) : ''
+  const cleaned = filename.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') || 'download'
+  const dot = cleaned.lastIndexOf('.')
+  // Truncate long names without cutting off the extension (the file would lose its type).
+  const ext = dot > 0 && cleaned.length - dot <= 16 ? cleaned.slice(dot) : ''
+  const base = (ext ? cleaned.slice(0, dot) : cleaned).slice(0, 200 - ext.length)
+  let candidate = join(dir, base + ext)
   let i = 1
   const inUse = new Set([...live.values()].map((l) => l.info.savePath))
   while (existsSync(candidate) || inUse.has(candidate)) candidate = join(dir, `${base} (${i++})${ext}`)
@@ -94,7 +96,7 @@ export function attachDownloads(ses: Session): void {
       speed: 0,
       canResume: item.canResume()
     }
-    const entry = { item, info, lastBytes: 0, lastTs: Date.now() }
+    const entry = { item, info, lastBytes: 0, lastTs: Date.now(), removed: false }
     live.set(id, entry)
     persist(info)
     broadcast('downloads:changed', info)
@@ -123,6 +125,9 @@ export function attachDownloads(ses: Session): void {
       }
     })
     item.once('done', (_e, state) => {
+      live.delete(id)
+      // Removed from the list while running: don't bring the entry back as "cancelled".
+      if (entry.removed) return
       info.state = state === 'completed' ? 'completed' : state === 'cancelled' ? 'cancelled' : 'interrupted'
       info.receivedBytes = item.getReceivedBytes()
       info.totalBytes = item.getTotalBytes() || info.receivedBytes
@@ -131,7 +136,6 @@ export function attachDownloads(ses: Session): void {
       info.speed = 0
       info.canResume = false
       persist(info)
-      live.delete(id)
       broadcast('downloads:changed', { ...info })
       bus.emit('DOWNLOAD_FINISHED', { id, filename: info.filename, state: info.state })
       if (info.state === 'completed') notify({ category: 'downloads', title: 'Download complete', body: info.filename })
@@ -153,6 +157,8 @@ export function activeDownloadCount(): number {
 }
 
 export function registerDownloadsIpc(): void {
+  // Downloads still running when SPECTER last exited (or crashed) can never finish: don't leave them "in progress".
+  run("UPDATE downloads SET state = 'interrupted', ended_at = COALESCE(ended_at, ?) WHERE state IN ('progressing', 'paused')", Date.now())
   handle('downloads:list', () => listDownloads())
   handle('downloads:pause', (_e, id) => live.get(id)?.item.pause())
   handle('downloads:resume', (_e, id) => {
@@ -164,9 +170,9 @@ export function registerDownloadsIpc(): void {
     const r = get<Row>('SELECT * FROM downloads WHERE id = ?', id)
     if (!r) return
     run('DELETE FROM downloads WHERE id = ?', id)
-    // Any chrome webContents can start the download; it goes through the active profile session.
-    const wc = webContents.getAllWebContents().find((w) => w.getType() === 'webview' && !w.isDestroyed()) ?? webContents.getFocusedWebContents()
-    wc?.downloadURL(r.url)
+    // Through the active profile's session, whose will-download handler tracks it (there may be
+    // no tab webContents at all, and the UI's own session has no download handler).
+    activeSession().downloadURL(r.url)
   })
   handle('downloads:open', async (_e, id) => {
     const r = get<Row>('SELECT save_path FROM downloads WHERE id = ?', id)
@@ -178,7 +184,11 @@ export function registerDownloadsIpc(): void {
     else shell.openPath(downloadDirectory())
   })
   handle('downloads:remove', (_e, id) => {
-    live.get(id)?.item.cancel()
+    const l = live.get(id)
+    if (l) {
+      l.removed = true
+      l.item.cancel()
+    }
     run('DELETE FROM downloads WHERE id = ?', id)
   })
   handle('downloads:openFolder', () => {
