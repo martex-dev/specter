@@ -185,7 +185,7 @@ function MissionView({ id, onDeleted }: { id: string; onDeleted: () => void }) {
     <div className="kn-mission">
       <div className="kn-mission-head">
         <div className="page-kicker">Research mission{current === id ? ' · current' : ''}</div>
-        <input className="kn-mission-title" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => title !== m.title && invoke('research:update', id, { title })} aria-label="Mission topic" />
+        <input className="kn-mission-title" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => title !== m.title && invoke('research:update', id, { title }).then((r) => r && setTitle(r.title))} aria-label="Mission topic" />
         <textarea
           className="kn-mission-desc"
           value={desc}
