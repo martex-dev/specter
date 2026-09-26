@@ -41,16 +41,9 @@ function coloOf(res: Response): string | null {
 }
 
 async function fetchCf(url: string, init: RequestInit, signal: AbortSignal): Promise<Response> {
-  const ctrl = new AbortController()
-  const onAbort = () => ctrl.abort()
-  signal.addEventListener('abort', onAbort)
-  const t = setTimeout(() => ctrl.abort(), 30_000)
-  try {
-    return await cleanSession().fetch(url, { ...init, signal: ctrl.signal, cache: 'no-store', credentials: 'omit' } as RequestInit)
-  } finally {
-    clearTimeout(t)
-    signal.removeEventListener('abort', onAbort)
-  }
+  // The signal must stay linked while the body is read: Cancel (or a stalled
+  // connection) has to stop a 25 MB download mid-stream, not only before it starts.
+  return cleanSession().fetch(url, { ...init, signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]), cache: 'no-store', credentials: 'omit' } as RequestInit)
 }
 
 async function measureLatency(signal: AbortSignal): Promise<{ samples: number[]; colo: string | null }> {
