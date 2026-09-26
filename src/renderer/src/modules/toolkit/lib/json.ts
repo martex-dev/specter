@@ -41,8 +41,8 @@ export function parseJson(text: string): JsonParseResult {
       offset = Number(pos[1])
       ;({ line, column } = lineColAt(text, offset))
     } else {
-      // "Unexpected end of JSON input" and similar.
-      offset = text.length
+      // "Unexpected token 'x', …" and "Unexpected end of JSON input" carry no position.
+      offset = jsonErrorOffset(text)
       ;({ line, column } = lineColAt(text, offset))
     }
     const message = raw.replace(/\s*\(line \d+ column \d+\)/, '').replace(/ in JSON at position \d+/, '').replace(/^JSON\.parse: /, '')
@@ -50,11 +50,101 @@ export function parseJson(text: string): JsonParseResult {
   }
 }
 
+/**
+ * Offset of the first syntax error in `s` (s.length when the input ends early).
+ * Used when the engine's message doesn't say where the error is.
+ */
+export function jsonErrorOffset(s: string): number {
+  const n = s.length
+  let i = 0
+  const stack: string[] = []
+  let want: 'value' | 'valueOrEnd' | 'key' | 'keyOrEnd' | 'colon' | 'after' = 'value'
+  const NUM = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y
+  /** Skips a string starting at i; returns -1 when fine, else the error offset. */
+  const str = (): number => {
+    i++
+    while (i < n) {
+      const c = s[i]
+      if (c === '"') {
+        i++
+        return -1
+      }
+      if (c === '\\') {
+        const e = s[i + 1]
+        if (e !== undefined && '"\\/bfnrt'.includes(e)) i += 2
+        else if (e === 'u' && /^[0-9a-fA-F]{4}$/.test(s.slice(i + 2, i + 6))) i += 6
+        else return i
+      } else if (c.charCodeAt(0) < 0x20) return i
+      else i++
+    }
+    return n
+  }
+  for (;;) {
+    while (i < n && (s[i] === ' ' || s[i] === '\t' || s[i] === '\n' || s[i] === '\r')) i++
+    if (i >= n) return n
+    const c = s[i]
+    if (want === 'after') {
+      const top = stack[stack.length - 1]
+      if (!top) return i
+      if (c === ',') {
+        i++
+        want = top === '{' ? 'key' : 'value'
+      } else if (c === (top === '{' ? '}' : ']')) {
+        i++
+        stack.pop()
+      } else return i
+    } else if (want === 'colon') {
+      if (c !== ':') return i
+      i++
+      want = 'value'
+    } else if (want === 'key' || want === 'keyOrEnd') {
+      if (want === 'keyOrEnd' && c === '}') {
+        i++
+        stack.pop()
+        want = 'after'
+      } else if (c !== '"') return i
+      else {
+        const e = str()
+        if (e >= 0) return e
+        want = 'colon'
+      }
+    } else if (want === 'valueOrEnd' && c === ']') {
+      i++
+      stack.pop()
+      want = 'after'
+    } else if (c === '{' || c === '[') {
+      stack.push(c)
+      i++
+      want = c === '{' ? 'keyOrEnd' : 'valueOrEnd'
+    } else if (c === '"') {
+      const e = str()
+      if (e >= 0) return e
+      want = 'after'
+    } else if (c === 't' || c === 'f' || c === 'n') {
+      const lit = c === 't' ? 'true' : c === 'f' ? 'false' : 'null'
+      if (!s.startsWith(lit, i)) return i
+      i += lit.length
+      want = 'after'
+    } else {
+      NUM.lastIndex = i
+      if (!NUM.test(s)) return i
+      i = NUM.lastIndex
+      want = 'after'
+    }
+  }
+}
+
+/** Sets an own property; a "__proto__" key must not replace the object's prototype (the key would vanish). */
+function setKey(o: Record<string, unknown>, k: string, v: unknown): void {
+  if (k === '__proto__') Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true })
+  else o[k] = v
+}
+
 export function sortKeysDeep(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(sortKeysDeep)
   if (v && typeof v === 'object') {
     const out: Record<string, unknown> = {}
-    for (const k of Object.keys(v as object).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) out[k] = sortKeysDeep((v as Record<string, unknown>)[k])
+    for (const k of Object.keys(v as object).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) setKey(out, k, sortKeysDeep((v as Record<string, unknown>)[k]))
     return out
   }
   return v
