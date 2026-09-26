@@ -96,7 +96,12 @@ export function BookmarkBar() {
     e.preventDefault()
     setDropIdx(null)
     const bmId = e.dataTransfer.getData('application/x-specter-bookmark')
-    if (bmId) return invoke('bookmarks:move', bmId, bar?.id ?? null, index)
+    if (bmId) {
+      // `index` counts the dragged bookmark itself; the move handler inserts
+      // among the siblings without it, so moving right needs one less.
+      const from = items.findIndex((b) => b.id === bmId)
+      return invoke('bookmarks:move', bmId, bar?.id ?? null, from >= 0 && from < index ? index - 1 : index)
+    }
     const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
     if (url && /^(https?|file):/.test(url)) {
       const tab = activeTab()
