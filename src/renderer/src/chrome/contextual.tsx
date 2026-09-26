@@ -6,13 +6,27 @@ import { wcIdFor } from '../lib/webviews'
 import { findTab } from '../stores/browser'
 import { toast, type MenuItem } from '../stores/ui'
 
-/** Subtle, page-type-aware actions. Only returns actions whose commands exist. */
+/**
+ * True when a command is registered and its `when` guard passes (e.g. the AI
+ * commands exist even with AI switched off, but refuse to run then).
+ */
+export function commandAvailable(id: string): boolean {
+  const c = getCommand(id)
+  if (!c) return false
+  try {
+    return !c.when || c.when()
+  } catch {
+    return false
+  }
+}
+
+/** Subtle, page-type-aware actions. Only returns actions whose commands can run. */
 export function contextualActions(kind: PageKind, tabId: string): MenuItem[] {
   const tab = findTab(tabId)?.tab
   if (!tab) return []
   const items: MenuItem[] = []
   const cmd = (id: string, label: string, icon: JSX.Element, args?: unknown) => {
-    if (getCommand(id)) items.push({ label, icon, run: () => runCommand(id, args) })
+    if (commandAvailable(id)) items.push({ label, icon, run: () => runCommand(id, args) })
   }
 
   if (kind === 'github-repo') {

@@ -5,7 +5,8 @@ import { Bookmark, Brain, ClipboardCopy, FlaskConical, Library, NotebookPen, Pin
 import { isInternal } from '@shared/url'
 import { prettyAccelerator } from '@shared/keys'
 import { invoke } from '../lib/ipc'
-import { getCommand, runCommand, shortcutFor } from '../lib/commands'
+import { runCommand, shortcutFor } from '../lib/commands'
+import { commandAvailable } from '../chrome/contextual'
 import { wcIdFor } from '../lib/webviews'
 import { activeTab, activeWs } from '../stores/browser'
 import { closeOverlay, toast } from '../stores/ui'
@@ -56,9 +57,9 @@ export function SaveToDialog() {
       }
     }
   ]
-  if (getCommand('notes.savePage')) dests.push({ id: 'notes', label: 'Notes', desc: selection ? 'New note with the selected text' : 'New note linking this page', icon: <NotebookPen size={16} />, run: () => runCommand('notes.savePage', { url: tab.url, title: tab.title, text: selection }) })
-  if (getCommand('research.saveSource')) dests.push({ id: 'research', label: 'Research', desc: 'Add as a source to a research project', icon: <FlaskConical size={16} />, run: () => runCommand('research.saveSource', { url: tab.url, title: tab.title, quote: selection }) })
-  if (getCommand('knowledge.savePage')) dests.push({ id: 'knowledge', label: 'Knowledge base', desc: 'Store the readable page text locally for search', icon: <Library size={16} />, run: () => runCommand('knowledge.savePage', { tabId: tab.id }) })
+  if (commandAvailable('notes.savePage')) dests.push({ id: 'notes', label: 'Notes', desc: selection ? 'New note with the selected text' : 'New note linking this page', icon: <NotebookPen size={16} />, run: () => runCommand('notes.savePage', { url: tab.url, title: tab.title, text: selection }) })
+  if (commandAvailable('research.saveSource')) dests.push({ id: 'research', label: 'Research', desc: 'Add as a source to a research project', icon: <FlaskConical size={16} />, run: () => runCommand('research.saveSource', { url: tab.url, title: tab.title, quote: selection }) })
+  if (commandAvailable('knowledge.savePage')) dests.push({ id: 'knowledge', label: 'Knowledge base', desc: 'Store the readable page text locally for search', icon: <Library size={16} />, run: () => runCommand('knowledge.savePage', { tabId: tab.id }) })
 
   return (
     <Modal title="Save to SPECTER" onClose={closeOverlay} width={480}>
@@ -129,9 +130,9 @@ export function QuickCaptureDialog() {
       }
     }
   ]
-  if (getCommand('notes.saveSelection')) acts.unshift({ id: 'snippet', label: 'Save snippet', desc: 'Save as a note with source link', icon: <NotebookPen size={16} />, run: () => runCommand('notes.saveSelection', { text, url: tab?.url, title: tab?.title }) })
-  if (getCommand('ai.ask')) acts.push({ id: 'ai', label: 'Ask AI', desc: 'Send the selection to local AI', icon: <Brain size={16} />, run: () => runCommand('ai.ask', { action: 'ask', text }) })
-  if (getCommand('research.saveSource')) acts.push({ id: 'research', label: 'Research', desc: 'Save as evidence in a research project', icon: <FlaskConical size={16} />, run: () => runCommand('research.saveSource', { url: tab?.url, title: tab?.title, quote: text }) })
+  if (commandAvailable('notes.saveSelection')) acts.unshift({ id: 'snippet', label: 'Save snippet', desc: 'Save as a note with source link', icon: <NotebookPen size={16} />, run: () => runCommand('notes.saveSelection', { text, url: tab?.url, title: tab?.title }) })
+  if (commandAvailable('ai.ask')) acts.push({ id: 'ai', label: 'Ask AI', desc: 'Send the selection to local AI', icon: <Brain size={16} />, run: () => runCommand('ai.ask', { action: 'ask', text }) })
+  if (commandAvailable('research.saveSource')) acts.push({ id: 'research', label: 'Research', desc: 'Save as evidence in a research project', icon: <FlaskConical size={16} />, run: () => runCommand('research.saveSource', { url: tab?.url, title: tab?.title, quote: text }) })
   return (
     <Modal title="Quick capture" onClose={closeOverlay} width={520}>
       {text ? (

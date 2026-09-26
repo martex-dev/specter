@@ -34,7 +34,8 @@ import {
 import type { ContextMenuParams } from '@shared/types'
 import { SEARCH_ENGINES, searchUrl } from '@shared/settings'
 import { invoke } from '../lib/ipc'
-import { getCommand, runCommand } from '../lib/commands'
+import { runCommand } from '../lib/commands'
+import { commandAvailable } from '../chrome/contextual'
 import { tabIdForWcId, webviewFor } from '../lib/webviews'
 import { goBack, goForward, moveTabToWorkspace, newTab, reload, useBrowser } from '../stores/browser'
 import { getSetting } from '../stores/settings'
@@ -48,7 +49,7 @@ function looksLikeCode(s: string): boolean {
 }
 
 function aiItem(action: string, label: string, icon: JSX.Element, text: string, extra?: Record<string, unknown>): MenuItem | null {
-  if (!getCommand('ai.ask')) return null
+  if (!commandAvailable('ai.ask')) return null
   return { label, icon, run: () => runCommand('ai.ask', { action, text, ...extra }) }
 }
 
@@ -95,7 +96,7 @@ export function showPageContextMenu(p: ContextMenuParams): void {
       { label: 'Copy link address', icon: <Link2 size={14} />, run: () => invoke('app:clipboardWrite', p.linkURL) },
       p.linkText ? { label: 'Copy link text', icon: <Copy size={14} />, run: () => invoke('app:clipboardWrite', p.linkText) } : null,
       { label: 'Bookmark link', icon: <Bookmark size={14} />, run: () => invoke('bookmarks:add', { kind: 'bookmark', title: p.linkText || p.linkURL, url: p.linkURL }).then(() => toast({ kind: 'ok', title: 'Link bookmarked' })) },
-      getCommand('research.saveSource') ? { label: 'Save link to research', icon: <FlaskConical size={14} />, run: () => runCommand('research.saveSource', { url: p.linkURL, title: p.linkText }) } : null
+      commandAvailable('research.saveSource') ? { label: 'Save link to research', icon: <FlaskConical size={14} />, run: () => runCommand('research.saveSource', { url: p.linkURL, title: p.linkText }) } : null
     )
     sep()
   }
@@ -131,7 +132,7 @@ export function showPageContextMenu(p: ContextMenuParams): void {
       { label: `Search ${engine} for “${short}”`, icon: <Search size={14} />, run: () => newTab(searchUrl({ 'search.engine': getSetting('search.engine'), 'search.customTemplate': getSetting('search.customTemplate') }, sel), { openerId: tabId }) }
     )
     const code = looksLikeCode(p.selectionText)
-    if (getCommand('ai.ask')) {
+    if (commandAvailable('ai.ask')) {
       sep()
       push({ header: code ? 'SPECTER AI · code' : 'SPECTER AI' })
       if (code) {
@@ -159,8 +160,8 @@ export function showPageContextMenu(p: ContextMenuParams): void {
       push({ label: 'Translate selection', icon: <Languages size={14} />, run: () => newTab(`https://translate.google.com/?sl=auto&op=translate&text=${encodeURIComponent(sel.slice(0, 4000))}`, { openerId: tabId }) })
     }
     sep()
-    if (getCommand('notes.saveSelection')) push({ label: 'Save to notes', icon: <NotebookPen size={14} />, run: () => runCommand('notes.saveSelection', { text: sel, url: p.pageURL }) })
-    if (getCommand('research.saveSource')) push({ label: 'Save to research', icon: <FlaskConical size={14} />, run: () => runCommand('research.saveSource', { url: p.pageURL, quote: sel }) })
+    if (commandAvailable('notes.saveSelection')) push({ label: 'Save to notes', icon: <NotebookPen size={14} />, run: () => runCommand('notes.saveSelection', { text: sel, url: p.pageURL }) })
+    if (commandAvailable('research.saveSource')) push({ label: 'Save to research', icon: <FlaskConical size={14} />, run: () => runCommand('research.saveSource', { url: p.pageURL, quote: sel }) })
     sep()
   }
 
@@ -188,7 +189,7 @@ export function showPageContextMenu(p: ContextMenuParams): void {
       { label: 'Print…', icon: <Printer size={14} />, run: () => runCommand('browser.print') },
       { label: 'Screenshot', icon: <Camera size={14} />, run: () => runCommand('page.screenshot') },
       { label: 'Reader mode', icon: <ScrollText size={14} />, run: () => runCommand('page.reader') },
-      getCommand('ai.askPage') ? { label: 'Summarize page (AI)', icon: <Sparkles size={14} />, run: () => runCommand('ai.askPage', { prompt: 'Summarize this page in a few bullet points.' }) } : null,
+      commandAvailable('ai.askPage') ? { label: 'Summarize page (AI)', icon: <Sparkles size={14} />, run: () => runCommand('ai.askPage', { prompt: 'Summarize this page in a few bullet points.' }) } : null,
       { label: 'View page source', icon: <Code2 size={14} />, run: () => newTab('view-source:' + p.pageURL, { openerId: tabId }) }
     )
     sep()
