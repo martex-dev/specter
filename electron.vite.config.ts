@@ -7,7 +7,10 @@ const shared = resolve(__dirname, 'src/shared')
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    resolve: { alias: { '@shared': shared } }
+    resolve: { alias: { '@shared': shared } },
+    // fontInspector: overlay the main process evaluates inside web pages (read from disk, so it
+    // must stay one self-contained file — the main process may only import types from its modules).
+    build: { rollupOptions: { input: { index: resolve(__dirname, 'src/main/index.ts'), fontInspector: resolve(__dirname, 'src/inject/fontInspector.ts') } } }
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
