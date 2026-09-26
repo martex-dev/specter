@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:e2e": "npm run build && node tests/e2e/run.mjs",
     "test:e2e:passwords": "npm run build && node tests/e2e/passwords.mjs",
+    "test:e2e:profiles": "npm run build && node tests/e2e/profiles.mjs",
     "dist": "npm run build && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
