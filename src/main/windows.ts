@@ -387,6 +387,9 @@ export function registerWindowIpc(): void {
   handle('session:restoreChoice', (e, choice) => {
     const ctx = contexts.get(e.sender.id)
     if (!ctx) throw new Error('Unknown window')
+    // Already answered (e.g. a double click on "Restore everything"): a second pass would re-open
+    // the other windows again and make the renderer rebuild its tabs. Rejecting leaves the UI as is.
+    if (!pendingRestore && choice !== 'clean') throw new Error('The previous session was already restored')
     ctx.restorePrompt = undefined
     const pr = pendingRestore
     pendingRestore = null
