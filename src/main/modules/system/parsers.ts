@@ -246,7 +246,8 @@ export function parseTypeperfRow(line: string, cols: TypeperfColumn[]): Typeperf
   let utilTotal: number | null = null
   let hasUtil = false
   for (let i = 0; i < cols.length; i++) {
-    const raw = cells[i + 1].trim()
+    // Localised typeperf writes the user's decimal separator ("12,345678"); cells are quoted, so a comma is never a delimiter here.
+    const raw = cells[i + 1].trim().replace(/^(\d+),(\d+)$/, '$1.$2')
     const v = Number(raw)
     if (raw === '' || !Number.isFinite(v) || v < 0) return null
     const col = cols[i]

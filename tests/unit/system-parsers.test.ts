@@ -187,6 +187,14 @@ describe('typeperf', () => {
     expect(parseTypeperfHeader(h)!.map((c) => c.role)).toEqual(['rx', 'tx', 'util'])
   })
 
+  it('accepts values written with a decimal comma (localised Windows)', () => {
+    const h =
+      '"(PDH-CSV 4.0)","\\\\PC\\Netzwerkschnittstelle(NIC)\\Empfangene Bytes/s","\\\\PC\\Netzwerkschnittstelle(NIC)\\Gesendete Bytes/s","\\\\PC\\Prozessorinformationen(_Total)\\Prozessorauslastung (%)"'
+    const row = parseTypeperfRow('"09/25/2026 21:59:02.946","26142,883264","642,033235","12,500000"', parseTypeperfHeader(h)!)!
+    expect(sumInterfaces(row.interfaces)).toEqual({ rxBps: 26143, txBps: 642 })
+    expect(row.util).toEqual({ total: 12.5, perCore: [] })
+  })
+
   it('excludes virtual adapters from totals', () => {
     const h = '"(PDH-CSV 4.0)","\\\\PC\\Network Interface(Intel NIC)\\Bytes Received/sec","\\\\PC\\Network Interface(Hyper-V Virtual Ethernet Adapter)\\Bytes Received/sec","\\\\PC\\Network Interface(Intel NIC)\\Bytes Sent/sec","\\\\PC\\Network Interface(Hyper-V Virtual Ethernet Adapter)\\Bytes Sent/sec"'
     const row = parseTypeperfRow('"t","100","100","10","10"', parseTypeperfHeader(h)!)!
