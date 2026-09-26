@@ -1,0 +1,349 @@
+/* Layout variants selected by the theme (or overridden by the user):
+   [data-tabs] tab shape · [data-frame] flush/floating · [data-omnibox] placement */
+
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.app > .titlebar {
+  position: relative;
+  z-index: 6; /* tab previews float above the toolbar */
+}
+.app > .bookmarks-bar,
+.app > .toolbar-bottom-line,
+.app > .main,
+.app > .statusbar {
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================ tab shapes */
+
+/* ---- pill: floating rounded capsules ---- */
+[data-tabs='pill'] .titlebar {
+  align-items: center;
+}
+[data-tabs='pill'] .tabstrip,
+[data-tabs='pill'] .tabstrip-scroll {
+  align-items: center;
+}
+[data-tabs='pill'] .tab {
+  height: 28px;
+  margin: 0 3px;
+  border-radius: 999px;
+  padding: 0 6px 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  flex-basis: 200px;
+}
+[data-tabs='pill'] .tab::after,
+[data-tabs='pill'] .tab.active::before {
+  display: none;
+}
+[data-tabs='pill'] .tab:hover {
+  background: var(--bg-3);
+}
+[data-tabs='pill'] .tab.active {
+  background: var(--bg-4);
+  border-color: var(--line-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.25);
+}
+[data-tabs='pill'] .tab.pinned {
+  width: 34px;
+  flex-basis: 34px;
+  padding: 0;
+}
+[data-tabs='pill'] .tab-group-line {
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+}
+[data-tabs='pill'] .tab-close {
+  border-radius: 50%;
+}
+
+/* ---- angled: parallelogram HUD tabs ---- */
+[data-tabs='angled'] .tab {
+  height: calc(var(--titlebar-h) - 8px);
+  border-radius: 0;
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  margin-right: -7px;
+  padding: 0 18px 0 20px;
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  flex-basis: 210px;
+}
+[data-tabs='angled'] .tab::after {
+  display: none;
+}
+[data-tabs='angled'] .tab:hover {
+  background: var(--bg-3);
+}
+[data-tabs='angled'] .tab.active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, var(--bg-1)), var(--bg-1));
+}
+[data-tabs='angled'] .tab.active::before {
+  left: 12px;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+[data-tabs='angled'] .tab.pinned {
+  width: 48px;
+  flex-basis: 48px;
+  padding: 0 0 0 4px;
+}
+[data-tabs='angled'] .tab-group-line {
+  left: 14px;
+  right: 14px;
+  bottom: auto;
+  top: 0;
+}
+
+/* ---- block: chunky rounded, gradient active ---- */
+[data-tabs='block'] .titlebar,
+[data-tabs='block'] .tabstrip,
+[data-tabs='block'] .tabstrip-scroll {
+  align-items: center;
+}
+[data-tabs='block'] .tab {
+  height: 30px;
+  margin: 0 3px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-3) 80%, transparent);
+  padding: 0 6px 0 11px;
+  flex-basis: 200px;
+  font-weight: 500;
+}
+[data-tabs='block'] .tab::after,
+[data-tabs='block'] .tab.active::before {
+  display: none;
+}
+[data-tabs='block'] .tab:hover {
+  background: var(--bg-4);
+}
+[data-tabs='block'] .tab.active {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
+  color: var(--accent-fg);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--accent) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+[data-tabs='block'] .tab.active .tab-close,
+[data-tabs='block'] .tab.active .tab-audio {
+  color: var(--accent-fg);
+}
+[data-tabs='block'] .tab.active .tab-close:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+[data-tabs='block'] .tab.pinned {
+  width: 36px;
+  flex-basis: 36px;
+  padding: 0;
+}
+[data-tabs='block'] .tab-group-line {
+  left: 10px;
+  right: 10px;
+  bottom: -4px;
+}
+
+/* ---- bracket: terminal text tabs  [1:title] ---- */
+[data-tabs='bracket'] .tabstrip-scroll {
+  counter-reset: tab;
+  align-items: center;
+}
+[data-tabs='bracket'] .titlebar,
+[data-tabs='bracket'] .tabstrip {
+  align-items: center;
+}
+[data-tabs='bracket'] .tab {
+  counter-increment: tab;
+  height: 24px;
+  border-radius: 0;
+  padding: 0 4px 0 6px;
+  margin: 0 2px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  flex-basis: 190px;
+  gap: 5px;
+}
+[data-tabs='bracket'] .tab::after,
+[data-tabs='bracket'] .tab.active::before {
+  display: none;
+}
+[data-tabs='bracket'] .tab .tab-title {
+  mask-image: none;
+  text-overflow: ellipsis;
+}
+[data-tabs='bracket'] .tab .tab-title::before {
+  content: '[' counter(tab) ':';
+  opacity: 0.7;
+}
+[data-tabs='bracket'] .tab .tab-title::after {
+  content: ']';
+  opacity: 0.7;
+}
+[data-tabs='bracket'] .tab:hover {
+  background: var(--bg-3);
+}
+[data-tabs='bracket'] .tab.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-tabs='bracket'] .tab.active .tab-close,
+[data-tabs='bracket'] .tab.active .tab-audio {
+  color: var(--accent-fg);
+}
+[data-tabs='bracket'] .tab-favicon {
+  filter: grayscale(1) brightness(1.4);
+}
+[data-tabs='bracket'] .tab.active .tab-favicon {
+  filter: grayscale(1) brightness(0.2);
+}
+[data-tabs='bracket'] .tab-group-line {
+  bottom: -3px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+}
+
+/* ---- underline: editorial text tabs ---- */
+[data-tabs='underline'] .tab {
+  background: transparent;
+  border-radius: 0;
+  padding: 0 8px 0 10px;
+  flex-basis: 190px;
+}
+[data-tabs='underline'] .tab::after {
+  top: 11px;
+  bottom: 11px;
+}
+[data-tabs='underline'] .tab:hover {
+  background: transparent;
+  color: var(--fg-0);
+}
+[data-tabs='underline'] .tab:hover .tab-title {
+  text-decoration: underline;
+  text-decoration-color: var(--fg-3);
+  text-underline-offset: 5px;
+}
+[data-tabs='underline'] .tab.active {
+  background: transparent;
+  color: var(--fg-0);
+  font-weight: 600;
+}
+[data-tabs='underline'] .tab.active::before {
+  left: 10px;
+  right: 10px;
+  top: auto;
+  bottom: 3px;
+  height: 2px;
+  background: var(--accent);
+}
+[data-tabs='underline'] .tab-title {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+}
+
+/* ================================================================ floating frame */
+
+[data-frame='floating'] .main {
+  padding: 0 8px 8px;
+  gap: 8px;
+  background: transparent;
+}
+[data-frame='floating'] .toolbar {
+  margin: 0 8px 6px;
+  border-radius: var(--radius-l);
+  border: 1px solid var(--line);
+}
+[data-frame='floating'] .bookmarks-bar {
+  margin: -2px 8px 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  padding-bottom: 0;
+  height: calc(var(--bookmarks-h) - 2px);
+}
+[data-frame='floating'] .toolbar-bottom-line {
+  display: none;
+}
+[data-frame='floating'] .content {
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 2px 10px rgba(0, 0, 0, 0.25);
+  background: var(--bg-1);
+}
+[data-frame='floating'] .rail.dock {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--bg-1) 85%, transparent);
+}
+[data-frame='floating'] .sidepanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+[data-frame='floating'] .statusbar {
+  border-top: none;
+  background: transparent;
+  margin-top: -4px;
+}
+
+/* ================================================================ centered omnibox */
+
+[data-omnibox='centered'] .omnibox-wrap {
+  flex: 0 1 760px;
+  margin: 0 auto;
+}
+[data-omnibox='centered'] .toolbar > .toolbar-group:first-child {
+  flex: 1 1 0;
+}
+[data-omnibox='centered'] .toolbar > .toolbar-group.extra {
+  flex: 1 1 0;
+  justify-content: flex-end;
+}
+[data-omnibox='centered'] .omnibox {
+  border-radius: 999px;
+}
+[data-omnibox='centered'] .omnibox.focused:not(.closed) {
+  border-radius: 18px;
+}
+[data-omnibox='centered'] .omnibox-input,
+[data-omnibox='centered'] .omnibox-display {
+  text-align: left;
+}
+
+/* Let a theme's backdrop show through the new tab page. */
+[data-theme='neon'] .content:has(.ntp),
+[data-theme='aurora'] .content:has(.ntp),
+[data-theme='synthwave'] .content:has(.ntp) {
+  background: transparent;
+  backdrop-filter: none;
+}
+[data-theme='neon'] .pane-body.internal:has(.ntp),
+[data-theme='aurora'] .pane-body.internal:has(.ntp),
+[data-theme='synthwave'] .pane-body.internal:has(.ntp),
+[data-theme='neon'] .internal-page:has(.ntp),
+[data-theme='aurora'] .internal-page:has(.ntp),
+[data-theme='synthwave'] .internal-page:has(.ntp),
+[data-theme='neon'] .viewport:has(.ntp),
+[data-theme='aurora'] .viewport:has(.ntp),
+[data-theme='synthwave'] .viewport:has(.ntp),
+[data-theme='neon'] .pane:has(.ntp),
+[data-theme='aurora'] .pane:has(.ntp),
+[data-theme='synthwave'] .pane:has(.ntp) {
+  background: transparent;
+}
