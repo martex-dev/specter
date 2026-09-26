@@ -62,8 +62,8 @@ import {
   User,
   Minimize2
 } from 'lucide-react'
-import { THEMES } from '../lib/themes'
-import type { PerformanceMode, ThemeId } from '@shared/settings'
+import { resolveTheme, THEMES } from '../lib/themes'
+import type { PerformanceMode } from '@shared/settings'
 import { isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { registerCommands, runCommand, type Command } from '../lib/commands'
@@ -528,7 +528,36 @@ export function registerCoreCommands(): void {
     { id: 'ui.toggleHud', title: 'Toggle title-bar telemetry (HUD)', category: 'View', icon: PanelTop, run: () => setSetting('appearance.showHud', !getSetting('appearance.showHud')) },
     { id: 'ui.toggleRail', title: 'Toggle tool rail', category: 'View', icon: PanelRight, run: () => setSetting('appearance.showSideRail', !getSetting('appearance.showSideRail')) },
     { id: 'ui.compactMode', title: 'Toggle compact mode', category: 'View', icon: Minimize2, run: () => setSetting('appearance.density', getSetting('appearance.density') === 'compact' ? 'comfortable' : 'compact') },
-    ...(Object.keys(THEMES) as ThemeId[]).map((id) => ({ id: `ui.theme.${id}`, title: `Theme: ${THEMES[id].name}`, category: 'View' as const, icon: Palette, run: () => setSetting('appearance.theme', id) })),
+    ...THEMES.map((t) => ({
+      id: `ui.theme.${t.id}`,
+      title: `Theme: ${t.name}`,
+      description: t.tagline,
+      category: 'View' as const,
+      icon: Palette,
+      keywords: ['theme', 'appearance', ...t.palettes.map((p) => p.name)],
+      run: () => {
+        setSetting('appearance.theme', t.id)
+        setSetting('appearance.palette', '')
+        setSetting('appearance.accent', '')
+        setSetting('appearance.layout', {})
+      }
+    })),
+    { id: 'ui.verticalTabs', title: 'Toggle vertical tabs', category: 'View', icon: PanelRight, keywords: ['sidebar', 'tab list'], run: () => setSetting('appearance.verticalTabs', !getSetting('appearance.verticalTabs')) },
+    { id: 'ui.themes', title: 'Theme gallery…', category: 'View', icon: Palette, keywords: ['appearance', 'colors', 'palette'], run: () => newTab('specter://settings/appearance') },
+    {
+      id: 'ui.nextPalette',
+      title: 'Next colour palette',
+      category: 'View',
+      icon: Palette,
+      run: () => {
+        const { theme, palette } = resolveTheme(getSetting('appearance.theme'), getSetting('appearance.palette'))
+        const i = theme.palettes.findIndex((p) => p.id === palette.id)
+        const next = theme.palettes[(i + 1) % theme.palettes.length]
+        setSetting('appearance.palette', next.id)
+        setSetting('appearance.accent', '')
+        toast({ kind: 'info', title: `${theme.name} · ${next.name}` })
+      }
+    },
     {
       id: 'ui.motion',
       title: 'Cycle animations (full / reduced / off)',
