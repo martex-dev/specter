@@ -36,7 +36,7 @@ Status reflects what is implemented and verified in the running app, not intent.
 - Network limiter as a shared budget across tabs (currently a per-page cap)
 - Recurring calendar events (ICS import currently takes the first occurrence)
 - Chrome Web Store installs (currently: load unpacked extensions only)
-- Password manager integration with the OS credential store
+- Windows Hello confirmation before showing or exporting saved passwords
 - Keep-alive for hidden internal pages (cockpit web panels currently reload when you leave the cockpit tab)
 - Code signing for release builds
 - Linux and macOS builds (the architecture is portable; not yet tested)
