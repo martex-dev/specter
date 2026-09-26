@@ -95,7 +95,8 @@ export function FindBar({ tabId }: { tabId: string }) {
         placeholder={regex ? 'Regular expression' : 'Find in page'}
         onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') step(!e.shiftKey)
+          // Enter that confirms an IME composition is not a find-next.
+          if (e.key === 'Enter' && !e.nativeEvent.isComposing) step(!e.shiftKey)
         }}
         aria-label="Find in page"
       />
