@@ -9,6 +9,7 @@ import { invoke } from '../lib/ipc'
 import { webviewFor, wcIdFor } from '../lib/webviews'
 import { getSetting } from './settings'
 import { record } from '../lib/perf'
+import { getPage } from '../pages/registry'
 
 export interface RuntimeTab extends TabState {
   loading?: boolean
@@ -221,7 +222,7 @@ export function internalTitle(url: string): string {
     workspaces: 'Workspaces',
     welcome: 'Welcome'
   }
-  return names[page] ?? page.charAt(0).toUpperCase() + page.slice(1)
+  return names[page] ?? getPage(page)?.title ?? page.charAt(0).toUpperCase() + page.slice(1)
 }
 
 // ---------------------------------------------------------------- init
