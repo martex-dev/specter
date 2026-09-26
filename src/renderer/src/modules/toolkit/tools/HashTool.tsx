@@ -43,6 +43,8 @@ export default function HashTool() {
   }, [deb, mode])
 
   const hashFile = async (f: File) => {
+    // The drop zone stays live while hashing; a second file would race the first.
+    if (busy) return
     setErr(null)
     if (f.size > MAX_FILE) return setErr(`File is ${bytes(f.size)} — the limit is ${bytes(MAX_FILE)}.`)
     setBusy(true)
