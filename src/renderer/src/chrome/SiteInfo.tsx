@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Cookie, Lock, LockOpen, Settings2, ShieldCheck, Trash2, X } from 'lucide-react'
+import { Cookie, Lock, LockOpen, Settings2, ShieldBan, ShieldCheck, Trash2, X } from 'lucide-react'
 import type { PermissionDecision, SecurityInfo } from '@shared/types'
 import { hostname, isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { wcIdFor } from '../lib/webviews'
 import { findTab, newTab, reload } from '../stores/browser'
 import { toast } from '../stores/ui'
-import { ClickShield } from '../components/ui'
+import { ClickShield, Switch } from '../components/ui'
+import { isAllowlisted } from '@shared/adblock'
+import { useSetting } from '../stores/settings'
+import { setAdblockForSite } from '../lib/adblock'
 
 const SITE_PERMS: { id: string; label: string }[] = [
   { id: 'javascript', label: 'JavaScript' },
@@ -26,6 +29,9 @@ export function SiteInfoPopover({ tabId, onClose }: { tabId: string; onClose: ()
   const [perms, setPerms] = useState<Record<string, PermissionDecision>>({})
   const ref = useRef<HTMLDivElement>(null)
   const tab = findTab(tabId)?.tab
+  const adblock = useSetting('privacy.adblock')
+  const allowlist = useSetting('privacy.adblockAllowlist')
+  const [adblockChanged, setAdblockChanged] = useState(false)
 
   const load = async () => {
     const wcId = wcIdFor(tabId)
@@ -97,6 +103,26 @@ export function SiteInfoPopover({ tabId, onClose }: { tabId: string; onClose: ()
           <div className="muted">
             Valid {new Date(info.certificate.validFrom).toLocaleDateString()} – {new Date(info.certificate.validTo).toLocaleDateString()}
           </div>
+        </div>
+      )}
+      {adblock && (
+        <div className="row" style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', fontSize: 12.5 }}>
+          <ShieldBan size={15} className={isAllowlisted(hostname(tab.url), allowlist) ? 'muted' : 'ok'} />
+          <div className="grow">
+            <div>Ad blocker</div>
+            <div className="muted" style={{ fontSize: 11.5 }}>
+              {isAllowlisted(hostname(tab.url), allowlist) ? 'Off for this site' : `${tab.blocked ?? 0} request${tab.blocked === 1 ? '' : 's'} blocked on this page`}
+              {adblockChanged && ' · reload to apply'}
+            </div>
+          </div>
+          <Switch
+            on={!isAllowlisted(hostname(tab.url), allowlist)}
+            onChange={async (on) => {
+              await setAdblockForSite(hostname(tab.url), on)
+              setAdblockChanged(true)
+            }}
+            label="Ad blocker on this site"
+          />
         </div>
       )}
       <div style={{ padding: '8px 14px 4px' }}>
