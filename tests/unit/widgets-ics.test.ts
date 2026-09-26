@@ -101,4 +101,44 @@ describe('widgets ICS parser', () => {
     expect(outlook.start).toBe(Date.UTC(2026, 2, 1, 16))
     expect(outlook.end).toBe(outlook.start)
   })
+
+  it('ends all-day events on a local midnight, also across DST changes', () => {
+    const ev = (...lines: string[]) => parseIcs(['BEGIN:VCALENDAR', 'BEGIN:VEVENT', ...lines, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')).events[0]
+    // DST ends / starts in Europe and the US on these dates (25 h / 23 h days).
+    for (const [y, m, d] of [
+      [2026, 10, 25],
+      [2026, 3, 29],
+      [2026, 11, 1],
+      [2026, 3, 8]
+    ]) {
+      const ymd = `${y}${String(m).padStart(2, '0')}${String(d).padStart(2, '0')}`
+      const next = new Date(y, m - 1, d + 1).getTime()
+      expect(ev(`DTSTART;VALUE=DATE:${ymd}`, 'SUMMARY:No end').end).toBe(next)
+      expect(ev(`DTSTART;VALUE=DATE:${ymd}`, 'DURATION:P1D').end).toBe(next)
+      expect(ev(`DTSTART;VALUE=DATE:${ymd}`, `DTEND;VALUE=DATE:${ymd}`).end).toBe(next)
+    }
+    expect(ev('DTSTART;VALUE=DATE:20261024', 'DURATION:P3D').end).toBe(new Date(2026, 9, 27).getTime())
+  })
+
+  it('keeps modified occurrences of a series apart from the series itself', () => {
+    const r = parseIcs(
+      [
+        'BEGIN:VCALENDAR',
+        'BEGIN:VEVENT',
+        'UID:series@test',
+        'DTSTART:20260105T090000Z',
+        'RRULE:FREQ=WEEKLY',
+        'SUMMARY:Standup',
+        'END:VEVENT',
+        'BEGIN:VEVENT',
+        'UID:series@test',
+        'RECURRENCE-ID:20260112T090000Z',
+        'DTSTART:20260112T100000Z',
+        'SUMMARY:Standup (moved)',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n')
+    )
+    expect(r.events.map((e) => e.uid)).toEqual(['series@test', 'series@test#20260112T090000Z'])
+  })
 })

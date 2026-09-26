@@ -224,15 +224,27 @@ function buildEvent(props: Prop[]): IcsEvent | null {
   let end: number | null = null
   const de = get('DTEND')
   if (de) end = parseIcsDate(de.value, de.params)?.ms ?? null
-  if (end === null) {
-    const du = get('DURATION')
-    const dur = du ? parseDuration(du.value) : null
-    if (dur !== null) end = start.ms + dur
+  const du = end === null ? get('DURATION') : undefined
+  const dur = du ? parseDuration(du.value) : null
+  if (start.allDay) {
+    // All-day ends are local midnights: count calendar days (a DST day is 23 or 25 h long),
+    // and an end on or before the start (some exporters repeat DTSTART) means one day.
+    if (end === null || end <= start.ms) {
+      const d = new Date(start.ms)
+      d.setDate(d.getDate() + Math.max(1, Math.round((dur ?? 0) / 86_400_000)))
+      end = d.getTime()
+    }
+  } else {
+    if (end === null && dur !== null) end = start.ms + dur
+    if (end === null || end < start.ms) end = start.ms
   }
-  if (end === null || end < start.ms) end = start.allDay ? start.ms + 86_400_000 : start.ms
   const title = unescapeText(get('SUMMARY')?.value ?? '').trim() || '(untitled event)'
+  const uid = get('UID')?.value.trim() || null
+  // A modified occurrence of a recurring event shares the series UID; keep it apart
+  // so it doesn't overwrite the series' own (first) event on import.
+  const rid = get('RECURRENCE-ID')?.value.trim()
   return {
-    uid: get('UID')?.value.trim() || null,
+    uid: uid && rid ? `${uid}#${rid}` : uid,
     title: title.slice(0, 300),
     start: start.ms,
     end,
