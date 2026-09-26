@@ -67,7 +67,10 @@ export function convertCase(s: string, kind: CaseKind): string {
     case 'title':
       return s.replace(/[\p{L}\p{N}]+(?:['’][\p{L}]+)?/gu, (w, offset: number) => {
         const lower = w.toLowerCase()
-        const first = offset === 0 || /[.:!?]\s*$/.test(s.slice(0, offset))
+        // Look back over whitespace only (testing the whole prefix per word froze the UI on large texts).
+        let j = offset - 1
+        while (j >= 0 && /\s/.test(s[j])) j--
+        const first = j < 0 || '.:!?'.includes(s[j])
         return !first && SMALL.has(lower) ? lower : cap(w)
       })
     case 'sentence':
