@@ -15,6 +15,7 @@ import { ensureBookmarkRoots, registerBookmarksIpc } from './services/bookmarks'
 import { attachDownloads, registerDownloadsIpc } from './services/downloads'
 import { attachPermissions, registerPermissionsIpc } from './services/permissions'
 import { attachPrivacy, registerPrivacyIpc } from './services/privacy'
+import { initAdblock, registerAdblockIpc } from './services/adblock'
 import { runShutdownCleanup } from './shutdown'
 import { activeSession, ensureDefaultProfile, onProfileSwitch, registerProfilesIpc } from './services/profiles'
 import { ensureDefaultWorkspaces, registerWorkspacesIpc } from './services/workspaces'
@@ -118,6 +119,7 @@ function registerIpc(): void {
   registerDownloadsIpc()
   registerPermissionsIpc()
   registerPrivacyIpc()
+  registerAdblockIpc()
   registerProfilesIpc()
   registerWorkspacesIpc()
   registerPageIpc()
@@ -193,6 +195,7 @@ startupDone = app.whenReady().then(async () => {
   installGuestHardening()
   registerIpc()
   registerModules()
+  initAdblock()
   await bootstrapProfile()
 
   onProfileSwitch(async (profileId) => {

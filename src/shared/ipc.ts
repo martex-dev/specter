@@ -34,6 +34,7 @@ import type {
 } from './types'
 import type { SettingKey, Settings } from './settings'
 import type { UpdateState } from './updates'
+import type { AdblockStatus } from './adblock'
 
 export interface AppInfo {
   version: string
@@ -297,6 +298,9 @@ export interface IpcContract {
   'privacy:clearOrigin': (origin: string) => void
   'privacy:cookies': (origin?: string) => { domain: string; name: string; secure: boolean; httpOnly: boolean; expires?: number }[]
   'privacy:blockedLog': () => { url: string; host: string; ts: number; tabUrl: string }[]
+  // Ad blocker (filter lists)
+  'adblock:status': () => AdblockStatus
+  'adblock:update': () => AdblockStatus
 
   // Metrics
   'metrics:app': () => AppMetricsEntry[]
@@ -340,6 +344,7 @@ export interface IpcEvents {
   'workspaces:changed': { id?: string }
   'bookmarks:changed': void
   'privacy:blocked': { count: number; total: number; perTab?: Record<number, number> }
+  'adblock:status': AdblockStatus
   'updates:state': UpdateState
 }
 
@@ -364,6 +369,7 @@ export const IPC_DOMAINS = [
   'guest',
   'search',
   'privacy',
+  'adblock',
   'metrics',
   'logs',
   'diagnostics',
