@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Clock, Layers, Pencil, Plus, Search, SlidersHorizontal, X } from 'lucide-react'
 import type { QuickLink } from '@shared/settings'
 import { SEARCH_ENGINES } from '@shared/settings'
+import { toUrl } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { newTabBackgrounds, newTabWidgets } from '../lib/registry'
 import { getCommand } from '../lib/commands'
@@ -33,8 +34,11 @@ function greeting(d: Date): string {
   return 'Late night session'
 }
 
+/** Current time floored to the minute, so the clock only re-renders when HH:MM changes. */
+const minuteNow = () => Math.floor(Date.now() / 60_000) * 60_000
+
 export default function NewTab({ tabId }: PageProps) {
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(minuteNow)
   const showClock = useSetting('newtab.showClock')
   const showRecent = useSetting('newtab.showRecent')
   const showLinks = useSetting('newtab.showQuickLinks')
@@ -48,7 +52,8 @@ export default function NewTab({ tabId }: PageProps) {
   const backgrounds = useSyncExternalStore(newTabBackgrounds.subscribe, () => newTabBackgrounds.list())
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 15_000)
+    // Poll every second so the clock turns over on the minute, not up to 15 s late.
+    const t = setInterval(() => setNow(minuteNow()), 1000)
     invoke('history:topSites', 8)
       .then(setTop)
       .catch(() => undefined)
@@ -60,8 +65,10 @@ export default function NewTab({ tabId }: PageProps) {
   const editLink = async (l?: QuickLink) => {
     const title = await promptText({ title: l ? 'Edit shortcut' : 'Add shortcut', label: 'Name', initial: l?.title, placeholder: 'e.g. GitHub' })
     if (!title) return
-    const url = await promptText({ title: l ? 'Edit shortcut' : 'Add shortcut', label: 'URL', initial: l?.url ?? 'https://' })
-    if (!url) return
+    const input = await promptText({ title: l ? 'Edit shortcut' : 'Add shortcut', label: 'URL', initial: l?.url ?? 'https://' })
+    if (!input?.trim()) return
+    // "github.com" must become https://github.com — tiles load the URL as-is.
+    const url = toUrl(input) ?? input.trim()
     const next = l ? links.map((x) => (x.id === l.id ? { ...x, title, url } : x)) : [...links, { id: 'ql' + Date.now().toString(36), title, url }]
     setSetting('newtab.quickLinks', next)
   }
@@ -70,7 +77,18 @@ export default function NewTab({ tabId }: PageProps) {
   const d = new Date(now)
 
   return (
-    <div className="ntp" onKeyDown={(e) => e.key.length === 1 && !e.ctrlKey && !e.altKey && typeIntoOmnibox(e.key)}>
+    <div
+      className="ntp"
+      onKeyDown={(e) =>
+        e.key.length === 1 &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        // Widgets on the page have their own fields (weather search, sticky notes).
+        !(e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]') &&
+        typeIntoOmnibox(e.key)
+      }
+    >
       {backgrounds.map((b) => (
         <b.component key={b.id} />
       ))}
