@@ -40,6 +40,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldBan,
   Square,
   Stethoscope,
   Tags,
@@ -69,6 +70,7 @@ import { switchTheme } from '../lib/fx'
 import type { PerformanceMode } from '@shared/settings'
 import { isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
+import { toggleAdblockForActiveSite } from '../lib/adblock'
 import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
 import { registerCommands, runCommand, type Command } from '../lib/commands'
 import { webviewFor, wcIdFor } from '../lib/webviews'
@@ -644,6 +646,19 @@ export function registerCoreCommands(): void {
     { id: 'settings.open', title: 'Settings', category: 'Settings', icon: Settings, run: () => newTab('specter://settings') },
     { id: 'settings.keyboard', title: 'Keyboard shortcuts', category: 'Settings', icon: Keyboard, run: () => newTab('specter://settings/keyboard') },
     { id: 'privacy.open', title: 'Privacy Center', category: 'Privacy', icon: Shield, run: () => newTab('specter://privacy') },
+    { id: 'adblock.toggleSite', title: 'Toggle ad blocker on this site', category: 'Privacy', icon: ShieldBan, keywords: ['adblock', 'ads', 'allowlist', 'whitelist', 'ublock'], run: () => toggleAdblockForActiveSite() },
+    {
+      id: 'adblock.update',
+      title: 'Update ad-blocker filter lists',
+      category: 'Privacy',
+      icon: RefreshCw,
+      keywords: ['adblock', 'filters', 'easylist', 'ublock'],
+      run: async () => {
+        toast({ kind: 'info', title: 'Updating filter lists…', ttl: 2000 })
+        const s = await invoke('adblock:update')
+        toast(s.error ? { kind: 'error', title: 'Filter update incomplete', body: s.error } : { kind: 'ok', title: 'Filter lists updated', body: `${s.rules.toLocaleString()} rules` })
+      }
+    },
     { id: 'security.open', title: 'Security dashboard', category: 'Privacy', icon: Shield, run: () => newTab('specter://security') },
     { id: 'diagnostics.open', title: 'SPECTER Diagnostics', category: 'Help', icon: Stethoscope, run: () => newTab('specter://diagnostics') },
     { id: 'logs.open', title: 'Log viewer', category: 'Developer', icon: ScrollText, run: () => newTab('specter://logs') },
