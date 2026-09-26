@@ -30,7 +30,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - Docked or detached **Chromium DevTools**, find in page with **regex & whole-word**, reader mode with text-to-speech, built-in PDF viewer, full-page screenshots, print, save page
 - **Font inspector** (a built-in WhatFont) — hover any text to see its font, click to pin cards with the full font stack, style, weight, size, line-height, letter-spacing, colour and **Copy CSS**. It names the font Chromium actually rendered (`system-ui` → Segoe UI, the font inside a web font, emoji fallbacks), not just the first family in the stack, and lists every font and web font on the page. Palette: "Identify fonts", or right-click → Identify font
 - Session restore (lazy — only visible tabs load), crash recovery, reopen closed tabs
-- Import bookmarks & history from **Chrome, Edge, Brave, Vivaldi, Opera and Firefox**
+- Import bookmarks & history from **Chrome, Edge, Brave, Vivaldi, Opera and Firefox** — each browser profile into the open SPECTER profile or a SPECTER profile of its own (named and coloured like the original), with its passwords from the browser's export
 - **Password manager** — offers to save logins after you sign in, lists them under sign-in fields for one-click filling, and imports Chrome / Google Password Manager exports (plus Edge, Firefox, Bitwarden, 1Password, LastPass). Passwords are encrypted with Windows data protection and never leave your PC
 - Fully customisable keyboard shortcuts that also work inside web pages
 
@@ -149,7 +149,7 @@ No analytics, telemetry or accounts. Everything is stored locally; every network
 ## Testing
 
 - **Unit** — URL/omnibox parsing, fuzzy matching, key bindings, privacy rules, storage (history FTS, bookmarks round-trip, workspaces), and every module's pure logic (AI context budgeting, market math and paper trading, system parsers, knowledge ranking, git/ANSI parsers, toolkit algorithms, automation engine).
-- **End-to-end** — the product acceptance flow against the built app: launch → tabs → navigate → search → groups → workspaces → move tabs → split → bookmark → download → history → close/reopen → restart → session restore → palette → AI / research / markets / system panels → DevTools. A second run (`npm run test:e2e:passwords`) covers the password manager: saving after sign-in, suggestions and filling, updates, failed / single-page / two-step sign-ins, per-site isolation, CSV import and export.
+- **End-to-end** — the product acceptance flow against the built app: launch → tabs → navigate → search → groups → workspaces → move tabs → split → bookmark → download → history → close/reopen → restart → session restore → palette → AI / research / markets / system panels → DevTools. `npm run test:e2e:profiles` imports a fake two-profile Chrome into two SPECTER profiles. `npm run test:e2e:passwords` covers the password manager: saving after sign-in, suggestions and filling, updates, failed / single-page / two-step sign-ins, per-site isolation, CSV import and export.
 
 ## Roadmap
 
