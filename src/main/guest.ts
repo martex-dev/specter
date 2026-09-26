@@ -41,7 +41,8 @@ const KEEP_PAGE_FOCUS = new Set([
   'browser.devtoolsDock', 'browser.devtoolsAlt', 'browser.devtools', 'browser.viewSource'
 ])
 
-const SAFE_WEBVIEW_SRC = /^(https?:|about:blank|file:|data:text\/html|view-source:)/i
+// blob: URLs of web origins: pages open generated files (PDF invoices, exports) with window.open(URL.createObjectURL(...)).
+const SAFE_WEBVIEW_SRC = /^(https?:|about:blank|file:|data:text\/html|view-source:|blob:https?:)/i
 
 export function installGuestHardening(): void {
   onSettingChanged((key) => {
