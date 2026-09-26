@@ -26,3 +26,17 @@ export async function safeInvoke<C extends IpcChannel>(fallback: IpcResult<C>, c
     return fallback
   }
 }
+
+// Commands main sends while the window is still booting (e.g. a link opened by a
+// second launch) arrive before App subscribes; hold them for it instead of dropping them.
+let early: IpcEvents['command:run'][] | null = []
+const stopEarly = on('command:run', (m) => early?.push(m))
+setTimeout(() => takeEarlyCommands(), 30_000)
+
+/** Hands over (once) the commands received before the UI subscribed. */
+export function takeEarlyCommands(): IpcEvents['command:run'][] {
+  const out = early ?? []
+  early = null
+  stopEarly()
+  return out
+}

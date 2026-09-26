@@ -3,7 +3,7 @@ import type { ThemeId } from '@shared/settings'
 import { RotateCcw, X } from 'lucide-react'
 import { bindingIndex, eventToAccelerator, isChord, resolveBindings } from '@shared/keys'
 import { isInternal } from '@shared/url'
-import { invoke, invokeRaw, on } from './lib/ipc'
+import { invoke, invokeRaw, on, takeEarlyCommands } from './lib/ipc'
 import { runCommand } from './lib/commands'
 import { applyTheme, titleBarColors } from './lib/themes'
 import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, dropPermissionRequest, updateTab } from './stores/browser'
@@ -140,6 +140,7 @@ export function App() {
         if (d.state === 'progressing' && d.receivedBytes === 0) toast({ kind: 'info', title: 'Download started', body: d.filename, ttl: 2500 })
       })
     ]
+    for (const { id, args } of takeEarlyCommands()) runCommand(id, args)
     // Automatic tab sleeping.
     const timer = window.setInterval(runSuspensionPass, 30_000)
     const beforeUnload = () => flushAll()
