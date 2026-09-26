@@ -58,16 +58,23 @@ export function NoteCard({ note, compact, autoFocus }: { note: StickyNote; compa
   useEffect(() => {
     if (!dirty.current) setText(note.text)
   }, [note.text])
-  useEffect(
-    () => () => {
-      if (timer.current) {
-        clearTimeout(timer.current)
-        patchNote(note.id, { text: textRef.current })
-      }
-    },
+  useEffect(() => {
+    // Save a pending edit when the card unmounts or the window closes (quitting or
+    // closing a popped-out panel right after typing lost the last keystrokes).
+    const flush = () => {
+      if (!timer.current) return
+      clearTimeout(timer.current)
+      timer.current = null
+      dirty.current = false
+      patchNote(note.id, { text: textRef.current.slice(0, 20_000) })
+    }
+    window.addEventListener('beforeunload', flush)
+    return () => {
+      window.removeEventListener('beforeunload', flush)
+      flush()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  )
+  }, [])
   const textRef = useRef(text)
   textRef.current = text
   const onChange = (v: string) => {
