@@ -361,7 +361,7 @@ export function Omnibox() {
         {focused && open && items.length > 0 && (
           <div className="omni-suggestions" role="listbox" onMouseDown={(e) => e.preventDefault()}>
             {items.map((it, i) => (
-              <div key={it.id + i} className={'omni-item' + (i === sel ? ' sel' : '')} role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={(e) => commit(it, e.ctrlKey || e.button === 1)}>
+              <div key={it.id + i} className={'omni-item' + (i === sel ? ' sel' : '')} role="option" aria-selected={i === sel} onMouseEnter={() => setSel(i)} onClick={(e) => commit(it, e.ctrlKey)} onAuxClick={(e) => e.button === 1 && commit(it, true)}>
                 <span className="ic">{it.icon ?? KIND_ICON[it.kind] ?? <Globe size={15} />}</span>
                 <span className="t ellipsis">{it.title}</span>
                 {it.subtitle && <span className="s ellipsis grow">— {it.subtitle}</span>}
