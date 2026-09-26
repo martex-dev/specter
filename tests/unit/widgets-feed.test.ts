@@ -139,7 +139,19 @@ describe('widgets feed parser', () => {
   it('parses RFC 822 dates with named zones', () => {
     expect(parseDate('Fri, 25 Sep 2026 19:34:42 +0000')).toBe(Date.UTC(2026, 8, 25, 19, 34, 42))
     expect(parseDate('Fri, 25 Sep 2026 19:34:42 GMT')).toBe(Date.UTC(2026, 8, 25, 19, 34, 42))
+    expect(parseDate('Fri, 25 Sep 2026 19:34:42 CEST')).toBe(Date.UTC(2026, 8, 25, 17, 34, 42))
+    expect(parseDate('Fri, 25 Sep 2026 19:34:42 JST')).toBe(Date.UTC(2026, 8, 25, 10, 34, 42))
+    expect(parseDate('Fri, 25 Sep 2026 19:34:42 XYZT')).toBe(Date.UTC(2026, 8, 25, 19, 34, 42))
     expect(parseDate('not a date')).toBeNull()
+  })
+
+  it('uses only the description of a YouTube media:group as the summary', () => {
+    const xml = `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"><title>Chan</title>
+      <entry><id>yt:video:1</id><title>My video</title><link rel="alternate" href="https://www.youtube.com/watch?v=1"/>
+        <media:group><media:title>My video</media:title><media:content url="https://x.test/v" type="application/x-shockwave-flash"/>
+          <media:thumbnail url="https://x.test/t.jpg"/><media:description>What this video is about.</media:description>
+          <media:community><media:statistics views="42"/></media:community></media:group></entry></feed>`
+    expect(parseFeed(xml, 'https://www.youtube.com/feeds/videos.xml').items[0].summary).toBe('What this video is about.')
   })
 
   it('discovers feeds advertised by HTML pages', () => {

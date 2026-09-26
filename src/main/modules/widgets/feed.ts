@@ -221,14 +221,23 @@ function textOf(node: XmlNode | undefined): string {
   return deepText(node).trim()
 }
 
+/** Zone abbreviations seen in RSS dates that Date.parse doesn't know (it handles GMT/UT/Z and US zones). */
+const ZONE_ABBR: Record<string, string> = {
+  WET: '+0000', WEST: '+0100', BST: '+0100', IST: '+0530', CET: '+0100', CEST: '+0200', MET: '+0100', MEST: '+0200',
+  EET: '+0200', EEST: '+0300', MSK: '+0300', SAST: '+0200', HKT: '+0800', SGT: '+0800', AWST: '+0800',
+  JST: '+0900', KST: '+0900', ACST: '+0930', AEST: '+1000', AEDT: '+1100', NZST: '+1200', NZDT: '+1300',
+  AKST: '-0900', AKDT: '-0800', HST: '-1000', AST: '-0400', ADT: '-0300', NST: '-0330', NDT: '-0230'
+}
+
 export function parseDate(s: string | undefined | null): number | null {
   if (!s) return null
   const t = s.trim()
   if (!t) return null
   let ms = Date.parse(t)
   if (Number.isNaN(ms)) {
-    // RFC 822 with a named zone Date.parse doesn't know ("… 2024 10:00:00 CEST") → drop the zone.
-    ms = Date.parse(t.replace(/\s+[A-Z]{2,5}$/, ' GMT'))
+    // RFC 822 with a named zone Date.parse doesn't know ("… 2024 10:00:00 CEST"): use its
+    // offset when known, else drop the zone.
+    ms = Date.parse(t.replace(/\s+([A-Z]{2,5})$/, (_m, z: string) => ' ' + (ZONE_ABBR[z] ?? 'GMT')))
   }
   return Number.isNaN(ms) ? null : ms
 }
@@ -289,7 +298,9 @@ function parseAtomEntry(entry: XmlNode, base: string): ParsedFeedItem {
   const title = cleanTitle(textOf(child(entry, 'title', 'atom:title')))
   const link = atomLink(entry, base)
   const guid = textOf(child(entry, 'id', 'atom:id')) || link || title
-  const contentNode = child(entry, 'summary', 'atom:summary', 'content', 'atom:content', 'media:group')
+  let contentNode = child(entry, 'summary', 'atom:summary', 'content', 'atom:content', 'media:group')
+  // YouTube: <media:group> also holds the title, thumbnails and stats; only its description is the summary.
+  if (contentNode?.name === 'media:group') contentNode = child(contentNode, 'media:description')
   const summary = clip(htmlToText(textOf(contentNode)), SUMMARY_MAX)
   const authors = childrenNamed(entry, 'author')
     .map((a) => textOf(child(a, 'name', 'atom:name')) || textOf(a))
