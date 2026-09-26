@@ -43,11 +43,20 @@ export default function ResearchPage({ sub }: PageProps) {
   const [showArchived, setShowArchived] = useState(false)
   const [missions] = useLoad(() => invoke('research:missions', true), ['research:changed'], [])
   const [selected, setSelected] = useState<string | null>(sub || null)
+  // The list can still contain a mission that was just deleted (it refreshes a moment later).
+  const [deleted, setDeleted] = useState<string | null>(null)
 
   useEffect(() => {
     if (selected || !missions) return
-    invoke('research:current').then((c) => setSelected(c ?? missions.find((m) => m.status === 'active')?.id ?? missions[0]?.id ?? null))
-  }, [missions, selected])
+    const left = missions.filter((m) => m.id !== deleted)
+    let alive = true
+    invoke('research:current').then((c) => {
+      if (alive) setSelected((cur) => cur ?? (c && c !== deleted ? c : (left.find((m) => m.status === 'active')?.id ?? left[0]?.id ?? null)))
+    })
+    return () => {
+      alive = false
+    }
+  }, [missions, selected, deleted])
 
   const visible = (missions ?? []).filter((m) => showArchived || m.status === 'active')
   const archivedCount = (missions ?? []).filter((m) => m.status === 'archived').length
@@ -102,7 +111,14 @@ export default function ResearchPage({ sub }: PageProps) {
       </div>
       <div className="kn-mission-pane">
         {selected ? (
-          <MissionView key={selected} id={selected} onDeleted={() => setSelected(null)} />
+          <MissionView
+            key={selected}
+            id={selected}
+            onDeleted={() => {
+              setDeleted(selected)
+              setSelected(null)
+            }}
+          />
         ) : (
           <div className="kn-blank">
             <FlaskConical size={28} className="dim" />
