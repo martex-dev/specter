@@ -343,6 +343,17 @@ await step('Passwords page lists everything', async () => {
   return `${rows} logins`
 })
 
+await step('Password check flags the weak ones', async () => {
+  // alice-pw and two-step-pass contain their usernames; the others are strong and unique.
+  const h = await invoke('passwords:check')
+  assert.deepEqual(h.weak.map((w) => w.reason), ['username', 'username'])
+  assert.deepEqual(h.reused, [])
+  await win.waitForSelector('.pw-check:has-text("2 weak · 0 reused")', { timeout: 3000 })
+  await win.click('.pw-check button:has-text("Review")')
+  await win.waitForSelector('.pw-check .pw-row:has-text("contains your username")', { timeout: 3000 })
+  await shot('check')
+})
+
 await app.close()
 server.close()
 const failed = results.filter((r) => !r.ok)
