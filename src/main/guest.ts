@@ -1,7 +1,6 @@
 // Tab guest (webview) hardening and event plumbing.
 import { app, BrowserWindow, shell, webContents, type WebContents } from 'electron'
 import { bindingIndex, eventToAccelerator, isChord, resolveBindings } from '@shared/keys'
-import { hostname } from '@shared/url'
 import { sendTo } from './ipc'
 import { createLogger } from './logger'
 import { getSetting, onSettingChanged } from './services/settings'
@@ -204,7 +203,13 @@ function setupGuest(wc: WebContents): void {
 
   wc.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
     if (!isMainFrame || errorCode === -3) return // -3 = aborted (normal)
-    const h = hostname(validatedURL)
+    // Exact host (privacy.ts keys upgrades by URL.hostname; the shared hostname() drops "www.").
+    let h = ''
+    try {
+      h = new URL(validatedURL).hostname
+    } catch {
+      /* invalid URL */
+    }
     // HTTPS-upgrade fallback: the site does not speak HTTPS, retry over HTTP once.
     if (validatedURL.startsWith('https://') && wasUpgraded(h) && (errorCode <= -100 && errorCode > -400)) {
       log.info('https upgrade failed, falling back to http', { host: h, errorCode })
