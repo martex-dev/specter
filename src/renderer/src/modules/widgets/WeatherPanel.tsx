@@ -13,23 +13,26 @@ import './widgets.css'
 export function PlaceSearch({ onPick, autoFocus, placeholder = 'Search a city…' }: { onPick: (p: GeoPlace) => void; autoFocus?: boolean; placeholder?: string }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<GeoPlace[]>([])
+  const [resultsFor, setResultsFor] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const seq = useRef(0)
   useEffect(() => {
     const text = q.trim()
+    const my = ++seq.current
     if (text.length < 2) {
       setResults([])
       setError(null)
+      setBusy(false)
       return
     }
-    const my = ++seq.current
     const t = setTimeout(() => {
       setBusy(true)
       invoke('weather:search', text)
         .then((r) => {
           if (my !== seq.current) return
           setResults(r)
+          setResultsFor(text)
           setError(r.length ? null : 'No matching places')
         })
         .catch((e) => my === seq.current && setError(errorText(e)))
@@ -41,7 +44,7 @@ export function PlaceSearch({ onPick, autoFocus, placeholder = 'Search a city…
     <div className="wg-search">
       <div className="wg-search-box">
         <Search size={13} />
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} autoFocus={autoFocus} aria-label="Search places" onKeyDown={(e) => e.key === 'Enter' && results[0] && (onPick(results[0]), setQ(''))} />
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} autoFocus={autoFocus} aria-label="Search places" onKeyDown={(e) => e.key === 'Enter' && results[0] && resultsFor === q.trim() && (onPick(results[0]), setQ(''))} />
       </div>
       {(results.length > 0 || error || busy) && q.trim().length >= 2 && (
         <div className="wg-search-results">
