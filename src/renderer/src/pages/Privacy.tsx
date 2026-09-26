@@ -155,8 +155,8 @@ export default function Privacy(_: PageProps) {
               </thead>
               <tbody>
                 {topHosts.map(([host, n]) => {
-                  // The log is oldest-first; "last seen" is the newest entry.
-                  const last = blocked.findLast((b) => b.host === host)
+                  // The log arrives newest-first.
+                  const last = blocked.find((b) => b.host === host)
                   return (
                     <tr key={host}>
                       <td className="mono" style={{ fontSize: 11.5 }}>
