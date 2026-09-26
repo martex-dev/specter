@@ -28,6 +28,9 @@ describe('finance formulas', () => {
     const d = fin.drawdown(100, 50)!
     expect(d.drawdownPct).toBe(50)
     expect(d.recoveryPct).toBe(100)
+    expect(fin.drawdown(100, 100)!.drawdownPct).toBe(0)
+    expect(fin.drawdown(100, 120)).toBeNull()
+    expect(fin.drawdown(100, NaN)).toBeNull()
   })
   it('risk/reward requires a stop on the losing side', () => {
     const r = fin.riskReward(100, 95, 115)!

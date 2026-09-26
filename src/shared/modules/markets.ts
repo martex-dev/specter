@@ -498,7 +498,8 @@ export const fin = {
   },
   /** Drawdown = (peak − trough)/peak; recovery needed = peak/trough − 1. */
   drawdown(peak: number, trough: number): { drawdownPct: number; recoveryPct: number | null } | null {
-    if (!(peak > 0) || trough < 0) return null
+    // A trough above the peak is not a drawdown (it would show "−-20%").
+    if (!(peak > 0) || !(trough >= 0) || trough > peak) return null
     return { drawdownPct: ((peak - trough) / peak) * 100, recoveryPct: trough > 0 ? (peak / trough - 1) * 100 : null }
   },
   /** R = |target − entry| / |entry − stop|; break-even win rate = 1 / (1 + R). */
