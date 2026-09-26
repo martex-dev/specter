@@ -312,7 +312,7 @@ function Overview({ m, steps, updateSteps, upsert }: { m: MissionFull; steps: Mi
             </div>
           ))}
           <div className="row" style={{ gap: 6, marginTop: 6 }}>
-            <input className="input grow" value={newStep} onChange={(e) => setNewStep(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addStep()} placeholder="Add step" />
+            <input className="input grow" value={newStep} onChange={(e) => setNewStep(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && addStep()} placeholder="Add step" />
             <button className="btn sm" onClick={addStep} disabled={!newStep.trim()}>
               <Plus size={12} />
             </button>
@@ -350,7 +350,7 @@ function Overview({ m, steps, updateSteps, upsert }: { m: MissionFull; steps: Mi
             value={newQ}
             onChange={(e) => setNewQ(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && newQ.trim()) upsert({ kind: 'question', missionId: m.id, text: newQ.trim() }).then(() => setNewQ(''))
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing && newQ.trim()) upsert({ kind: 'question', missionId: m.id, text: newQ.trim() }).then(() => setNewQ(''))
             }}
             placeholder="Add a question to answer"
           />
@@ -586,7 +586,7 @@ function Claims({ m, upsert }: { m: MissionFull; upsert: Upsert }) {
         <span className="label">Claims — back each one with quoted evidence from saved sources</span>
       </div>
       <div className="row" style={{ gap: 6, marginBottom: 12 }}>
-        <input className="input grow" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="State a claim to verify…" />
+        <input className="input grow" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && add()} placeholder="State a claim to verify…" />
         <button className="btn primary sm" onClick={add} disabled={!text.trim()}>
           <Plus size={12} /> Claim
         </button>

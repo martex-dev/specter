@@ -217,6 +217,8 @@ export function NoteEditor({ id, compact, onOpenNote, onDeleted }: Props) {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget
+    // Keys that confirm an IME composition (Enter, Tab…) belong to the IME.
+    if (e.nativeEvent.isComposing) return
     if (ac && acItems.length) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()

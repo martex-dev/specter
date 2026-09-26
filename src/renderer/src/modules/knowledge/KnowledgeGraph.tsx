@@ -130,14 +130,14 @@ export function KnowledgeGraph({ graph }: { graph: KgGraph }) {
             <span className="label">Add entity</span>
           </div>
           <div className="row" style={{ gap: 6 }}>
-            <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addEntity()} placeholder="Name" />
+            <input className="input grow" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && addEntity()} placeholder="Name" />
             <select className="select" value={type} onChange={(e) => setType(e.target.value as EntityType)} aria-label="Entity type">
               {ENTITY_TYPES.map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
           </div>
-          <input className="input" style={{ width: '100%', marginTop: 6 }} value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addEntity()} placeholder="Description (optional)" />
+          <input className="input" style={{ width: '100%', marginTop: 6 }} value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && addEntity()} placeholder="Description (optional)" />
           <button className="btn primary sm" style={{ marginTop: 6 }} onClick={addEntity} disabled={!name.trim()}>
             <Plus size={12} /> Add entity
           </button>
