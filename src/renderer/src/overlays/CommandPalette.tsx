@@ -39,9 +39,16 @@ function pushRecent(id: string): void {
 function Highlight({ text, positions }: { text: string; positions?: number[] }) {
   if (!positions?.length) return <>{text}</>
   const set = new Set(positions)
+  // Positions are UTF-16 offsets; iterate by code point (so emoji stay whole) but
+  // track the offset, or every match after an emoji is highlighted one char late.
+  let at = 0
   return (
     <>
-      {[...text].map((ch, i) => (set.has(i) ? <mark key={i}>{ch}</mark> : <span key={i}>{ch}</span>))}
+      {[...text].map((ch, i) => {
+        const hit = set.has(at)
+        at += ch.length
+        return hit ? <mark key={i}>{ch}</mark> : <span key={i}>{ch}</span>
+      })}
     </>
   )
 }
