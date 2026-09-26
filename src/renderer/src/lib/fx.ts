@@ -4,8 +4,10 @@
 // turning effects or motion off takes effect immediately.
 
 const root = document.documentElement
-const fxOn = () => root.dataset.effects === 'on'
-const motionOn = () => root.dataset.motion !== 'off' && root.dataset.motion !== 'reduced'
+// Windows "Animation effects" off → prefers-reduced-motion: honour it like the in-app setting.
+const osReduce = matchMedia('(prefers-reduced-motion: reduce)')
+const fxOn = () => root.dataset.effects === 'on' && !osReduce.matches
+const motionOn = () => root.dataset.motion !== 'off' && root.dataset.motion !== 'reduced' && !osReduce.matches
 
 const RIPPLE_TARGETS = '.btn, .icon-btn, .dock-btn, .palette-chip, .theme-card, .quick-link, .seg > button'
 const SPOT_TARGETS = '.card, .ntp-card, .theme-card, .quick-link, .setting-group'

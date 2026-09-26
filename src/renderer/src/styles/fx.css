@@ -85,8 +85,10 @@
 }
 
 /* ---- new tab entrance ---- */
-:where(:root:not([data-motion='off']):not([data-motion='reduced'])) .ntp > :where(:not(.ctl-wp)) {
-  animation: fx-rise 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+@media (prefers-reduced-motion: no-preference) {
+  :where(:root:not([data-motion='off']):not([data-motion='reduced'])) .ntp > :where(:not(.ctl-wp)) {
+    animation: fx-rise 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
 }
 /* Low-specificity delays so themes that animate an element themselves keep their own timing. */
 :where(.ntp) > :nth-child(2) {
@@ -188,6 +190,11 @@
   letter-spacing: 0.6em;
   color: var(--fg-1);
   animation: fx-rise 600ms ease-out 150ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-splash {
+    display: none;
+  }
 }
 @keyframes fx-splash-pop {
   from {
