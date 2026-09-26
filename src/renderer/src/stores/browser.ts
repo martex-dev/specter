@@ -582,11 +582,15 @@ export function closeTabsToRight(tabId: string): void {
 export function closeDuplicateTabs(): number {
   const ws = activeWs()
   if (!ws) return 0
-  const seen = new Set<string>()
+  const keyOf = (url: string) => url.replace(/#.*$/, '')
+  // The active tab is always the copy that stays, even when an earlier duplicate exists.
+  const active = ws.tabs.find((t) => t.id === ws.activeTabId)
+  const seen = new Set<string>(active ? [keyOf(active.url)] : [])
   const dupes: string[] = []
   for (const t of ws.tabs) {
-    const key = t.url.replace(/#.*$/, '')
-    if (seen.has(key) && t.id !== ws.activeTabId) dupes.push(t.id)
+    if (t.id === ws.activeTabId) continue
+    const key = keyOf(t.url)
+    if (seen.has(key)) dupes.push(t.id)
     else seen.add(key)
   }
   closeTabs(dupes)
