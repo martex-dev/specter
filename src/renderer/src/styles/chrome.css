@@ -136,6 +136,15 @@
 .tab:has(+ .tab:hover)::after {
   opacity: 0;
 }
+.tab {
+  animation: tab-in var(--dur-slow) var(--ease);
+}
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 .tab.active {
   background: var(--bg-1);
   color: var(--fg-0);
@@ -291,6 +300,30 @@
 }
 
 /* HUD — tiny telemetry readouts at the right of the title bar */
+.hud-slot {
+  display: contents;
+}
+/* The HUD gives way to tabs: lower-priority readouts drop out as the title bar narrows. */
+.titlebar {
+  container-type: inline-size;
+  container-name: titlebar;
+}
+@container titlebar (max-width: 1500px) {
+  .hud-slot[data-hud='market-ticker'] {
+    display: none;
+  }
+}
+@container titlebar (max-width: 1150px) {
+  .hud-slot[data-hud='trackers'],
+  .hud-slot[data-hud='tabs'] {
+    display: none;
+  }
+}
+@container titlebar (max-width: 900px) {
+  .hud {
+    display: none !important;
+  }
+}
 .hud {
   -webkit-app-region: no-drag;
   align-self: center;
