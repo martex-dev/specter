@@ -335,7 +335,8 @@ export function newTab(url = 'specter://newtab', opts: NewTabOptions = {}): stri
 export function activateTab(tabId: string): void {
   const f = findTab(tabId)
   if (!f) return
-  if (f.ws.id !== S().activeWsId) switchWorkspace(f.ws.id)
+  // Switch after choosing the tab so the workspace's previously active tab isn't woken for nothing.
+  const otherWs = f.ws.id !== S().activeWsId
   updateWs(f.ws.id, (w) => {
     let layout = w.layout
     // Activating a tab outside the split replaces the focused pane (keeps split alive).
@@ -352,6 +353,7 @@ export function activateTab(tabId: string): void {
       tabs: w.tabs.map((t) => (t.id === tabId ? { ...t, lastActive: Date.now(), suspended: isInternal(t.url) ? false : false } : t))
     }
   })
+  if (otherWs) void switchWorkspace(f.ws.id)
 }
 
 export function closeTab(tabId: string): void {
