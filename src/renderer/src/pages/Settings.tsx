@@ -93,7 +93,7 @@ export function TextSetting({ k, title, desc, placeholder, width = 260 }: { k: S
   useEffect(() => setDraft(v), [v])
   return (
     <Row title={title} desc={desc}>
-      <input className="input" style={{ width }} value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== v && setSetting(k, draft as never)} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+      <input className="input" style={{ width }} value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={() => draft !== v && setSetting(k, draft as never)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && (e.target as HTMLInputElement).blur()} />
     </Row>
   )
 }
@@ -470,7 +470,7 @@ function TickerSymbols() {
   return (
     <Row title="Ticker symbols" desc="Shown in the HUD and on the new tab page.">
       {/* keyed so the uncontrolled field re-syncs when the setting changes elsewhere (reset, import, HUD) */}
-      <input key={syms.join(',')} className="input" style={{ width: 240 }} defaultValue={syms.join(', ')} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} onBlur={(e) => setSetting('markets.tickerSymbols', e.target.value.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 12))} />
+      <input key={syms.join(',')} className="input" style={{ width: 240 }} defaultValue={syms.join(', ')} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && (e.target as HTMLInputElement).blur()} onBlur={(e) => setSetting('markets.tickerSymbols', e.target.value.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 12))} />
     </Row>
   )
 }
