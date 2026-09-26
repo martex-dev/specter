@@ -351,10 +351,19 @@ export function subscribe(subId: string, wcId: number, symbols: string[], live: 
     const wc = webContents.fromId(wcId)
     if (wc) {
       trackedWc.add(wcId)
-      wc.once('destroyed', () => {
-        trackedWc.delete(wcId)
+      const drop = () => {
         for (const [id, s] of subs) if (s.wcId === wcId) subs.delete(id)
         reschedule(0)
+      }
+      wc.once('destroyed', () => {
+        trackedWc.delete(wcId)
+        drop()
+      })
+      // A crashed UI renderer is reloaded in place (same webContents): its old
+      // subscriptions can never be unsubscribed and would keep streaming.
+      wc.on('render-process-gone', drop)
+      wc.on('did-start-navigation', (details) => {
+        if (details.isMainFrame && !details.isSameDocument) drop()
       })
     }
   }
