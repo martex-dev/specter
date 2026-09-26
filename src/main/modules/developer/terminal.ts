@@ -575,7 +575,11 @@ export function restartSession(id: string): TerminalSession {
 
 export function closeSession(id: string): void {
   const s = sessions.get(id)
-  if (!s) return
+  if (!s) {
+    // Already gone (e.g. killed when developer tools were turned off): still let the UI drop its tab.
+    if (typeof id === 'string') broadcast('terminal:closed', { id })
+    return
+  }
   s.generation++
   if (s.interruptTimer) clearTimeout(s.interruptTimer)
   const pid = s.proc?.pid
@@ -606,10 +610,13 @@ export function resize(id: string, cols: number): void {
 export function killAllSessions(): void {
   for (const s of sessions.values()) {
     s.generation++
+    if (s.interruptTimer) clearTimeout(s.interruptTimer)
     if (s.proc?.pid) killTree(s.proc.pid, true)
     s.proc = null
   }
+  const ids = [...sessions.keys()]
   sessions.clear()
+  for (const id of ids) broadcast('terminal:closed', { id })
 }
 
 export function sessionCount(): number {
