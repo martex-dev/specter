@@ -40,6 +40,8 @@ export interface PasswordOffer {
   username: string
   /** A login for this username exists and the password changed. */
   update: boolean
+  /** Already saved (a password SPECTER suggested): the bar only confirms it. */
+  saved?: boolean
 }
 
 export interface PasswordImportResult {
@@ -62,6 +64,8 @@ declare module './ipc' {
     'passwords:status': () => PasswordStatus
     'passwords:list': () => SavedLogin[]
     'passwords:reveal': (id: string) => string
+    /** Copies a password; the clipboard is cleared a minute later if it still holds it. */
+    'passwords:copy': (id: string) => void
     'passwords:save': (input: LoginInput) => SavedLogin
     'passwords:remove': (id: string) => void
     /** Imports into the given profile (default: the open one). */
@@ -224,4 +228,30 @@ export function loginsToCsv(rows: { name: string; url: string; username: string;
   const lines = ['name,url,username,password,note']
   for (const r of rows) lines.push([r.name, r.url, r.username, r.password, r.note].map(csvField).join(','))
   return lines.join('\r\n') + '\r\n'
+}
+
+// ---------------------------------------------------------------- generator
+
+const LOWER = 'abcdefghijkmnopqrstuvwxyz' // no l
+const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ' // no I, O
+const DIGITS = '23456789' // no 0, 1
+const SYMBOLS = '-_.!?@#$%'
+
+/**
+ * A strong random password (Chrome-like: 15 characters from four classes, without look-alike
+ * characters), shortened to a field's maxlength when it has one (never below 8).
+ * `randomInt(n)` must return a uniform integer in [0, n) from a cryptographic source.
+ */
+export function generatePassword(randomInt: (n: number) => number, maxLength?: number): string {
+  const len = Math.max(8, Math.min(15, maxLength && maxLength > 0 ? maxLength : 15))
+  const all = LOWER + UPPER + DIGITS + SYMBOLS
+  const pick = (set: string) => set[randomInt(set.length)]
+  // One of each class, the rest from everything, then shuffled (Fisher–Yates).
+  const chars = [pick(LOWER), pick(UPPER), pick(DIGITS), pick(SYMBOLS)]
+  while (chars.length < len) chars.push(pick(all))
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  return chars.join('')
 }

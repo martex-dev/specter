@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loginOrigin, loginsFromCsv, loginsToCsv, matchOrigin, parseCsv } from '@shared/passwords'
+import { generatePassword, loginOrigin, loginsFromCsv, loginsToCsv, matchOrigin, parseCsv } from '@shared/passwords'
 
 describe('parseCsv', () => {
   it('handles quotes, doubled quotes, embedded newlines, CRLF and a BOM', () => {
@@ -75,5 +75,28 @@ describe('matchOrigin', () => {
     expect(matchOrigin('https://alice.github.io', 'https://bob.github.io')).toBeNull()
     expect(matchOrigin('http://localhost:3000', 'http://localhost:4000')).toBeNull()
     expect(matchOrigin('https://10.0.0.1', 'https://10.0.0.2')).toBeNull()
+  })
+})
+
+describe('generatePassword', () => {
+  const rnd = (n: number) => Math.floor(Math.random() * n)
+  it('makes 15-character passwords with every character class', () => {
+    for (let i = 0; i < 200; i++) {
+      const p = generatePassword(rnd)
+      expect(p).toHaveLength(15)
+      expect(p).toMatch(/[a-z]/)
+      expect(p).toMatch(/[A-Z]/)
+      expect(p).toMatch(/[0-9]/)
+      expect(p).toMatch(/[-_.!?@#$%]/)
+      expect(p).not.toMatch(/[lIO01]/)
+    }
+  })
+  it("fits a field's maxlength but never goes below 8", () => {
+    expect(generatePassword(rnd, 10)).toHaveLength(10)
+    expect(generatePassword(rnd, 4)).toHaveLength(8)
+    expect(generatePassword(rnd, 64)).toHaveLength(15)
+  })
+  it('always has the four classes, even from a degenerate source', () => {
+    expect(generatePassword(() => 0)).toMatch(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[-_.!?@#$%]).{15}$/)
   })
 })
