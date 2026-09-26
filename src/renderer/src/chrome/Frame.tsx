@@ -1,12 +1,12 @@
 // HUD (title bar telemetry), status bar, side rail and side panel host.
-import { Suspense, useEffect, useState, useSyncExternalStore } from 'react'
-import { Bell, ExternalLink, Moon, ShieldCheck, X, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Bell, Moon, ShieldCheck, Zap } from 'lucide-react'
 import { invoke, on } from '../lib/ipc'
-import { hudItems, sidePanels, statusItems } from '../lib/registry'
+import { hudItems, statusItems } from '../lib/registry'
 import { runCommand, shortcutFor } from '../lib/commands'
 import { useBrowser, useActiveWs, visibleTabIds } from '../stores/browser'
 import { useSetting, useSettingsStore } from '../stores/settings'
-import { toggleSidePanel, useUi } from '../stores/ui'
+import { toggleSidePanel } from '../stores/ui'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function useRegistry<T>(reg: { list: () => T[]; subscribe: (l: () => void) => () => void }): T[] {
@@ -23,7 +23,7 @@ export function Hud() {
   return (
     <div className="hud" aria-label="Telemetry">
       {enabled.map((it, i) => (
-        <span key={it.id} style={{ display: 'contents' }}>
+        <span key={it.id} className="hud-slot" data-hud={it.id}>
           {i > 0 && <span className="hud-sep" />}
           <ErrorBoundary name={'HUD ' + it.id} compact>
             <it.component />
@@ -163,83 +163,4 @@ export function registerCoreStatus(): void {
   statusItems.register({ id: 'zoom', side: 'right', order: 10, component: ZoomStatus })
   statusItems.register({ id: 'mode', side: 'right', order: 50, component: ModeStatus })
   statusItems.register({ id: 'notifications', side: 'right', order: 100, component: NotificationsStatus })
-}
-
-// ---------------------------------------------------------------- rail + side panel
-
-export function SideRail() {
-  // Re-render when any setting changes: panels' enabled() predicates read settings.
-  useSettingsStore((s) => s.s)
-  const panels = useRegistry(sidePanels).filter((p) => !p.enabled || p.enabled())
-  const active = useUi((s) => s.sidePanel)
-  const top = panels.filter((p) => p.order < 100)
-  const bottom = panels.filter((p) => p.order >= 100)
-  return (
-    <nav className="rail" aria-label="Tools">
-      {top.map((p) => (
-        <button key={p.id} className={'icon-btn' + (active === p.id ? ' on' : '')} onClick={() => toggleSidePanel(p.id)} data-tip={p.title} data-kbd={p.shortcutCommand ? shortcutFor(p.shortcutCommand) : undefined} aria-label={p.title}>
-          <p.icon size={17} />
-        </button>
-      ))}
-      <span className="spacer" />
-      {bottom.length > 0 && <span className="rail-sep" />}
-      {bottom.map((p) => (
-        <button key={p.id} className={'icon-btn' + (active === p.id ? ' on' : '')} onClick={() => toggleSidePanel(p.id)} data-tip={p.title} aria-label={p.title}>
-          <p.icon size={17} />
-        </button>
-      ))}
-    </nav>
-  )
-}
-
-export function SidePanelHost() {
-  const id = useUi((s) => s.sidePanel)
-  const width = useUi((s) => s.sidePanelWidth)
-  useSyncExternalStore(sidePanels.subscribe, () => sidePanels.list().length)
-  const def = id ? sidePanels.get(id) : undefined
-  if (!def) return null
-  const startResize = (e: React.MouseEvent) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const start = width
-    const move = (ev: MouseEvent) => useUi.setState({ sidePanelWidth: Math.max(260, Math.min(window.innerWidth * 0.7, start - (ev.clientX - startX))) })
-    const up = () => {
-      document.body.style.cursor = ''
-      shield.remove()
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    const shield = document.createElement('div')
-    shield.className = 'drag-shield'
-    shield.style.cursor = 'col-resize'
-    document.body.appendChild(shield)
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-  }
-  const C = def.component
-  return (
-    <aside className="sidepanel" style={{ width }} aria-label={def.title}>
-      <div className="sidepanel-resize" onMouseDown={startResize} />
-      <div className="sidepanel-h">
-        <def.icon size={15} style={{ color: 'var(--accent)' }} />
-        <h3>{def.title}</h3>
-        <span className="spacer" />
-        {def.popout && (
-          <button className="icon-btn sm" onClick={() => (invoke('window:popout', def.id, { alwaysOnTop: false }), toggleSidePanel(def.id))} data-tip="Pop out into floating window" aria-label="Pop out">
-            <ExternalLink size={13} />
-          </button>
-        )}
-        <button className="icon-btn sm" onClick={() => toggleSidePanel(def.id)} aria-label="Close panel" data-tip="Close">
-          <X size={14} />
-        </button>
-      </div>
-      <div className="sidepanel-b">
-        <ErrorBoundary name={def.title} key={def.id}>
-          <Suspense fallback={<div className="empty">Loading…</div>}>
-            <C />
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-    </aside>
-  )
 }
