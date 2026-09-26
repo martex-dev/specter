@@ -150,7 +150,9 @@ export function CommandPalette() {
   let lastGroup = ''
   return (
     <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
-      <div className="palette pop" role="dialog" aria-label="Command palette">
+      {/* Keys are handled on the search field; clicking a header, the footer or the
+          list's scrollbar must not strand focus outside it (Escape would stop working). */}
+      <div className="palette pop" role="dialog" aria-label="Command palette" onMouseDown={(e) => e.target !== inputRef.current && requestAnimationFrame(() => inputRef.current?.focus())}>
         <div className="palette-input-row">
           {q.startsWith('>') ? <CommandIcon size={18} /> : <Search size={18} />}
           <input
