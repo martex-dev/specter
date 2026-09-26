@@ -59,13 +59,20 @@ export function App() {
     const t = applyTheme(theme, palette, accent, font, layoutOverride)
     invoke('window:setTitleBarOverlay', { ...titleBarColors(t), height: density === 'compact' ? 36 : 40 }).catch(() => undefined)
   }, [theme, palette, accent, font, layoutOverride, density])
+  const [osReducedMotion, setOsReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   useEffect(() => {
-    // ML / battery modes reduce animation cost automatically.
-    const effective = motion === 'full' && (perfMode === 'ml' || perfMode === 'battery' || perfMode === 'gaming') ? 'reduced' : motion
+    const mq = matchMedia('(prefers-reduced-motion: reduce)')
+    const change = () => setOsReducedMotion(mq.matches)
+    mq.addEventListener('change', change)
+    return () => mq.removeEventListener('change', change)
+  }, [])
+  useEffect(() => {
+    // ML / battery modes and the OS "reduce animations" setting reduce animation cost automatically.
+    const effective = motion === 'full' && (osReducedMotion || perfMode === 'ml' || perfMode === 'battery' || perfMode === 'gaming') ? 'reduced' : motion
     document.documentElement.dataset.motion = effective
     document.documentElement.dataset.density = density
     document.documentElement.dataset.effects = effects && effective === 'full' ? 'on' : 'off'
-  }, [motion, density, perfMode, effects])
+  }, [motion, density, perfMode, effects, osReducedMotion])
 
   // Window title follows the active tab.
   useEffect(() => {
