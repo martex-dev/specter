@@ -44,10 +44,13 @@ export default function NotesPage({ sub, query }: PageProps) {
     }
   }, [q, notes])
 
-  // Select the first note when nothing is selected.
+  // Select the first note when nothing is selected. The list can still contain
+  // a note that was just deleted (it refreshes a moment later) — skip it.
+  const [deleted, setDeleted] = useState<string | null>(null)
   useEffect(() => {
-    if (!selected && notes && notes.length) setSelected(notes[0].id)
-  }, [notes, selected])
+    const first = notes?.find((n) => n.id !== deleted)
+    if (!selected && first) setSelected(first.id)
+  }, [notes, selected, deleted])
 
   const create = async () => {
     const n = await invoke('notes:create', { title: '', body: '', workspaceId: currentWorkspaceId(), tags: tag ? [tag] : [] })
@@ -164,7 +167,15 @@ export default function NotesPage({ sub, query }: PageProps) {
       </div>
       <div className="kn-editor-pane">
         {selected ? (
-          <NoteEditor key={selected} id={selected} onOpenNote={setSelected} onDeleted={() => setSelected(null)} />
+          <NoteEditor
+            key={selected}
+            id={selected}
+            onOpenNote={setSelected}
+            onDeleted={() => {
+              setDeleted(selected)
+              setSelected(null)
+            }}
+          />
         ) : (
           <div className="kn-blank">
             <NotebookPen size={28} className="dim" />
