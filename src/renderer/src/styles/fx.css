@@ -1,0 +1,214 @@
+/* Global micro-interactions shared by every theme (see lib/fx.ts). */
+
+/* ---- click ripple ---- */
+.fx-ripple-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.fx-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(0);
+  animation: fx-ripple 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes fx-ripple {
+  0% {
+    opacity: 0.22;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* ---- cursor spotlight on cards ---- */
+.fx-spot {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 13%, transparent), transparent 65%);
+  animation: fx-fade-in 200ms ease-out;
+}
+[data-scheme='light'] .fx-spot {
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 10%, transparent), transparent 65%);
+}
+[data-theme='retro'] .fx-spot,
+[data-theme='brutal'] .fx-spot,
+[data-theme='paper'] .fx-spot {
+  display: none;
+}
+@keyframes fx-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- 3D tilt on theme cards ---- */
+.theme-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.theme-card.fx-tilting {
+  transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px);
+  transition:
+    transform 80ms linear,
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur-slow) var(--ease);
+}
+
+/* ---- magnifying dock ---- */
+[data-effects='on'] .dock-btn {
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+[data-effects='on'] .dock-btn:hover {
+  transform: scale(1.16);
+  z-index: 1;
+}
+[data-effects='on'] .dock-btn:has(+ .dock-btn:hover),
+[data-effects='on'] .dock-btn:hover + .dock-btn {
+  transform: scale(1.06);
+}
+[data-effects='on'] .dock-btn:active {
+  transform: scale(0.94);
+}
+
+/* ---- new tab entrance ---- */
+:where(:root:not([data-motion='off']):not([data-motion='reduced'])) .ntp > :where(:not(.ctl-wp)) {
+  animation: fx-rise 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* Low-specificity delays so themes that animate an element themselves keep their own timing. */
+:where(.ntp) > :nth-child(2) {
+  animation-delay: 30ms;
+}
+:where(.ntp) > :nth-child(3) {
+  animation-delay: 70ms;
+}
+:where(.ntp) > :nth-child(4) {
+  animation-delay: 110ms;
+}
+:where(.ntp) > :nth-child(5) {
+  animation-delay: 150ms;
+}
+:where(.ntp) > :nth-child(6) {
+  animation-delay: 190ms;
+}
+:where(.ntp) > :nth-child(n + 7) {
+  animation-delay: 230ms;
+}
+@keyframes fx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* ---- focus ring that travels around the address bar ---- */
+[data-theme='specter'] .omnibox.focused,
+[data-theme='aurora'] .omnibox.focused {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--solid-2), var(--solid-2)) padding-box,
+    conic-gradient(from var(--holo-a), var(--accent), var(--accent-2), color-mix(in srgb, var(--accent) 15%, transparent) 45%, color-mix(in srgb, var(--accent-2) 15%, transparent) 70%, var(--accent)) border-box;
+}
+[data-effects='on'][data-theme='specter'] .omnibox.focused,
+[data-effects='on'][data-theme='aurora'] .omnibox.focused {
+  animation: holo-spin 3.2s linear infinite;
+}
+
+/* ---- page-load bar with a comet head ---- */
+.progress-line > i {
+  background: linear-gradient(90deg, transparent, var(--accent) 60%, var(--accent-2));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* ---- theme switch reveal ---- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* ---- startup splash ---- */
+.fx-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: var(--solid-0);
+  animation: fx-splash-out 520ms ease-in 560ms forwards;
+}
+.fx-splash-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  color: var(--accent);
+  animation: fx-splash-pop 700ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
+}
+.fx-splash-mark::before,
+.fx-splash-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: fx-splash-ring 900ms ease-out 120ms both;
+}
+.fx-splash-mark::after {
+  border-color: var(--accent-2);
+  animation-delay: 260ms;
+}
+.fx-splash-word {
+  position: absolute;
+  top: calc(50% + 62px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.6em;
+  color: var(--fg-1);
+  animation: fx-rise 600ms ease-out 150ms both;
+}
+@keyframes fx-splash-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+    filter: blur(6px);
+  }
+}
+@keyframes fx-splash-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes fx-splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
