@@ -50,6 +50,34 @@ function SavePasswordBar({ tabId, offer }: { tabId: string; offer: PasswordOffer
   useEffect(() => setUsername(offer.username), [offer.offerId, offer.username])
   const site = hostname(offer.origin) || offer.origin
   const save = () => respondPasswordOffer(tabId, 'save', username)
+  if (offer.saved)
+    return (
+      <div className="infobar" role="status" aria-label="Password saved">
+        <KeyRound size={15} className="ok" />
+        <span className="grow">
+          Saved your new password for <b>{site}</b>
+          {offer.username ? (
+            <>
+              {' '}
+              (<b>{offer.username}</b>)
+            </>
+          ) : null}
+          .
+        </span>
+        <button
+          className="btn sm ghost"
+          onClick={() => {
+            respondPasswordOffer(tabId, 'dismiss')
+            import('../stores/browser').then((m) => m.newTab('specter://passwords'))
+          }}
+        >
+          View passwords
+        </button>
+        <button className="icon-btn sm" onClick={() => respondPasswordOffer(tabId, 'dismiss')} aria-label="Close" data-tip="Close">
+          <X size={14} />
+        </button>
+      </div>
+    )
   return (
     <div className="infobar" role="alertdialog" aria-label={offer.update ? 'Update password' : 'Save password'}>
       <KeyRound size={15} className="accent" />

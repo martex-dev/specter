@@ -6,11 +6,13 @@
 // src/preload/passwords.ts). Every guest request is scoped to the origin
 // Chromium reports for the sending frame, never to anything the page says, so
 // a site can only ever receive the logins saved for that site.
-import { app, dialog, ipcMain, safeStorage, session as electronSession, shell, webContents, type IpcMainEvent, type IpcMainInvokeEvent, type Session, type WebContents } from 'electron'
+import { app, clipboard, dialog, ipcMain, safeStorage, session as electronSession, shell, webContents, type IpcMainEvent, type IpcMainInvokeEvent, type Session, type WebContents } from 'electron'
 import { spawn } from 'node:child_process'
+import { randomInt } from 'node:crypto'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  generatePassword,
   loginOrigin,
   loginsFromCsv,
   loginsToCsv,
@@ -182,6 +184,10 @@ interface Offer {
 }
 
 const offers = new Map<string, Offer>()
+/** Passwords SPECTER suggested on a page (per page and origin): used ones are saved without asking. */
+const generated = new Map<string, { passwords: string[]; at: number }>()
+const GENERATED_TTL = 30 * 60_000
+
 /** Username typed on the first step of a username-then-password sign-in (per page and origin). */
 const recentUsernames = new Map<string, { username: string; at: number }>()
 const OFFER_TTL = 10 * 60_000
@@ -226,6 +232,19 @@ function onSubmitted(wc: WebContents, frame: { processId: number; routingId: num
   }
   const target = promptTarget(wc)
   if (!target) return
+  // A password SPECTER suggested is saved right away (like Chrome), so it can't be lost
+  // if the sign-up then navigates somewhere unexpected; the bar just confirms it.
+  const gen = generated.get(wc.id + ' ' + pageOrigin)
+  if (gen && Date.now() - gen.at < GENERATED_TTL && gen.passwords.includes(password)) {
+    const { result } = upsert(pageUrl, existing?.username ?? username, password)
+    changed()
+    log.info(`suggested password ${result} for ${hostname(pageOrigin)}`)
+    for (const o of offers.values()) if (o.tabWcId === target.tabWcId) dropOffer(o.offerId, true)
+    const offerId = uid('pwo_')
+    offers.set(offerId, { offerId, ...target, origin: pageOrigin, url: pageUrl, username, password: '', timer: setTimeout(() => dropOffer(offerId, true), 60_000), detach: () => undefined })
+    sendTo(target.hostId, 'passwords:offer', { offerId, webContentsId: target.tabWcId, origin: pageOrigin, username: existing?.username ?? username, update: false, saved: true })
+    return
+  }
   pendingByWc.get(wc.id)?.cancel()
 
   const isPopup = wc.getType() === 'window'
@@ -330,6 +349,18 @@ function registerGuestIpc(): void {
     }
   })
 
+  ipcMain.handle('specter-pw:generate', (e, maxLength: unknown) => {
+    const g = guestFrame(e)
+    if (!g || !available() || !getSetting('passwords.autofill') || !getSetting('passwords.offerToSave')) return null
+    const password = generatePassword(randomInt, typeof maxLength === 'number' ? maxLength : undefined)
+    const key = g.wc.id + ' ' + g.origin
+    const now = Date.now()
+    for (const [k, v] of generated) if (now - v.at > GENERATED_TTL) generated.delete(k)
+    const cur = generated.get(key)
+    generated.set(key, { passwords: [...(cur?.passwords ?? []), password].slice(-5), at: now })
+    return password
+  })
+
   ipcMain.on('specter-pw:succeeded', (e) => {
     if (guestFrame(e)) pendingByWc.get(e.sender.id)?.show()
   })
@@ -394,6 +425,18 @@ export function registerPasswordsIpc(): void {
     const pw = safeDecrypt(r)
     if (pw === null) throw new Error('This password was encrypted on another computer or Windows account and can’t be read here.')
     return pw
+  })
+
+  let clipTimer: NodeJS.Timeout | undefined
+  handle('passwords:copy', async (_e, id) => {
+    const r = rowById(id)
+    const pw = r && safeDecrypt(r)
+    if (!pw) throw new Error('This password can’t be read here.')
+    await clipboard.writeText(pw)
+    clearTimeout(clipTimer)
+    clipTimer = setTimeout(async () => {
+      if ((await clipboard.readText()) === pw) clipboard.clear()
+    }, 60_000)
   })
 
   handle('passwords:save', (_e, input: LoginInput) => {
