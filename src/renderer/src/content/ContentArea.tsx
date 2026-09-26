@@ -277,7 +277,9 @@ const Pane = memo(function Pane({ tab, rect, split, focused, partition, findOpen
 })
 
 function InternalPane({ tab }: { tab: RuntimeTab }) {
-  const route = internalRoute(tab.url)
+  // Stable per URL: pages key effects on `query`, which must not change on every tab update
+  // (title, loading, lastActive…).
+  const route = useMemo(() => internalRoute(tab.url), [tab.url])
   const page = getPage(route.page)
   if (!page) {
     return (
