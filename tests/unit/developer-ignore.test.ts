@@ -50,6 +50,12 @@ describe('gitignore', () => {
     expect(ig('x/foo/bar')).toBe(false)
   })
 
+  it('ignores a UTF-8 byte order mark before the first rule', () => {
+    const bom = parseGitignore('﻿*.log\r\nout.txt\r\n')
+    expect(matchRules('app.log', false, bom)).toBe(true)
+    expect(matchRules('out.txt', false, bom)).toBe(true)
+  })
+
   it('directory-only rules only match directories', () => {
     expect(ig('tmp', true)).toBe(true)
     expect(ig('x/tmp', true)).toBe(true)

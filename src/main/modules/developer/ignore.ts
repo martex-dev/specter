@@ -123,7 +123,8 @@ function escapeRe(s: string): string {
 /** Parses the text of a .gitignore located at `base` (relative dir, '' for root). */
 export function parseGitignore(text: string, base = ''): IgnoreRule[] {
   const rules: IgnoreRule[] = []
-  for (const raw of text.split(/\r?\n/)) {
+  // Like git, ignore a UTF-8 byte order mark (Notepad / PowerShell 5 write one).
+  for (const raw of text.replace(/^﻿/, '').split(/\r?\n/)) {
     let line = raw.replace(/(?<!\\)\s+$/, '')
     if (!line || line.startsWith('#')) continue
     let negate = false
