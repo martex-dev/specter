@@ -167,6 +167,8 @@ function stripPrefix(p: string): string {
 }
 
 const HUNK_RE = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)$/
+/** Combined-diff hunk header (merge conflicts, merge commits): "@@@ -a,b -c,d +e,f @@@". */
+const CC_HUNK_RE = /^(@{3,}) -(\d+)(?:,(\d+))? (?:-\d+(?:,\d+)? )*\+(\d+)(?:,(\d+))? \1(.*)$/
 
 /** Parses unified diff text (git diff / git show / git diff --no-index) into files and hunks. */
 export function parseUnifiedDiff(text: string): DiffFile[] {
@@ -177,6 +179,8 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
   let newNo = 0
   let oldLeft = 0
   let newLeft = 0
+  /** Parent count of the current combined-diff hunk (0 for a normal hunk). */
+  let parents = 0
   const lines = text.split('\n')
   if (lines.length && lines[lines.length - 1] === '') lines.pop()
 
@@ -192,6 +196,12 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
     if (raw.startsWith('diff --git ')) {
       const m = /^diff --git (?:"?a\/)(.+?)"? (?:"?b\/)(.+?)"?$/.exec(raw)
       file = startFile(m ? unquotePath(m[1]) : '', m ? unquotePath(m[2]) : '')
+      file.headers.push(raw)
+      continue
+    }
+    if (raw.startsWith('diff --cc ') || raw.startsWith('diff --combined ')) {
+      const p = unquotePath(raw.slice(raw.indexOf(' ', 5) + 1))
+      file = startFile(p, p)
       file.headers.push(raw)
       continue
     }
@@ -247,13 +257,51 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
       file.hunks.push(h)
       if (file.status === 'mode') file.status = 'modified'
       hunk = h
+      parents = 0
       oldLeft = h.oldLines
       newLeft = h.newLines
       if (oldLeft === 0 && newLeft === 0) hunk = null
       continue
     }
+    const cm = CC_HUNK_RE.exec(raw)
+    if (cm) {
+      const h: DiffHunk = {
+        header: raw,
+        oldStart: Number(cm[2]),
+        oldLines: cm[3] === undefined ? 1 : Number(cm[3]),
+        newStart: Number(cm[4]),
+        newLines: cm[5] === undefined ? 1 : Number(cm[5]),
+        lines: []
+      }
+      file.hunks.push(h)
+      hunk = h
+      parents = cm[1].length - 1
+      newNo = h.newStart
+      continue
+    }
     if (!hunk) continue
     const h = hunk as DiffHunk
+    if (parents) {
+      // One status column per parent: "-" = only in that parent, "+" = only in the result.
+      if (raw.startsWith('\\')) {
+        h.lines.push({ type: 'meta', text: raw })
+        continue
+      }
+      const cols = raw.slice(0, parents)
+      if (raw !== '' && !/^[ +-]+$/.test(cols)) {
+        hunk = null
+        continue
+      }
+      const text = raw.slice(parents)
+      if (cols.includes('-')) {
+        h.lines.push({ type: 'del', text })
+        file.deletions++
+      } else if (cols.includes('+')) {
+        h.lines.push({ type: 'add', text, newNo: newNo++ })
+        file.additions++
+      } else h.lines.push({ type: 'ctx', text, newNo: newNo++ })
+      continue
+    }
     const c = raw[0]
     if (c === '+') {
       h.lines.push({ type: 'add', text: raw.slice(1), newNo: newNo++ })

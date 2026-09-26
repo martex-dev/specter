@@ -157,6 +157,47 @@ describe('unified diff parser', () => {
     expect(r[1].hunks[0].lines.map((l) => l.type)).toEqual(['del', 'add'])
   })
 
+  it('parses combined diffs of conflicted files and merge commits', () => {
+    const cc = [
+      'diff --cc conflict.txt',
+      'index 1f2a3b4,5c6d7e8..0000000',
+      '--- a/conflict.txt',
+      '+++ b/conflict.txt',
+      '@@@ -1,2 -1,2 +1,6 @@@',
+      '  shared',
+      '++<<<<<<< HEAD',
+      ' +ours',
+      '++=======',
+      '+ theirs',
+      '++>>>>>>> feature',
+      '- old ours',
+      'diff --cc other.txt',
+      'index 1111111,2222222..3333333',
+      '--- a/other.txt',
+      '+++ b/other.txt',
+      '@@@ -3,1 -3,1 +3,1 @@@',
+      '- a',
+      ' -b',
+      '++c',
+      ''
+    ].join('\n')
+    const r = parseUnifiedDiff(cc)
+    expect(r.map((f) => f.newPath)).toEqual(['conflict.txt', 'other.txt'])
+    const h = r[0].hunks[0]
+    expect(h).toMatchObject({ oldStart: 1, newStart: 1, newLines: 6 })
+    expect(h.lines.map((l) => [l.type, l.newNo ?? null, l.text])).toEqual([
+      ['ctx', 1, 'shared'],
+      ['add', 2, '<<<<<<< HEAD'],
+      ['add', 3, 'ours'],
+      ['add', 4, '======='],
+      ['add', 5, 'theirs'],
+      ['add', 6, '>>>>>>> feature'],
+      ['del', null, 'old ours']
+    ])
+    expect(r[0]).toMatchObject({ additions: 5, deletions: 1 })
+    expect(r[1].hunks[0].lines.map((l) => l.type)).toEqual(['del', 'del', 'add'])
+  })
+
   it('builds diffs for untracked files', () => {
     const d = untrackedDiff('a.txt', 'one\r\ntwo')
     expect(d.status).toBe('added')
