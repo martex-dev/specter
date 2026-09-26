@@ -1,5 +1,6 @@
 // Settings schema and defaults. Settings are stored as individual key/value
 // rows in SQLite so partial updates never rewrite unrelated state.
+import { DEFAULT_FILTER_LISTS } from './adblock'
 
 export type ThemeId = 'specter' | 'neon' | 'aurora' | 'terminal' | 'paper' | 'synthwave' | 'blueprint' | 'brutal' | 'retro' | 'holo' | 'glitch'
 export type MotionLevel = 'full' | 'reduced' | 'off'
@@ -89,6 +90,10 @@ export interface Settings {
 
   // Privacy
   'privacy.blockTrackers': boolean
+  'privacy.adblock': boolean
+  'privacy.adblockLists': string[]
+  'privacy.adblockAllowlist': string[]
+  'privacy.adblockCustomFilters': string
   'privacy.sendDNT': boolean
   'privacy.sendGPC': boolean
   'privacy.blockThirdPartyCookies': boolean
@@ -212,6 +217,10 @@ export const DEFAULT_SETTINGS: Settings = {
   'search.keepHistory': true,
 
   'privacy.blockTrackers': true,
+  'privacy.adblock': true,
+  'privacy.adblockLists': [...DEFAULT_FILTER_LISTS],
+  'privacy.adblockAllowlist': [],
+  'privacy.adblockCustomFilters': '',
   'privacy.sendDNT': false,
   'privacy.sendGPC': true,
   'privacy.blockThirdPartyCookies': false,
