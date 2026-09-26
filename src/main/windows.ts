@@ -68,7 +68,10 @@ export function themeColors(): { bg: string; fg: string } {
   // Pre-paint colour before the UI applies the full theme (avoids a flash).
   const theme = String(getSetting('appearance.theme'))
   if (theme === 'paper' || theme === 'light' || theme === 'minimal') return { bg: '#efe9dd', fg: '#1d1a14' }
-  const map: Record<string, string> = { specter: '#0c0d10', neon: '#070709', aurora: '#070b17', terminal: '#020402', synthwave: '#12041f' }
+  if (theme === 'brutal') return { bg: '#e8e4da', fg: '#000000' }
+  if (theme === 'retro') return { bg: '#1084d0', fg: '#ffffff' }
+  if (theme === 'holo') return { bg: '#eceef7', fg: '#15142b' }
+  const map: Record<string, string> = { specter: '#0c0d10', neon: '#070709', aurora: '#070b17', terminal: '#020402', synthwave: '#12041f', blueprint: '#0b2a4a', glitch: '#050505' }
   return { bg: map[theme] ?? '#0c0d10', fg: '#c9ccd4' }
 }
 

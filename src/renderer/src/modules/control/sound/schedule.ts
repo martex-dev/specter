@@ -34,7 +34,12 @@ const THEME_PAIRING: Record<string, ConcreteSoundTheme> = {
   neon: 'neon',
   synthwave: 'neon',
   terminal: 'terminal',
-  paper: 'paper'
+  paper: 'paper',
+  blueprint: 'paper',
+  brutal: 'paper',
+  retro: 'terminal',
+  holo: 'glass',
+  glitch: 'neon'
 }
 
 export function resolveSoundTheme(pref: SoundThemeId, visualTheme: string | undefined): ConcreteSoundTheme {
