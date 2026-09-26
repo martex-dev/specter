@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight, Download, Folder, FolderOpen, FolderPlus, Plus, Search, Tag, Upload } from 'lucide-react'
 import type { Bookmark } from '@shared/types'
-import { hostname } from '@shared/url'
+import { hostname, toUrl } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { openMenu, toast } from '../stores/ui'
 import { useBrowser } from '../stores/browser'
@@ -89,8 +89,10 @@ export default function Bookmarks(_: PageProps) {
           onClick={async () => {
             const title = await promptText({ title: 'Add bookmark', label: 'Name' })
             if (!title) return
-            const url = await promptText({ title: 'Add bookmark', label: 'URL', initial: 'https://' })
-            if (!url) return
+            const input = await promptText({ title: 'Add bookmark', label: 'URL', initial: 'https://' })
+            if (!input?.trim()) return
+            // "github.com" must be stored as https://github.com — bookmarks open the URL as-is.
+            const url = toUrl(input) ?? input.trim()
             const tagsText = await promptText({ title: 'Add bookmark', label: 'Tags (comma separated, optional)' })
             await invoke('bookmarks:add', { kind: 'bookmark', title, url, parentId: current, tags: (tagsText ?? '').split(',').map((t) => t.trim()).filter(Boolean) })
           }}
