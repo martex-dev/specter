@@ -710,6 +710,17 @@
   padding: 1px 6px;
   font-weight: 800;
 }
+/* Concrete's accent is a light yellow meant for fills; as text on its near-white
+   surfaces it is unreadable (~1.2:1). Show accent-coloured text in ink instead. */
+[data-theme='brutal'][data-palette='concrete'] .accent,
+[data-theme='brutal'][data-palette='concrete'] .badge.accent,
+[data-theme='brutal'][data-palette='concrete'] .md a,
+[data-theme='brutal'][data-palette='concrete'] .settings-nav .nav-item.on {
+  color: var(--fg-0);
+}
+[data-theme='brutal'][data-palette='concrete'] .settings-nav .nav-item.on {
+  background: var(--accent);
+}
 [data-theme='brutal'] .ntp {
   background: transparent;
   overflow: hidden;
