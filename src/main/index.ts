@@ -1,6 +1,7 @@
 // SPECTER main process entry.
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, crashReporter } from 'electron'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { openDatabase, closeDatabase, isDbOpen } from './db'
 import { createLogger, initLogFile } from './logger'
 import { bus, BUS_EVENT_NAMES, type BusEventName } from './bus'
@@ -47,26 +48,39 @@ try {
 
 app.commandLine.appendSwitch('enable-features', 'CSSCustomHighlightAPI')
 
+/** Web URLs and local files (file associations, "Open with", drag onto the exe) from the command line. */
 function urlsFromArgv(argv: string[]): string[] {
-  return argv.slice(1).filter((a) => /^(https?:\/\/|file:\/\/)/i.test(a) || /^[a-zA-Z]:\\.+\.(html?|pdf|svg|txt|json|png|jpe?g|gif|webp)$/i.test(a))
+  const out: string[] = []
+  for (const a of argv.slice(1)) {
+    if (/^(https?:\/\/|file:\/\/)/i.test(a)) out.push(a)
+    // Drive or UNC path → file:// URL (a raw "C:\…" path is not loadable in a tab; spaces, "#" and non-ASCII need encoding).
+    else if (/^([a-zA-Z]:\\|\\\\[^\\]+\\).+\.(html?|xhtml|pdf|svg|txt|json|png|jpe?g|gif|webp)$/i.test(a)) out.push(pathToFileURL(a).href)
+  }
+  return out
 }
 
+let startupDone: Promise<unknown> | null = null
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
-  app.on('second-instance', (_e, argv) => {
-    const urls = urlsFromArgv(argv)
-    const ctx = lastFocusedCtx()
-    if (ctx && urls.length) {
-      for (const url of urls) ctx.win.webContents.send('evt:command:run', { id: 'browser.openUrl', args: { url } })
-      if (ctx.win.isMinimized()) ctx.win.restore()
-      ctx.win.focus()
-    } else if (ctx) {
-      if (ctx.win.isMinimized()) ctx.win.restore()
-      ctx.win.focus()
-    } else createBrowserWindow({ urls })
-  })
+  // A second launch during startup (double-clicking the icon twice) must wait for the
+  // startup windows: before 'ready' creating a window throws, and before openStartupWindows
+  // it would open an extra window on top of the restored session.
+  app.on('second-instance', (_e, argv) => void (startupDone ?? app.whenReady()).then(() => onSecondInstance(argv), () => undefined))
+}
+
+function onSecondInstance(argv: string[]): void {
+  const urls = urlsFromArgv(argv)
+  const ctx = lastFocusedCtx()
+  if (ctx && urls.length) {
+    for (const url of urls) ctx.win.webContents.send('evt:command:run', { id: 'browser.openUrl', args: { url } })
+    if (ctx.win.isMinimized()) ctx.win.restore()
+    ctx.win.focus()
+  } else if (ctx) {
+    if (ctx.win.isMinimized()) ctx.win.restore()
+    ctx.win.focus()
+  } else createBrowserWindow({ urls })
 }
 
 function attachSessionHandlers(): void {
@@ -144,7 +158,7 @@ async function bootstrapProfile(): Promise<void> {
   await loadStoredExtensions()
 }
 
-app.whenReady().then(async () => {
+startupDone = app.whenReady().then(async () => {
   const t0 = performance.now()
   // Present as plain Chrome: some sites (e.g. Google sign-in) refuse user agents that mention Electron.
   app.userAgentFallback = desktopUserAgent(app.userAgentFallback)
