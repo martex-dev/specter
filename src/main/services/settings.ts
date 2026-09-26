@@ -66,10 +66,25 @@ export function registerSettingsIpc(): void {
       setSetting(key, structuredClone(DEFAULT_SETTINGS[key]) as never)
     } else {
       const onboarded = getSettings()['general.onboarded']
+      // The active profile is session state, not a preference: resetting it would silently
+      // attribute history/bookmarks/windows to another profile.
+      const profile = getSettings()['general.activeProfile']
       run('DELETE FROM settings')
       loadSettings()
       setSetting('general.onboarded', onboarded)
-      for (const k of Object.keys(DEFAULT_SETTINGS) as SettingKey[]) broadcast('settings:changed', { key: k, value: getSettings()[k] })
+      setSetting('general.activeProfile', profile)
+      for (const k of Object.keys(DEFAULT_SETTINGS) as SettingKey[]) {
+        const value = getSettings()[k]
+        // Main-process listeners too (keyboard bindings, tray, updater…), not just the UI.
+        for (const l of listeners) {
+          try {
+            l(k, value)
+          } catch (err) {
+            log.error('settings listener failed', err)
+          }
+        }
+        broadcast('settings:changed', { key: k, value })
+      }
     }
   })
   handle('settings:export', async (e) => {
@@ -85,9 +100,12 @@ export function registerSettingsIpc(): void {
     const opts = { properties: ['openFile' as const], filters: [{ name: 'JSON', extensions: ['json'] }] }
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     if (r.canceled || !r.filePaths[0]) return false
-    const data = JSON.parse(readFileSync(r.filePaths[0], 'utf8'))
+    // Files saved by Notepad & co. start with a UTF-8 BOM, which JSON.parse rejects.
+    const data = JSON.parse(readFileSync(r.filePaths[0], 'utf8').replace(/^﻿/, ''))
     const incoming = data?.settings ?? data
     for (const [k, v] of Object.entries(incoming)) {
+      // The active profile id is machine-local session state (another machine's id doesn't exist here).
+      if (k === 'general.activeProfile') continue
       if (k in DEFAULT_SETTINGS && typeof v === typeof (DEFAULT_SETTINGS as any)[k]) setSetting(k as SettingKey, v as never)
     }
     return true
