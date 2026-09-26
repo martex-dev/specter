@@ -13,7 +13,7 @@
 
 SPECTER is a full desktop browser (Electron 44 · Chromium 152) that you can use as your daily browser. The browser comes first: tabs, workspaces, history, bookmarks, downloads, profiles, permissions, DevTools and session restore all work like you'd expect. On top of that, SPECTER adds optional power tools that run **locally** and **for free** — no accounts, no API keys, no telemetry.
 
-The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI status, a market ticker, tabs awake vs. sleeping and trackers blocked — all measured, never estimated.
+The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI status, a market ticker, tabs awake vs. sleeping and ads & trackers blocked — all measured, never estimated.
 
 ## Features
 
@@ -23,6 +23,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - History with full-text search (SQLite FTS5), date/domain/workspace filters and range deletion
 - Bookmarks with folders, tags, drag & drop, workspace links, bookmarks bar, HTML import/export
 - Download manager (pause/resume/retry, speed, ETA, open/show in folder)
+- **Built-in ad blocker** — uBlock Origin, EasyList, EasyPrivacy, malware and cookie-banner lists straight from their maintainers: blocks ads and trackers, hides leftover ad slots and cookie pop-ups, and runs uBlock's scriptlets so **YouTube plays without ads**. One-click off switch per site, your own filters, lists refreshed automatically
 - Per-site permissions (camera, mic, location, notifications, clipboard, screen capture, pop-ups, cookies, JavaScript)
 - **Profiles** with isolated cookies, storage, history, bookmarks and workspaces
 - Docked or detached **Chromium DevTools**, find in page with **regex & whole-word**, reader mode with text-to-speech, built-in PDF viewer, full-page screenshots, print, save page
@@ -136,7 +137,7 @@ Project layout and design decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 
 ## Architecture in one paragraph
 
-The main process (Node 24) owns windows, profiles, permissions, downloads, privacy filtering, SQLite storage (built-in `node:sqlite` with FTS5 — no native modules) and the optional modules. The UI is a sandboxed React renderer that talks to it through a typed, allow-listed IPC bridge. Every tab is a sandboxed `<webview>` with no preload and no Node access; SPECTER's page helpers run in isolated script worlds. Modules plug into registries (commands, pages, side panels, HUD, status bar, settings, omnibox providers) behind error boundaries, so an optional feature can never take down browsing.
+The main process (Node 24) owns windows, profiles, permissions, downloads, privacy filtering, SQLite storage (built-in `node:sqlite` with FTS5 — no native modules) and the optional modules. The UI is a sandboxed React renderer that talks to it through a typed, allow-listed IPC bridge. Every tab is a sandboxed `<webview>` with no Node access; SPECTER's page helpers and the ad blocker's preloads run in isolated script worlds. Modules plug into registries (commands, pages, side panels, HUD, status bar, settings, omnibox providers) behind error boundaries, so an optional feature can never take down browsing.
 
 ## Privacy & security
 
