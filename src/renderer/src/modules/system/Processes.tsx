@@ -64,7 +64,8 @@ export default function Processes({ compact }: { compact?: boolean }) {
     const q = filter.trim().toLowerCase()
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || String(p.pid) === q)
     const dir = desc ? -1 : 1
-    list.sort((a, b) => (sort === 'memory' ? (a.memKB - b.memKB) * dir : sort === 'pid' ? (a.pid - b.pid) * dir : a.name.localeCompare(b.name) * dir))
+    // In grouped mode the second column shows the process count, so it sorts by count.
+    list.sort((a, b) => (sort === 'memory' ? (a.memKB - b.memKB) * dir : sort === 'pid' ? (group ? a.count - b.count || a.pid - b.pid : a.pid - b.pid) * dir : a.name.localeCompare(b.name) * dir))
     return list
   }, [data, filter, sort, desc, group])
 
