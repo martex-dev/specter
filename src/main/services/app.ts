@@ -7,6 +7,7 @@ import { clearLogs, logEntries, rawLog } from '../logger'
 import type { AppMetricsEntry } from '@shared/types'
 import { IPC_DOMAINS } from '@shared/ipc'
 import { activeSession } from './profiles'
+import { installUpdate, isUpdateReady } from './updates'
 import { all, run } from '../db'
 import { registerMigrations } from '../db'
 import { createLogger } from '../logger'
@@ -74,6 +75,9 @@ export function registerAppIpc(): void {
   }))
   handle('app:quit', () => app.quit())
   handle('app:relaunch', () => {
+    // A downloaded update installs on restart; the installer relaunches SPECTER itself
+    // (app.relaunch() here would start the old build just before the installer replaces it).
+    if (isUpdateReady()) return installUpdate()
     app.relaunch()
     app.quit()
   })

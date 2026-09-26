@@ -33,6 +33,7 @@ import type {
   DiagnosticCheck
 } from './types'
 import type { SettingKey, Settings } from './settings'
+import type { UpdateState } from './updates'
 
 export interface AppInfo {
   version: string
@@ -155,8 +156,12 @@ export interface IpcContract {
   'app:notify': (n: { title: string; body?: string; category: NotificationItem['category'] }) => void
   'app:gpuInfo': () => unknown
   'app:setDefaultBrowser': () => void
-  'app:checkUpdates': () => { checked: boolean; current: string; latest?: string; url?: string; name?: string; publishedAt?: string; newer: boolean; error?: string }
   'app:securityState': () => SecurityState
+
+  // Updates (electron-updater for installed builds; notify-only elsewhere)
+  'updates:state': () => UpdateState
+  'updates:check': () => UpdateState
+  'updates:install': () => void
 
   // Windows
   'window:new': (req: WindowOpenRequest) => number
@@ -334,6 +339,7 @@ export interface IpcEvents {
   'workspaces:changed': { id?: string }
   'bookmarks:changed': void
   'privacy:blocked': { count: number; total: number; perTab?: Record<number, number> }
+  'updates:state': UpdateState
 }
 
 export type IpcChannel = keyof IpcContract
@@ -389,5 +395,6 @@ export const IPC_DOMAINS = [
   'webapps',
   'control',
   'weather',
-  'news'
+  'news',
+  'updates'
 ] as const
