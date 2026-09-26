@@ -34,8 +34,18 @@ export default function NotesPanel({ popout }: { popout?: boolean }) {
   useEffect(() => {
     const text = q.trim()
     if (!text) return setHits(null)
-    const t = setTimeout(() => invoke('notes:search', text, 40).then(setHits).catch(() => setHits([])), 120)
-    return () => clearTimeout(t)
+    let alive = true
+    const t = setTimeout(
+      () =>
+        invoke('notes:search', text, 40)
+          .then((h) => alive && setHits(h))
+          .catch(() => alive && setHits([])),
+      120
+    )
+    return () => {
+      alive = false
+      clearTimeout(t)
+    }
   }, [q])
 
   const create = async () => {

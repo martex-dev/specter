@@ -86,8 +86,12 @@ function SearchView({ initial, status, onView }: { initial: string; status?: KbS
 
   const run = async (text = q) => {
     const t = text.trim()
-    if (!t) return setRes(null)
     const n = ++seq.current
+    if (!t) {
+      // Drop any search still in flight so it can't repopulate a cleared box.
+      setBusy(false)
+      return setRes(null)
+    }
     setBusy(true)
     try {
       const r = await invoke('knowledge:search', { text: t, limit: 30, mode: keywordOnly ? 'keyword' : 'auto' })
