@@ -2,6 +2,7 @@
 // split layouts. Persisted per workspace (debounced) through IPC.
 import { create } from 'zustand'
 import type { InitialSession } from '@shared/ipc'
+import type { PasswordOffer } from '@shared/passwords'
 import type { GroupColor, PermissionRequest, Profile, SplitLayout, SplitPreset, TabGroup, TabState, Workspace, WorkspaceState } from '@shared/types'
 import { detectPageKind, interpretInput, isInternal } from '@shared/url'
 import { searchUrl, SUSPEND_MS } from '@shared/settings'
@@ -21,6 +22,8 @@ export interface RuntimeTab extends TabState {
   error?: { code: number; description: string; url: string }
   blockedPopups?: { url: string; origin: string }[]
   permissionRequests?: PermissionRequest[]
+  /** "Save password?" prompt after signing in; kept across the sign-in navigation. */
+  passwordOffer?: PasswordOffer
   reader?: boolean
   devtoolsDocked?: boolean
   /** Private memory (KB) measured right before the tab was suspended. */
@@ -958,6 +961,25 @@ export function dropPermissionRequest(requestId: string): void {
   for (const ws of Object.values(useBrowser.getState().open))
     for (const tab of ws.tabs)
       if (tab.permissionRequests?.some((r) => r.requestId === requestId)) updateTab(tab.id, { permissionRequests: tab.permissionRequests.filter((r) => r.requestId !== requestId) })
+}
+
+// ---------------------------------------------------------------- password prompts
+
+export function setPasswordOffer(offer: PasswordOffer, tabId: string): void {
+  if (findTab(tabId)) updateTab(tabId, { passwordOffer: offer })
+}
+
+/** Main dropped the offer itself (timed out, replaced by a newer sign-in). */
+export function dropPasswordOffer(offerId: string): void {
+  for (const ws of Object.values(useBrowser.getState().open))
+    for (const tab of ws.tabs) if (tab.passwordOffer?.offerId === offerId) updateTab(tab.id, { passwordOffer: undefined })
+}
+
+export function respondPasswordOffer(tabId: string, action: 'save' | 'never' | 'dismiss', username?: string): void {
+  const offer = findTab(tabId)?.tab.passwordOffer
+  if (!offer) return
+  updateTab(tabId, { passwordOffer: undefined })
+  invoke('passwords:respondOffer', offer.offerId, action, username).catch(() => undefined)
 }
 
 export function resolvePermissionRequest(tabId: string, requestId: string, decision: 'allow' | 'deny', remember: boolean): void {

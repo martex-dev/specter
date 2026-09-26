@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react'
-import { AlertOctagon, Camera, Clock, Globe, Mic, MonitorUp, Bell, MapPin, ClipboardPaste, ExternalLink, ShieldAlert, WifiOff, Zap, Moon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AlertOctagon, Camera, Clock, Globe, Mic, MonitorUp, Bell, MapPin, ClipboardPaste, ExternalLink, ShieldAlert, WifiOff, Zap, Moon, KeyRound, X } from 'lucide-react'
 import type { PermissionRequest } from '@shared/types'
+import type { PasswordOffer } from '@shared/passwords'
 import { hostname } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { formatBytes } from '../lib/format'
 import { tabIdForWcId } from '../lib/webviews'
-import { reload, resolvePermissionRequest, updateTab, wakeTab, type RuntimeTab } from '../stores/browser'
+import { reload, resolvePermissionRequest, respondPasswordOffer, updateTab, wakeTab, type RuntimeTab } from '../stores/browser'
 
 const PERM_LABEL: Record<string, { text: string; icon: JSX.Element }> = {
   camera: { text: 'use your camera', icon: <Camera size={15} /> },
@@ -44,10 +45,58 @@ function PermissionBar({ tabId, req }: { tabId: string; req: PermissionRequest }
   )
 }
 
+function SavePasswordBar({ tabId, offer }: { tabId: string; offer: PasswordOffer }) {
+  const [username, setUsername] = useState(offer.username)
+  useEffect(() => setUsername(offer.username), [offer.offerId, offer.username])
+  const site = hostname(offer.origin) || offer.origin
+  const save = () => respondPasswordOffer(tabId, 'save', username)
+  return (
+    <div className="infobar" role="alertdialog" aria-label={offer.update ? 'Update password' : 'Save password'}>
+      <KeyRound size={15} className="accent" />
+      <span>
+        {offer.update ? (
+          <>
+            Update the saved password for <b>{offer.username || '(no username)'}</b> on <b>{site}</b>?
+          </>
+        ) : (
+          <>
+            Save password for <b>{site}</b>?
+          </>
+        )}
+      </span>
+      {!offer.update && (
+        <input
+          className="input"
+          style={{ height: 26, width: 220, fontSize: 12 }}
+          value={username}
+          placeholder="Username (optional)"
+          aria-label="Username"
+          spellCheck={false}
+          onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && save()}
+        />
+      )}
+      <span className="grow" />
+      {!offer.update && (
+        <button className="btn sm ghost" onClick={() => respondPasswordOffer(tabId, 'never')}>
+          Never for this site
+        </button>
+      )}
+      <button className="btn sm primary" onClick={save}>
+        {offer.update ? 'Update' : 'Save'}
+      </button>
+      <button className="icon-btn sm" onClick={() => respondPasswordOffer(tabId, 'dismiss')} aria-label="Not now" data-tip="Not now">
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
 export function PaneBars({ tab }: { tab: RuntimeTab }) {
   const popups = tab.blockedPopups ?? []
   return (
     <>
+      {tab.passwordOffer && <SavePasswordBar key={tab.passwordOffer.offerId} tabId={tab.id} offer={tab.passwordOffer} />}
       {(tab.permissionRequests ?? []).slice(0, 1).map((r) => (
         <PermissionBar key={r.requestId} tabId={tab.id} req={r} />
       ))}
