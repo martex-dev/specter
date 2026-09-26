@@ -16,6 +16,12 @@
   filter script. They can reach only three ad-blocker channels, which the main process answers only for
   tab and pop-up contents of a profile session. Scriptlets from the filter lists run in the page's main
   world, as they do in uBlock Origin.
+- **Video tools**: a third session preload (`src/preload/video.ts`), also in the isolated world and
+  exposing nothing, runs the speed controller. It only sets `playbackRate` / `currentTime` on the page's
+  own media elements (and those of same-origin frames), which the page could do itself; it ignores
+  synthetic key events and clicks from page scripts, and its badge is a closed shadow root. It reaches
+  three video-tools channels, answered only for the main frame of tab and pop-up contents; the site it
+  remembers a speed for is taken from the sending frame, never from the page.
 - **The UI never navigates**: `will-navigate` and `window.open` from the UI are blocked.
 
 ## Permissions

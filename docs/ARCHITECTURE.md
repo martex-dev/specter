@@ -31,7 +31,7 @@ Chromium's.
 | --- | --- | --- |
 | Main process | trusted | Node.js, filesystem, SQLite, child processes (modules only, with timeouts) |
 | SPECTER UI renderer | trusted UI, sandboxed | only `window.specter.invoke/on` through the preload; the main process rejects IPC from any other sender |
-| Tab guests (`<webview>`) | untrusted web content | Chromium sandbox, context isolation, no Node; `will-attach-webview` strips any preload and forces safe preferences; the only preloads are the ad blocker's two isolated-world scripts (session-registered) |
+| Tab guests (`<webview>`) | untrusted web content | Chromium sandbox, context isolation, no Node; `will-attach-webview` strips any preload and forces safe preferences; the only preloads are the ad blocker's two isolated-world scripts and the video tools script (session-registered) |
 | Pop-ups with `window.opener` (OAuth) | untrusted | separate sandboxed BrowserWindow in the same profile partition |
 
 Scripts SPECTER runs inside pages (reader mode, page stats, regex find, media
@@ -53,7 +53,7 @@ src/
     services/        settings, history, bookmarks, downloads, permissions, privacy (+trackers, adblock), profiles,
                      workspaces, page tools, search, importer, notifications, diagnostics, net (rate-limited fetch)
     modules/         ai, markets, system, knowledge, developer, automation, toolkit
-  preload/           the only bridge from the UI to the main process
+  preload/           the only bridge from the UI to the main process; isolated-world preloads for web pages (ad blocker, video tools)
   renderer/src/
     stores/          browser (tabs/workspaces/layout/lifecycle), ui, settings   — separate zustand stores
     chrome/          tab strip, toolbar, omnibox (+providers), bookmarks bar, HUD/status/rail, site info
@@ -101,3 +101,10 @@ inline prompt bar in that tab → the user's choice (optionally remembered per o
 cancelled or redirected to a harmless stub, counted, shown in the HUD, the site popover and the Privacy
 Center. Element hiding and scriptlets are applied by two frame preloads at document start.
 Lists are compiled in a worker thread and the compiled engine is cached on disk.
+
+**Pressing D on a video** → the video tools preload (isolated world, registered on the profile session)
+sees the trusted keydown first, checks the key map it got from services/video.ts, that nothing editable
+has focus and that the page has media → sets `playbackRate` on the page's media and shows the badge →
+reports the speed, which the main process remembers for the site (per profile). If the site later resets
+the rate without user input, the preload restores it; SPECTER's media controls and palette send speed
+commands through the same preload.
