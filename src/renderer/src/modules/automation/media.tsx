@@ -73,8 +73,13 @@ function MediaCard({ tab, compact }: { tab: MediaTab; compact?: boolean }) {
 
   const control = async (action: 'play' | 'pause' | 'toggle' | 'seek' | 'rate' | 'volume' | 'pip', value?: number) => {
     if (wcId === null) return
+    // Controlled inputs: show the new value right away, or the volume slider snaps back
+    // to the old value on every drag step until the IPC round trip completes.
+    if ((action === 'volume' || action === 'rate') && value !== undefined) setState((s) => (s ? { ...s, [action]: value } : s))
     try {
       await invoke('guest:mediaControl', wcId, action, value)
+      // While dragging, re-reading after each step would jump back to an older value; the poll catches up.
+      if (action === 'volume') return
       const s = await invoke('guest:media', wcId)
       setState(s)
     } catch (err) {
