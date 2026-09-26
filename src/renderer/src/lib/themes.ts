@@ -4,7 +4,7 @@
 // override the accent colour and individual layout choices.
 import type { ThemeId } from '@shared/settings'
 
-export type TabStyle = 'chrome' | 'pill' | 'angled' | 'bracket' | 'underline' | 'block'
+export type TabStyle = 'chrome' | 'pill' | 'angled' | 'bracket' | 'underline' | 'block' | 'sheet' | 'sticker' | 'bevel' | 'holo' | 'notch'
 export type FrameStyle = 'flush' | 'floating'
 export type OmniboxStyle = 'standard' | 'centered'
 
@@ -56,6 +56,10 @@ const SEGOE = "'Segoe UI Variable Text', 'Segoe UI', 'Inter', system-ui, sans-se
 const SEGOE_DISPLAY = "'Segoe UI Variable Display', 'Segoe UI', 'Inter', system-ui, sans-serif"
 const DIN = "'Bahnschrift', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif"
 const SERIF_DISPLAY = "'Sitka Heading', 'Sitka Display', 'Iowan Old Style', Georgia, serif"
+const DIN_CONDENSED = "'Bahnschrift Condensed', 'Bahnschrift', 'Arial Narrow', system-ui, sans-serif"
+const HEAVY = "'Arial Black', 'Segoe UI Black', 'Segoe UI', Impact, sans-serif"
+const GROTESK = "'Segoe UI', 'Arial', 'Helvetica Neue', sans-serif"
+const TAHOMA = "Tahoma, 'MS Sans Serif', 'Segoe UI', Verdana, sans-serif"
 
 const dark = (p: Omit<Palette, 'dark' | 'accentFg'> & { accentFg?: string }): Palette => ({ dark: true, accentFg: '#0b0b0f', ...p })
 const light = (p: Omit<Palette, 'dark' | 'accentFg'> & { accentFg?: string }): Palette => ({
@@ -167,6 +171,86 @@ export const THEMES: ThemeDef[] = [
       dark({ id: 'nightdrive', name: 'Night Drive', bg0: '#0a0918', bg1: '#110f24', bg2: '#17142f', bg3: '#201b3f', bg4: '#2b2454', line: 'rgba(255,107,61,0.15)', lineStrong: 'rgba(255,107,61,0.28)', fg0: '#fff4ef', fg1: '#dac5d0', fg2: '#9c89a3', fg3: '#675a73', accent: '#ff6b3d', accent2: '#7b5cff', accent3: '#ffd23d' }),
       dark({ id: 'laser', name: 'Laser Grid', bg0: '#050510', bg1: '#0a0a1a', bg2: '#0f0f24', bg3: '#161633', bg4: '#202047', line: 'rgba(57,255,20,0.14)', lineStrong: 'rgba(57,255,20,0.28)', fg0: '#f4fff0', fg1: '#bfe0c2', fg2: '#7ea384', fg3: '#526b56', accent: '#39ff14', accent2: '#ff00ff', accent3: '#00e5ff' })
     ]
+  },
+  {
+    id: 'blueprint',
+    name: 'Blueprint',
+    tagline: 'Technical drawing. Grid paper, dimension lines, title blocks.',
+    layout: { tabs: 'sheet', frame: 'flush', rail: 'left', omnibox: 'standard' },
+    fonts: { ui: DIN, display: DIN_CONDENSED, mono: MONO },
+    radius: 0,
+    palettes: [
+      dark({ id: 'cyanotype', name: 'Cyanotype', bg0: '#0b2a4a', bg1: '#0e3259', bg2: '#113a66', bg3: '#164678', bg4: '#1c548c', line: 'rgba(190,225,255,0.16)', lineStrong: 'rgba(190,225,255,0.34)', fg0: '#eef7ff', fg1: '#b9d6f2', fg2: '#7fa6cc', fg3: '#557ca3', accent: '#ffffff', accent2: '#7fd4ff', accent3: '#ffd166', accentFg: '#0b2a4a' }),
+      dark({ id: 'cad', name: 'CAD Night', bg0: '#14161a', bg1: '#1a1d22', bg2: '#20242a', bg3: '#282d34', bg4: '#323841', line: 'rgba(255,255,255,0.1)', lineStrong: 'rgba(255,255,255,0.22)', fg0: '#eef1f5', fg1: '#b7bec8', fg2: '#7d8591', fg3: '#555c67', accent: '#ffb000', accent2: '#4fc3f7', accent3: '#ff5d5d' }),
+      light({ id: 'whiteprint', name: 'Whiteprint', bg0: '#e6edf4', bg1: '#f2f6fa', bg2: '#ffffff', bg3: '#e3ebf4', bg4: '#d3dfec', line: 'rgba(13,42,82,0.14)', lineStrong: 'rgba(13,42,82,0.3)', fg0: '#0d2a52', fg1: '#2f4f7a', fg2: '#617ea3', fg3: '#97abc6', accent: '#1f5fbf', accent2: '#e0452b', accent3: '#0d2a52' }),
+      dark({ id: 'redline', name: 'Redline', bg0: '#0a2744', bg1: '#0d2e51', bg2: '#10365e', bg3: '#15426f', bg4: '#1b4f82', line: 'rgba(190,225,255,0.15)', lineStrong: 'rgba(190,225,255,0.32)', fg0: '#eef7ff', fg1: '#b9d6f2', fg2: '#7fa6cc', fg3: '#557ca3', accent: '#ff5a5a', accent2: '#ffffff', accent3: '#ffd166', accentFg: '#ffffff' }),
+      dark({ id: 'vellum', name: 'Mint Vellum', bg0: '#0c2926', bg1: '#0f322e', bg2: '#123b36', bg3: '#174842', bg4: '#1d5750', line: 'rgba(184,255,233,0.14)', lineStrong: 'rgba(184,255,233,0.3)', fg0: '#effffa', fg1: '#b6e0d4', fg2: '#78a99b', fg3: '#507b6f', accent: '#b8ffe9', accent2: '#ffd27a', accent3: '#ff8f70' }),
+      dark({ id: 'plotter', name: 'Plotter', bg0: '#000a16', bg1: '#00111f', bg2: '#001829', bg3: '#002238', bg4: '#002d49', line: 'rgba(0,229,255,0.14)', lineStrong: 'rgba(0,229,255,0.3)', fg0: '#e6fdff', fg1: '#a6dce4', fg2: '#6b9ea8', fg3: '#466f78', accent: '#00e5ff', accent2: '#ff3dfb', accent3: '#fff275' })
+    ]
+  },
+  {
+    id: 'brutal',
+    name: 'Brutal',
+    tagline: 'Neo-brutalist. Thick borders, hard shadows, loud colour.',
+    layout: { tabs: 'sticker', frame: 'flush', rail: 'right', omnibox: 'standard' },
+    fonts: { ui: GROTESK, display: HEAVY, mono: MONO },
+    radius: 0,
+    palettes: [
+      light({ id: 'concrete', name: 'Concrete', bg0: '#e8e4da', bg1: '#f4f1ea', bg2: '#ffffff', bg3: '#ece8de', bg4: '#dcd7ca', line: 'rgba(0,0,0,0.55)', lineStrong: '#000000', fg0: '#000000', fg1: '#161616', fg2: '#474747', fg3: '#777777', accent: '#ffde03', accent2: '#ff4911', accent3: '#2b59ff', accentFg: '#000000' }),
+      light({ id: 'bubblegum', name: 'Bubblegum', bg0: '#ffc6e5', bg1: '#ffe3f2', bg2: '#ffffff', bg3: '#ffd6ec', bg4: '#ffb8dd', line: 'rgba(0,0,0,0.55)', lineStrong: '#000000', fg0: '#000000', fg1: '#1c1020', fg2: '#4d3a52', fg3: '#806c85', accent: '#2b59ff', accent2: '#ffde03', accent3: '#00c46a', accentFg: '#ffffff' }),
+      light({ id: 'mintcondition', name: 'Mint', bg0: '#b8f2d8', bg1: '#dcf9ec', bg2: '#ffffff', bg3: '#c9f5e2', bg4: '#a3ebca', line: 'rgba(0,0,0,0.55)', lineStrong: '#000000', fg0: '#000000', fg1: '#0f1f18', fg2: '#3b5248', fg3: '#6d8479', accent: '#ff4911', accent2: '#7b3cff', accent3: '#ffde03', accentFg: '#000000' }),
+      light({ id: 'sky', name: 'Sky', bg0: '#a8d8ff', bg1: '#d6ecff', bg2: '#ffffff', bg3: '#bfe2ff', bg4: '#92cdff', line: 'rgba(0,0,0,0.55)', lineStrong: '#000000', fg0: '#000000', fg1: '#0c1a26', fg2: '#384b5c', fg3: '#6a7d8e', accent: '#ff3cac', accent2: '#ffde03', accent3: '#00c46a', accentFg: '#000000' }),
+      light({ id: 'tabloid', name: 'Tabloid', bg0: '#f2eee3', bg1: '#faf8f2', bg2: '#ffffff', bg3: '#eeeade', bg4: '#e0dbcc', line: 'rgba(0,0,0,0.55)', lineStrong: '#000000', fg0: '#000000', fg1: '#161616', fg2: '#474747', fg3: '#777777', accent: '#e10600', accent2: '#000000', accent3: '#ffde03', accentFg: '#ffffff' }),
+      dark({ id: 'tar', name: 'Tar', bg0: '#0a0a0a', bg1: '#141414', bg2: '#1c1c1c', bg3: '#262626', bg4: '#333333', line: 'rgba(255,255,255,0.55)', lineStrong: '#ffffff', fg0: '#ffffff', fg1: '#e0e0e0', fg2: '#a8a8a8', fg3: '#777777', accent: '#c6ff00', accent2: '#ff3cac', accent3: '#00e1ff', accentFg: '#000000' })
+    ]
+  },
+  {
+    id: 'retro',
+    name: 'Retro',
+    tagline: 'Classic desktop. Bevelled buttons, title bars, teal wallpaper.',
+    layout: { tabs: 'bevel', frame: 'flush', rail: 'left', omnibox: 'standard' },
+    fonts: { ui: TAHOMA, display: TAHOMA, mono: "'Lucida Console', Consolas, monospace" },
+    radius: 0,
+    palettes: [
+      light({ id: 'classic', name: 'Classic', bg0: '#c0c0c0', bg1: '#c0c0c0', bg2: '#ffffff', bg3: '#d4d0c8', bg4: '#a9a9a9', line: '#808080', lineStrong: '#404040', fg0: '#000000', fg1: '#000000', fg2: '#404040', fg3: '#808080', accent: '#000080', accent2: '#1084d0', accent3: '#008080', accentFg: '#ffffff' }),
+      light({ id: 'teal', name: 'Teal', bg0: '#c0c0c0', bg1: '#c0c0c0', bg2: '#ffffff', bg3: '#d4d0c8', bg4: '#a9a9a9', line: '#808080', lineStrong: '#404040', fg0: '#000000', fg1: '#000000', fg2: '#404040', fg3: '#808080', accent: '#008080', accent2: '#20b2aa', accent3: '#004040', accentFg: '#ffffff' }),
+      light({ id: 'plum', name: 'Plum', bg0: '#d8c8d0', bg1: '#d8c8d0', bg2: '#ffffff', bg3: '#e6dae0', bg4: '#bda8b3', line: '#8c7080', lineStrong: '#483040', fg0: '#000000', fg1: '#000000', fg2: '#483040', fg3: '#8c7080', accent: '#582a58', accent2: '#b07aa8', accent3: '#402040', accentFg: '#ffffff' }),
+      light({ id: 'storm', name: 'Storm', bg0: '#a8b0c0', bg1: '#a8b0c0', bg2: '#ffffff', bg3: '#bcc3d1', bg4: '#8f98aa', line: '#606878', lineStrong: '#303848', fg0: '#000000', fg1: '#000000', fg2: '#303848', fg3: '#606878', accent: '#102050', accent2: '#4a6aae', accent3: '#3a6ea5', accentFg: '#ffffff' }),
+      light({ id: 'desert', name: 'Desert', bg0: '#d5ccbb', bg1: '#d5ccbb', bg2: '#ffffff', bg3: '#e3dccf', bg4: '#bcb19b', line: '#8e8266', lineStrong: '#4a4230', fg0: '#000000', fg1: '#000000', fg2: '#4a4230', fg3: '#8e8266', accent: '#8a3a1e', accent2: '#c8764a', accent3: '#a28c5a', accentFg: '#ffffff' }),
+      dark({ id: 'contrast', name: 'High Contrast', bg0: '#000000', bg1: '#000000', bg2: '#000000', bg3: '#1c1c1c', bg4: '#333333', line: '#808080', lineStrong: '#ffffff', fg0: '#ffffff', fg1: '#ffffff', fg2: '#ffff00', fg3: '#00ff00', accent: '#800080', accent2: '#c000c0', accent3: '#000000', accentFg: '#ffffff' })
+    ]
+  },
+  {
+    id: 'holo',
+    name: 'Holo',
+    tagline: 'Iridescent chrome. Pearl surfaces, prism borders, shimmer.',
+    layout: { tabs: 'holo', frame: 'floating', rail: 'right', omnibox: 'centered' },
+    fonts: { ui: SEGOE, display: SEGOE_DISPLAY, mono: MONO },
+    radius: 16,
+    palettes: [
+      light({ id: 'pearl', name: 'Pearl', bg0: '#eceef7', bg1: '#f6f6fc', bg2: '#ffffff', bg3: '#eceef8', bg4: '#e0e3f3', line: 'rgba(80,80,150,0.12)', lineStrong: 'rgba(80,80,150,0.22)', fg0: '#15142b', fg1: '#44436a', fg2: '#76759c', fg3: '#a4a3c4', accent: '#7b61ff', accent2: '#ff6ec7', accent3: '#3de0ff' }),
+      dark({ id: 'chrome', name: 'Dark Chrome', bg0: '#0b0b11', bg1: '#13131b', bg2: '#191923', bg3: '#22222e', bg4: '#2d2d3c', line: 'rgba(200,200,255,0.09)', lineStrong: 'rgba(200,200,255,0.18)', fg0: '#f4f3ff', fg1: '#c3c1dd', fg2: '#8583a0', fg3: '#595772', accent: '#b69cff', accent2: '#6ef3ff', accent3: '#ff8ad8' }),
+      light({ id: 'opal', name: 'Opal', bg0: '#e7f4f2', bg1: '#f3fbfa', bg2: '#ffffff', bg3: '#e4f3f1', bg4: '#d3ebe8', line: 'rgba(20,90,90,0.12)', lineStrong: 'rgba(20,90,90,0.22)', fg0: '#10302d', fg1: '#3a5c58', fg2: '#6a8a86', fg3: '#9fb8b4', accent: '#00a99b', accent2: '#b16cff', accent3: '#ffb86b' }),
+      light({ id: 'y2k', name: 'Y2K', bg0: '#e5eaff', bg1: '#f2f4ff', bg2: '#ffffff', bg3: '#e6ebff', bg4: '#d5ddff', line: 'rgba(40,60,160,0.13)', lineStrong: 'rgba(40,60,160,0.24)', fg0: '#0e1440', fg1: '#384070', fg2: '#6a71a0', fg3: '#9ea4c8', accent: '#2f6bff', accent2: '#ff49db', accent3: '#8aff3b' }),
+      dark({ id: 'oilslick', name: 'Oil Slick', bg0: '#07080c', bg1: '#0e1016', bg2: '#13161e', bg3: '#1b1f2a', bg4: '#262b39', line: 'rgba(140,255,220,0.09)', lineStrong: 'rgba(140,255,220,0.18)', fg0: '#effff9', fg1: '#bcd6d0', fg2: '#7e9892', fg3: '#546a65', accent: '#39ffb6', accent2: '#8c5bff', accent3: '#ff5c8a' }),
+      light({ id: 'champagne', name: 'Champagne', bg0: '#f4eee5', bg1: '#faf6f0', bg2: '#ffffff', bg3: '#f2ebe0', bg4: '#e7dccb', line: 'rgba(110,80,40,0.12)', lineStrong: 'rgba(110,80,40,0.22)', fg0: '#2a1f12', fg1: '#5a4a36', fg2: '#8b7a64', fg3: '#b8a992', accent: '#b27a2e', accent2: '#e58fb4', accent3: '#8fcbea' })
+    ]
+  },
+  {
+    id: 'glitch',
+    name: 'Glitch',
+    tagline: 'Corrupted signal. RGB split, notched panels, tearing scanlines.',
+    layout: { tabs: 'notch', frame: 'flush', rail: 'left', omnibox: 'standard' },
+    fonts: { ui: DIN, display: DIN_CONDENSED, mono: MONO },
+    radius: 0,
+    palettes: [
+      dark({ id: 'rgb', name: 'RGB', bg0: '#050505', bg1: '#0b0b0c', bg2: '#111113', bg3: '#19191c', bg4: '#232327', line: 'rgba(255,255,255,0.08)', lineStrong: 'rgba(255,255,255,0.17)', fg0: '#f5f5f5', fg1: '#b8b8bd', fg2: '#7a7a82', fg3: '#4d4d55', accent: '#ff1f4b', accent2: '#00fff0', accent3: '#f7ff00' }),
+      dark({ id: 'corrupt', name: 'Corrupt', bg0: '#030603', bg1: '#080c08', bg2: '#0d120d', bg3: '#141b14', bg4: '#1d271d', line: 'rgba(57,255,20,0.1)', lineStrong: 'rgba(57,255,20,0.2)', fg0: '#effff0', fg1: '#b5cdb6', fg2: '#78907a', fg3: '#4c5e4d', accent: '#39ff14', accent2: '#ff00e6', accent3: '#ffffff' }),
+      dark({ id: 'vhs', name: 'VHS', bg0: '#0b0716', bg1: '#120c21', bg2: '#18102b', bg3: '#221739', bg4: '#2e1f4b', line: 'rgba(255,106,213,0.1)', lineStrong: 'rgba(255,106,213,0.2)', fg0: '#fff3fc', fg1: '#d4c1dc', fg2: '#9583a0', fg3: '#645670', accent: '#ff6ad5', accent2: '#6af2ff', accent3: '#ffe66a' }),
+      dark({ id: 'deadpixel', name: 'Dead Pixel', bg0: '#000000', bg1: '#080808', bg2: '#0e0e0e', bg3: '#171717', bg4: '#222222', line: 'rgba(255,255,255,0.1)', lineStrong: 'rgba(255,255,255,0.22)', fg0: '#ffffff', fg1: '#bdbdbd', fg2: '#7d7d7d', fg3: '#4f4f4f', accent: '#ffffff', accent2: '#ff1f1f', accent3: '#1f7bff', accentFg: '#000000' }),
+      dark({ id: 'bluescreen', name: 'Bluescreen', bg0: '#001a8c', bg1: '#0020a6', bg2: '#0026ba', bg3: '#1a3ec8', bg4: '#3354d6', line: 'rgba(255,255,255,0.16)', lineStrong: 'rgba(255,255,255,0.32)', fg0: '#ffffff', fg1: '#dde5ff', fg2: '#a9b7f0', fg3: '#7486d0', accent: '#ffffff', accent2: '#00fff0', accent3: '#ffea00', accentFg: '#0020a6' }),
+      dark({ id: 'infrared', name: 'Infrared', bg0: '#0c0303', bg1: '#140606', bg2: '#1b0909', bg3: '#260e0e', bg4: '#351414', line: 'rgba(255,90,40,0.12)', lineStrong: 'rgba(255,90,40,0.24)', fg0: '#fff1ea', fg1: '#dcbcb0', fg2: '#9c7c70', fg3: '#6a4f47', accent: '#ff3b00', accent2: '#ffb800', accent3: '#7a2cff' })
+    ]
   }
 ]
 
@@ -192,6 +276,13 @@ export function resolveTheme(id: string, paletteId?: string): { theme: ThemeDef;
 /** Native window-controls overlay colour (must be opaque on Windows). */
 export function overlayColor(bg0: string): string {
   return solid(bg0)
+}
+
+/** Colours for the native window buttons, matched to the theme's title bar. */
+export function titleBarColors(t: { theme: ThemeDef; palette: Palette }): { color: string; symbolColor: string } {
+  // Retro draws a gradient caption bar; the buttons sit on its right-hand end.
+  if (t.theme.id === 'retro' && t.palette.dark === false) return { color: solid(t.palette.accent2), symbolColor: t.palette.accentFg }
+  return { color: solid(t.palette.bg0), symbolColor: t.palette.fg1 }
 }
 
 export function themeLayout(id: string): ThemeLayout {

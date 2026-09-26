@@ -1,7 +1,7 @@
 // Settings schema and defaults. Settings are stored as individual key/value
 // rows in SQLite so partial updates never rewrite unrelated state.
 
-export type ThemeId = 'specter' | 'neon' | 'aurora' | 'terminal' | 'paper' | 'synthwave'
+export type ThemeId = 'specter' | 'neon' | 'aurora' | 'terminal' | 'paper' | 'synthwave' | 'blueprint' | 'brutal' | 'retro' | 'holo' | 'glitch'
 export type MotionLevel = 'full' | 'reduced' | 'off'
 export type StartupBehavior = 'restore' | 'newtab' | 'workspace' | 'nothing'
 export type SuspendAfter = 'never' | '5m' | '15m' | '30m' | '1h' | 'auto'
@@ -154,7 +154,11 @@ export interface Settings {
   'advanced.experimental': boolean
   'advanced.logLevel': 'debug' | 'info' | 'warn' | 'error'
   'advanced.tray': boolean
+  /** Installed (NSIS) builds: check, download and install updates automatically. */
+  'advanced.autoUpdate': boolean
+  /** Portable / unpacked builds: check the GitHub Releases API and notify (never installs). */
   'advanced.checkUpdates': boolean
+  /** Repository the notify-only checker asks (installed builds always use the publish config). */
   'advanced.updateRepo': string
 }
 
@@ -277,8 +281,9 @@ export const DEFAULT_SETTINGS: Settings = {
   'advanced.experimental': false,
   'advanced.logLevel': 'info',
   'advanced.tray': false,
+  'advanced.autoUpdate': true,
   'advanced.checkUpdates': false,
-  'advanced.updateRepo': ''
+  'advanced.updateRepo': 'martex-dev/specter'
 }
 
 export const SUSPEND_MS: Record<SuspendAfter, number> = {
