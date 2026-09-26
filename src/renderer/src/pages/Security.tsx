@@ -4,6 +4,7 @@ import type { SecurityState } from '@shared/ipc'
 import { invoke } from '../lib/ipc'
 import { useSetting } from '../stores/settings'
 import type { PageProps } from './registry'
+import { isLoopbackUrl } from './pageLogic'
 
 type Level = 'ok' | 'warn' | 'bad'
 
@@ -30,7 +31,7 @@ export default function Security(_: PageProps) {
   }, [])
   if (!s) return <div className="empty">Inspecting…</div>
   const chromeOk = s.chrome.every((c) => c.sandbox && c.contextIsolation && !c.nodeIntegration && c.webSecurity)
-  const localAi = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?/.test(aiUrl)
+  const localAi = isLoopbackUrl(aiUrl)
   return (
     <div className="page">
       <div className="page-h">

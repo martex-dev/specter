@@ -7,7 +7,9 @@ import { setSetting, useSetting } from '../stores/settings'
 import { toast } from '../stores/ui'
 import { Switch } from '../components/ui'
 import { newTab } from '../stores/browser'
+import { confirmAction } from '../components/prompt'
 import type { PageProps } from './registry'
+import { isLoopbackUrl } from './pageLogic'
 
 const RANGES = [
   { label: 'Last hour', ms: 3600_000 },
@@ -43,7 +45,8 @@ export default function Privacy(_: PageProps) {
   const topHosts = Object.entries(blocked.reduce<Record<string, number>>((m, b) => ((m[b.host] = (m[b.host] ?? 0) + 1), m), {}))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 12)
-  const localAi = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?/.test(aiUrl)
+  const localAi = isLoopbackUrl(aiUrl)
+  const anyToClear = Object.values(clear).some(Boolean)
 
   return (
     <div className="page">
@@ -121,8 +124,10 @@ export default function Privacy(_: PageProps) {
             <span className="spacer" />
             <button
               className="btn danger solid"
+              disabled={!anyToClear}
               onClick={async () => {
                 const ms = RANGES[range].ms
+                if (!(await confirmAction('Clear browsing data?', `${RANGES[range].label}. This cannot be undone${clear.cookies ? ' and signs you out of websites' : ''}.`, 'Clear data', true))) return
                 await invoke('privacy:clear', { ...clear, since: ms ? Date.now() - ms : 0 })
                 toast({ kind: 'ok', title: 'Browsing data cleared' })
                 load()
@@ -150,7 +155,8 @@ export default function Privacy(_: PageProps) {
               </thead>
               <tbody>
                 {topHosts.map(([host, n]) => {
-                  const last = blocked.find((b) => b.host === host)
+                  // The log is oldest-first; "last seen" is the newest entry.
+                  const last = blocked.findLast((b) => b.host === host)
                   return (
                     <tr key={host}>
                       <td className="mono" style={{ fontSize: 11.5 }}>
