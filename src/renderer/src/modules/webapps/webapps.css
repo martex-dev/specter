@@ -1,0 +1,447 @@
+/* Sidebar web apps */
+
+/* ---------------------------------------------------------------- icons */
+.wa-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.wa-icon img {
+  display: block;
+  object-fit: contain;
+}
+.wa-tile {
+  color: #fff;
+  font-weight: 700;
+  font-family: var(--font-display);
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------------------------------------------------------------- dock badges */
+.dock-btn:has(> .wa-dock-badges) {
+  position: relative;
+}
+.wa-dock-badges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.wa-dock-unread {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--bad);
+  color: #fff;
+  font: 700 9.5px/15px var(--font-ui);
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg-0);
+  font-variant-numeric: tabular-nums;
+}
+.wa-dock-unread.dot {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  top: 3px;
+  right: 3px;
+}
+.wa-dock-playing,
+.wa-dock-error {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 2px var(--bg-0);
+}
+.wa-dock-playing {
+  animation: wa-pulse 1.6s ease-in-out infinite;
+}
+.wa-dock-error {
+  background: var(--warn);
+}
+@keyframes wa-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+[data-motion='reduced'] .wa-dock-playing {
+  animation: none;
+}
+/* First run: point at the dock "+" until an app is added. */
+[data-webapps-empty] .dock-add {
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- panel */
+.wa-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-1);
+}
+.wa-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.wa-host-failed {
+  visibility: hidden;
+  position: absolute;
+  inset: 0;
+}
+.wa-webview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+.wa-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+.wa-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: var(--accent);
+  animation: wa-progress 1.1s var(--ease) infinite;
+}
+@keyframes wa-progress {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+.wa-fail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-1);
+}
+.wa-fail svg {
+  color: var(--warn);
+}
+.wa-fail h4 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--fg-0);
+}
+.wa-fail p {
+  margin: 0;
+  font-size: 12px;
+  max-width: 320px;
+}
+.wa-fail-url {
+  font-size: 10.5px !important;
+  color: var(--fg-3);
+  word-break: break-all;
+}
+.wa-fail .row {
+  margin-top: 8px;
+}
+.wa-permbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--fg-1);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.wa-permbar > svg {
+  color: var(--accent);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- picker + catalog */
+.wa-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wa-picker-intro {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.wa-picker-body {
+  max-height: min(60vh, 560px);
+  overflow: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.wa-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wa-cat .label {
+  margin-bottom: 8px;
+}
+.wa-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+.wa-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.wa-cat-item:hover {
+  border-color: var(--line-strong);
+}
+.wa-cat-item.on {
+  border-color: var(--accent-line);
+  background: linear-gradient(0deg, var(--accent-dim), var(--accent-dim)), var(--bg-2);
+}
+.wa-cat-text {
+  flex: 1;
+  min-width: 0;
+}
+.wa-cat-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--fg-0);
+}
+.wa-cat-blurb {
+  font-size: 11px;
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wa-drm {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 600 9.5px var(--font-mono);
+  color: var(--warn);
+  letter-spacing: 0.04em;
+}
+.wa-drm.muted {
+  color: var(--fg-3);
+}
+
+/* ---------------------------------------------------------------- forms */
+.wa-form {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+}
+.wa-form-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.wa-form-err {
+  color: var(--bad);
+  font-size: 11.5px;
+}
+.wa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.input.invalid {
+  border-color: var(--bad) !important;
+}
+
+/* ---------------------------------------------------------------- manager page */
+.wa-empty-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.wa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wa-row-wrap {
+  border-radius: var(--radius);
+  transition: box-shadow var(--dur) var(--ease);
+}
+.wa-row-wrap.drop {
+  box-shadow: 0 -2px 0 0 var(--accent);
+}
+.wa-row-wrap.dragging {
+  opacity: 0.45;
+}
+.wa-row {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.wa-row.open {
+  border-color: var(--line-strong);
+}
+.wa-row-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 6px;
+  cursor: pointer;
+  min-height: 48px;
+}
+.wa-grip {
+  display: inline-flex;
+  padding: 4px 2px;
+  color: var(--fg-3);
+  cursor: grab;
+  border-radius: 4px;
+}
+.wa-grip:hover,
+.wa-grip:focus-visible {
+  color: var(--fg-1);
+  background: var(--bg-3);
+  outline: none;
+}
+.wa-row-title {
+  min-width: 0;
+  width: 200px;
+  flex: none;
+}
+.wa-row-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wa-row-host {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wa-chips {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+.wa-chev {
+  display: inline-flex;
+  color: var(--fg-2);
+}
+.wa-opts {
+  border-top: 1px solid var(--line);
+  padding: 14px 16px 12px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wa-opts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px 20px;
+}
+.wa-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+}
+.wa-hint {
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.wa-perms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wa-perms-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+.wa-perm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--fg-1);
+}
+.wa-perm > span {
+  width: 86px;
+}
+.wa-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wa-notes {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--fg-1);
+  line-height: 1.55;
+}
+.wa-notes p {
+  margin: 4px 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.wa-notes svg {
+  flex: none;
+  color: var(--fg-3);
+  position: relative;
+  top: 2px;
+}
