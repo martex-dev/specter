@@ -6,6 +6,7 @@ import { invoke } from '../lib/ipc'
 import { useBrowser } from '../stores/browser'
 import { useSetting } from '../stores/settings'
 import type { PageProps } from './registry'
+import { fillDays } from './pageLogic'
 
 export default function Activity(_: PageProps) {
   const enabled = useSetting('privacy.activityLog')
@@ -32,6 +33,8 @@ export default function Activity(_: PageProps) {
   const openTabs = Object.values(open).reduce((n, w) => n + w.tabs.length, 0)
   const usedToday = workspaces.filter((w) => new Date(w.updatedAt).toLocaleDateString('sv-SE') === today).length
   const max = Math.max(1, ...days.map((d) => d.visits))
+  // SQL only returns days with visits; chart every day so gaps show as gaps.
+  const chart = fillDays(days, 30, (day) => ({ day, visits: 0, domains: 0 }))
   return (
     <div className="page">
       <div className="page-h">
@@ -66,7 +69,7 @@ export default function Activity(_: PageProps) {
             <div className="muted">No history yet.</div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 120 }}>
-              {days.map((d) => (
+              {chart.map((d) => (
                 <div key={d.day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }} data-tip={`${d.day}: ${d.visits} visits, ${d.domains} sites`}>
                   <div style={{ width: '100%', maxWidth: 18, height: Math.max(2, (d.visits / max) * 100), background: d.day === today ? 'var(--accent)' : 'var(--bg-4)', borderRadius: 3 }} />
                 </div>
