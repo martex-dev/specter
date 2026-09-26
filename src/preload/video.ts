@@ -26,7 +26,11 @@ const media = new Set<Media>()
 const expected = new WeakMap<Media, number>()
 const loadedAt = new WeakMap<Media, number>()
 const restoredAt = new WeakMap<Media, number[]>()
-const watched = new Map<Document, MutationObserver>()
+/** Observed documents (the page and its same-origin frames) and open shadow roots. */
+const watched = new Map<Document | ShadowRoot, MutationObserver>()
+let framed = new WeakSet<Element>()
+let listened = new WeakSet<Window>()
+const frameDoc = new WeakMap<Element, Document>()
 
 const isMedia = (n: Node): n is Media => n.nodeName === 'VIDEO' || n.nodeName === 'AUDIO'
 const hasSource = (m: Media) => !!(m.currentSrc || m.src || m.srcObject || m.readyState > 0)
@@ -49,15 +53,40 @@ function track(m: Media): void {
   reapply()
 }
 
-function scan(root: ParentNode): void {
+function scan(root: Document | ShadowRoot | Element): void {
   for (const m of root.querySelectorAll('video, audio')) track(m as Media)
+  for (const f of root.querySelectorAll('iframe, frame')) enterFrame(f)
+  // Players built as web components (e.g. Reddit's) keep their <video> in an open shadow root.
+  for (const el of root.querySelectorAll('*')) if (el.shadowRoot && el.localName.includes('-')) observe(el.shadowRoot)
+}
+
+/** Same-origin frame documents, as far as they can be reached (cross-origin frames can't). */
+function frameDocs(doc: Document, out: Document[] = [doc]): Document[] {
+  for (const f of doc.querySelectorAll('iframe, frame')) {
+    try {
+      const d = (f as HTMLIFrameElement).contentDocument
+      if (d && !out.includes(d) && out.length < 50) frameDocs(d, (out.push(d), out))
+    } catch {
+      /* cross-origin */
+    }
+  }
+  return out
 }
 
 /** Media elements on the page (the tracked ones, or a fresh scan when the tools are off). */
 function allMedia(): Media[] {
-  if (!started) return [...document.querySelectorAll<Media>('video, audio')]
-  for (const m of media) if (!m.isConnected && m.paused) media.delete(m)
+  if (!started) return frameDocs(document).flatMap((d) => [...d.querySelectorAll<Media>('video, audio')])
+  // Gone from the page, or left behind in a frame document that navigated away.
+  for (const m of media) if ((!m.isConnected || !m.ownerDocument.defaultView) && m.paused) media.delete(m)
   return [...media]
+}
+
+/** Whether the page has media to act on; looks again before saying no (a player may have attached its shadow root late). */
+function hasMediaNow(): boolean {
+  if (allMedia().some(hasSource)) return true
+  if (!started) return false
+  for (const root of [...watched.keys()]) scan(root)
+  return allMedia().some(hasSource)
 }
 
 /** The element seeking acts on: playing, then the biggest video, then anything with a source. */
@@ -104,7 +133,7 @@ function seek(by: number): void {
 }
 
 function run(action: VideoCommand, value?: number): number | null {
-  if (!allMedia().some(hasSource)) return null
+  if (!hasMediaNow()) return null
   if (action === 'set') return setSpeed(value ?? 1)
   if (action === 'rewind' || action === 'advance') {
     seek(action === 'rewind' ? -SEEK_SECONDS : SEEK_SECONDS)
@@ -314,17 +343,54 @@ function onMutations(records: MutationRecord[]): void {
   for (const r of records)
     for (const n of r.addedNodes) {
       if (n.nodeType !== 1) continue
-      if (isMedia(n)) track(n)
-      else if ((n as Element).firstElementChild) scan(n as Element)
+      const el = n as Element
+      if (isMedia(el)) track(el)
+      else if (el.localName === 'iframe' || el.localName === 'frame') enterFrame(el)
+      if (el.shadowRoot && el.localName.includes('-')) observe(el.shadowRoot)
+      if (el.firstElementChild) scan(el)
     }
+}
+
+function observe(root: Document | ShadowRoot): void {
+  if (watched.has(root)) return
+  const mo = new MutationObserver(onMutations)
+  mo.observe(root, { childList: true, subtree: true })
+  watched.set(root, mo)
+  scan(root)
+}
+
+/** Follows a frame into each same-origin document it loads. */
+function enterFrame(f: Element): void {
+  if (framed.has(f)) return
+  framed.add(f)
+  const enter = () => {
+    let doc: Document | null = null
+    try {
+      doc = (f as HTMLIFrameElement).contentDocument
+    } catch {
+      /* cross-origin */
+    }
+    const old = frameDoc.get(f)
+    if (old && old !== doc) {
+      watched.get(old)?.disconnect()
+      watched.delete(old)
+    }
+    const win = doc?.defaultView
+    if (!doc || !win) return
+    frameDoc.set(f, doc)
+    watch(doc)
+    if (!listened.has(win)) {
+      listened.add(win)
+      listen(win, life.signal)
+    }
+  }
+  f.addEventListener('load', enter, { signal: life.signal })
+  enter()
 }
 
 function watch(doc: Document): void {
   if (watched.has(doc)) return
-  const mo = new MutationObserver(onMutations)
-  mo.observe(doc, { childList: true, subtree: true })
-  watched.set(doc, mo)
-  scan(doc)
+  observe(doc)
   // Media that start loading before the observer sees them (e.g. created and played in one task).
   const found = (e: Event) => e.target && isMedia(e.target as Node) && started && track(e.target as Media)
   doc.addEventListener('loadstart', found, { capture: true, signal: life.signal })
@@ -338,13 +404,13 @@ function watch(doc: Document): void {
 }
 
 /** Keys and clicks are watched from document start, so the page's own listeners can't run first. */
-function listen(win: Window): void {
+function listen(win: Window, signal?: AbortSignal): void {
   const input = (e: Event) => {
     if (e.isTrusted) lastInput = Date.now()
   }
-  win.addEventListener('pointerdown', input, true)
-  win.addEventListener('click', input, true)
-  win.addEventListener('keydown', (e) => onKey(e, win.document), true)
+  win.addEventListener('pointerdown', input, { capture: true, signal })
+  win.addEventListener('click', input, { capture: true, signal })
+  win.addEventListener('keydown', (e) => onKey(e, win.document), { capture: true, signal })
 }
 
 function typing(e: KeyboardEvent, doc: Document): boolean {
@@ -360,7 +426,7 @@ function onKey(e: KeyboardEvent, doc: Document): void {
   lastInput = Date.now()
   if (!started || e.defaultPrevented || e.isComposing) return
   const action = videoActionFor({ key: e.key, code: e.code, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey }, keyMap)
-  if (!action || typing(e, doc) || !allMedia().some(hasSource)) return
+  if (!action || typing(e, doc) || !hasMediaNow()) return
   // Only a bound key on a page with media is taken from the page; everything else passes through.
   e.preventDefault()
   e.stopImmediatePropagation()
@@ -380,6 +446,8 @@ function stop(): void {
   life = new AbortController()
   for (const mo of watched.values()) mo.disconnect()
   watched.clear()
+  framed = new WeakSet()
+  listened = new WeakSet()
   media.clear()
   removeBadges()
 }
