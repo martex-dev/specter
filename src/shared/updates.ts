@@ -164,13 +164,32 @@ export function describeUpdateState(s: UpdateState): string {
   }
 }
 
-/** Compares dotted versions (ignores leading "v" and pre-release suffixes). */
+/** Compares dotted versions (ignores a leading "v"; a pre-release sorts before its release, as in semver). */
 export function compareVersions(a: string, b: string): number {
-  const pa = a.replace(/^v/, '').split(/[.-]/).map((x) => parseInt(x, 10) || 0)
-  const pb = b.replace(/^v/, '').split(/[.-]/).map((x) => parseInt(x, 10) || 0)
-  for (let i = 0; i < Math.max(pa.length, pb.length, 3); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0)
+  const split = (v: string) => {
+    const [core, ...pre] = v.trim().replace(/^v/i, '').split('+')[0].split('-')
+    return { core: core.split('.').map((x) => parseInt(x, 10) || 0), pre: pre.join('-') }
+  }
+  const pa = split(a)
+  const pb = split(b)
+  for (let i = 0; i < Math.max(pa.core.length, pb.core.length, 3); i++) {
+    const d = (pa.core[i] ?? 0) - (pb.core[i] ?? 0)
     if (d) return d > 0 ? 1 : -1
+  }
+  // 0.3.0-beta.1 < 0.3.0: otherwise a beta build is never told that the final release is out.
+  if (pa.pre === pb.pre) return 0
+  if (!pa.pre) return 1
+  if (!pb.pre) return -1
+  const xa = pa.pre.split('.')
+  const xb = pb.pre.split('.')
+  for (let i = 0; i < Math.max(xa.length, xb.length); i++) {
+    if (xa[i] === undefined) return -1
+    if (xb[i] === undefined) return 1
+    const na = /^\d+$/.test(xa[i]) ? Number(xa[i]) : NaN
+    const nb = /^\d+$/.test(xb[i]) ? Number(xb[i]) : NaN
+    if (!isNaN(na) && !isNaN(nb)) {
+      if (na !== nb) return na > nb ? 1 : -1
+    } else if (xa[i] !== xb[i]) return xa[i] > xb[i] ? 1 : -1
   }
   return 0
 }
