@@ -9,6 +9,7 @@ import {
   normalizeTitle,
   parseWikiLinks,
   replaceWikiLinks,
+  safeFileName,
   type NoteFull,
   type NoteHit,
   type NoteInput,
@@ -201,10 +202,6 @@ export function noteTags(): { tag: string; count: number }[] {
 
 export function noteTitles(): { id: string; title: string }[] {
   return all<{ id: string; title: string }>("SELECT id, title FROM kn_notes WHERE profile_id = ? AND title != '' ORDER BY updated_at DESC", activeProfileId())
-}
-
-export function safeFileName(name: string): string {
-  return (name || 'Untitled').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Untitled'
 }
 
 export function exportAllNotes(folder: string): { count: number; folder: string } {

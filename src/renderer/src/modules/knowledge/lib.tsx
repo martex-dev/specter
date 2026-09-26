@@ -1,7 +1,7 @@
 // Shared renderer helpers for notes / research / knowledge.
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { IpcEvent } from '@shared/ipc'
-import type { MissionStep } from '@shared/modules/knowledge'
+import { safeFileName, type MissionStep } from '@shared/modules/knowledge'
 import { invoke, on } from '../../lib/ipc'
 import { activateTab, activeTab, loadUrl, newTab, useBrowser } from '../../stores/browser'
 import { toast } from '../../stores/ui'
@@ -115,7 +115,7 @@ export function hostOf(url: string): string {
 }
 
 export function slugFile(name: string, ext: string): string {
-  return ((name || 'Untitled').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 100) || 'Untitled') + ext
+  return safeFileName(name, 100) + ext
 }
 
 /**

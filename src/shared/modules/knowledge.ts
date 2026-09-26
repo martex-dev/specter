@@ -450,6 +450,22 @@ export function parseTags(input: string): string[] {
     .filter((t) => t && t.length <= 48 && !seen.has(t) && (seen.add(t), true))
 }
 
+/**
+ * A file name (without extension) that is valid on Windows, macOS and Linux:
+ * illegal characters replaced, no trailing dots/spaces and no reserved device
+ * names (CON, NUL, COM1…), which Windows refuses even with an extension.
+ */
+export function safeFileName(name: string, max = 120): string {
+  const base =
+    (name || 'Untitled')
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, max)
+      .replace(/[. ]+$/, '') || 'Untitled'
+  return /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i.test(base) ? '_' + base : base
+}
+
 /** Markdown with YAML front matter (used for export). */
 export function noteToMarkdown(n: { title: string; body: string; tags: string[]; createdAt: number; updatedAt: number; sourceUrl: string | null }): string {
   const fm = ['---', `title: ${JSON.stringify(n.title || 'Untitled')}`]

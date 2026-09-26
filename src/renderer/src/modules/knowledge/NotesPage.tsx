@@ -59,8 +59,12 @@ export default function NotesPage({ sub, query }: PageProps) {
   const exportAll = async () => {
     const folder = await invoke('app:pickFolder', 'Export notes to folder')
     if (!folder) return
-    const r = await invoke('notes:exportAll', folder)
-    toast({ kind: 'ok', title: `Exported ${r.count} notes`, body: r.folder, action: { label: 'Show', run: () => invoke('app:openPath', r.folder) } })
+    try {
+      const r = await invoke('notes:exportAll', folder)
+      toast({ kind: 'ok', title: `Exported ${r.count} notes`, body: r.folder, action: { label: 'Show', run: () => invoke('app:openPath', r.folder) } })
+    } catch (err) {
+      toast({ kind: 'error', title: 'Export failed', body: String((err as Error)?.message ?? err) })
+    }
   }
 
   useEffect(() => {

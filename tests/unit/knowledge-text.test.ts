@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chunkText, excerptOf, ftsMatch, linkContext, normalizeText, parseTags, parseWikiLinks, replaceWikiLinks } from '@shared/modules/knowledge'
+import { chunkText, excerptOf, ftsMatch, linkContext, normalizeText, parseTags, parseWikiLinks, replaceWikiLinks, safeFileName } from '@shared/modules/knowledge'
 
 describe('chunkText', () => {
   it('returns nothing for empty text and one chunk for short text', () => {
@@ -89,5 +89,26 @@ describe('ftsMatch', () => {
   it('strips FTS syntax characters', () => {
     expect(ftsMatch('"a" OR b*')).toBe('"a" "OR" "b"*')
     expect(ftsMatch('  ')).toBe('')
+  })
+})
+
+describe('safeFileName', () => {
+  it('replaces illegal characters and falls back to Untitled', () => {
+    expect(safeFileName('a/b:c*?')).toBe('a_b_c__')
+    expect(safeFileName('')).toBe('Untitled')
+    expect(safeFileName('   ')).toBe('Untitled')
+  })
+  it('avoids Windows reserved device names', () => {
+    expect(safeFileName('CON')).toBe('_CON')
+    expect(safeFileName('nul')).toBe('_nul')
+    expect(safeFileName('Com1')).toBe('_Com1')
+    expect(safeFileName('LPT9.txt')).toBe('_LPT9.txt')
+    expect(safeFileName('Console')).toBe('Console')
+    expect(safeFileName('Auxiliary notes')).toBe('Auxiliary notes')
+  })
+  it('drops trailing dots and spaces', () => {
+    expect(safeFileName('Notes...')).toBe('Notes')
+    expect(safeFileName('...')).toBe('Untitled')
+    expect(safeFileName('x'.repeat(200) + '.', 10)).toBe('x'.repeat(10))
   })
 })
