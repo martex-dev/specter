@@ -10,14 +10,17 @@ import {
   clipText,
   cssSnippet,
   formatFamily,
+  formatFontStack,
   lineHeightRatio,
   matchStackEntry,
   parseCssColor,
   parseFontStack,
   rankPlatformFonts,
+  tallyFamilies,
   tidyLength,
   toHex,
   weightName,
+  type FamilyUse,
   type FontFamily,
   type InspectorEvent,
   type PlatformResult,
@@ -56,6 +59,7 @@ const CSS = `
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.12); background: #191c22; color: #e9ebf0; font: 500 11.5px/1 ${UI_FONT}; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: #20242c; }
 .btn.icon { width: 22px; padding: 0; font-size: 14px; }
+.btn.on { border-color: rgba(163, 177, 255, 0.45); background: rgba(163, 177, 255, 0.14); color: #a3b1ff; }
 .btn.primary { background: #a3b1ff; border-color: #a3b1ff; color: #0c0d10; }
 .btn.primary:hover { background: #b8c3ff; }
 .card { position: fixed; width: 296px; pointer-events: auto; background: #14161b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35); overflow: hidden; user-select: text; cursor: default; }
@@ -77,6 +81,23 @@ const CSS = `
 .stack .rest { color: #7d8391; }
 .swatch { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.25); }
 .card-f { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 12px; border-top: 1px solid rgba(255, 255, 255, 0.065); }
+.panel { position: fixed; top: 50px; right: 10px; width: 340px; max-height: calc(100vh - 64px); display: none; flex-direction: column; pointer-events: auto; background: #14161b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35); overflow: hidden; }
+.panel.open { display: flex; }
+.panel-h { display: flex; align-items: center; gap: 8px; padding: 9px 8px 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.065); }
+.panel-h .card-titles .meta { margin-top: 4px; font-size: 11px; color: #7d8391; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-b { overflow-y: auto; padding: 4px 0 8px; user-select: text; }
+.section { padding: 10px 12px 4px; }
+.fam { display: block; width: 100%; padding: 7px 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fam:hover { background: #191c22; }
+.fam-top { display: flex; align-items: baseline; gap: 8px; }
+.fam-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: #e9ebf0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count { font: 400 11px/1 ${MONO_FONT}; color: #7d8391; }
+.fam-sample { margin-top: 3px; font-size: 17px; line-height: 1.3; color: #b3b8c3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fam-meta { margin-top: 3px; font: 400 10.5px/1.35 ${MONO_FONT}; color: #545a67; overflow-wrap: anywhere; }
+.face { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 5px 12px; }
+.face .fam-name { flex: 0 1 auto; font-weight: 500; }
+.badge.bad { background: rgba(255, 107, 115, 0.12); color: #ff6b73; }
+.empty { padding: 6px 12px; font-size: 11.5px; color: #7d8391; }
 .tag { flex: 1; min-width: 0; font: 400 10.5px/1.2 ${MONO_FONT}; color: #545a67; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) { .hint { display: none; } }
 `
@@ -326,7 +347,7 @@ function createInspector(): InspectorApi {
     close.addEventListener('click', () => {
       root.remove()
       cards.delete(id)
-      box.style.display = 'none'
+      hold(null)
     })
     head.append(titles, close)
 
@@ -369,8 +390,8 @@ function createInspector(): InspectorApi {
     root.append(head, sample, rows, foot)
     root.style.zIndex = String(++zTop)
     root.addEventListener('pointerdown', () => (root.style.zIndex = String(++zTop)))
-    root.addEventListener('mouseenter', () => outline(target))
-    root.addEventListener('mouseleave', () => (box.style.display = 'none'))
+    root.addEventListener('mouseenter', () => hold(target))
+    root.addEventListener('mouseleave', () => hold(null))
     layer.append(root)
     cards.set(id, card)
 
@@ -386,14 +407,111 @@ function createInspector(): InspectorApi {
     emit({ type: 'pin', card: id, target: { selector: selectorFor(target), x: Math.round(x), y: Math.round(y), localName: target.localName } })
   }
 
-  // ------------------------------------------------------------ hover
-  const hideHover = () => {
-    tip.style.display = 'none'
-    box.style.display = 'none'
+  // ------------------------------------------------------------ fonts on this page
+  let panel: HTMLElement
+  let panelBody: HTMLElement
+  let panelMeta: HTMLElement
+  let panelButton: HTMLElement
+  const SKIP = new Set(['script', 'style', 'noscript', 'template', 'textarea'])
+
+  /** Every element with visible text of its own, grouped by the family that renders it. */
+  const scanPage = () => {
+    const uses: FamilyUse[] = []
+    const firstUse = new Map<string, { el: Element; stack: string; weight: string; style: string }>()
+    const track = (e: Element) => {
+      if (!e.checkVisibility()) return
+      const cs = getComputedStyle(e)
+      const family = renderedFamily(parseFontStack(cs.fontFamily), cs.fontWeight, cs.fontStyle).name
+      uses.push({ family, stack: cs.fontFamily, weight: cs.fontWeight, sample: e.textContent ?? '' })
+      if (!firstUse.has(family)) firstUse.set(family, { el: e, stack: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle })
+    }
+    const seen = new Set<Element>()
+    // Open shadow trees (web components) are walked too.
+    const roots: Node[] = [document.body ?? document.documentElement]
+    for (let i = 0; i < roots.length && seen.size < 5000; i++) {
+      const walker = document.createTreeWalker(roots[i], NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT)
+      for (let n = walker.nextNode(); n && seen.size < 5000; n = walker.nextNode()) {
+        if (n instanceof Element) {
+          if (n.shadowRoot) roots.push(n.shadowRoot)
+          continue
+        }
+        const e = n.parentElement
+        if (!e || seen.has(e) || SKIP.has(e.localName) || !n.nodeValue!.trim()) continue
+        seen.add(e)
+        track(e)
+      }
+    }
+    return { families: tallyFamilies(uses), firstUse, elements: uses.length }
   }
+
+  const renderPanel = () => {
+    const { families, firstUse, elements } = scanPage()
+    panelMeta.textContent = `${families.length} ${families.length === 1 ? 'family' : 'families'} · ${elements} text elements`
+    panelBody.replaceChildren(el('div', 'section label', 'Families in use'))
+    for (const f of families) {
+      const use = firstUse.get(f.family)!
+      const rowEl = el('button', 'fam')
+      rowEl.title = 'Show the first use'
+      const top = el('div', 'fam-top')
+      top.append(el('span', 'fam-name', f.family), el('span', 'count', `${f.count} ${f.count === 1 ? 'element' : 'elements'}`))
+      const sample = el('div', 'fam-sample', f.sample || 'Aa Bb Cc 0123')
+      sample.style.fontFamily = use.stack
+      sample.style.fontWeight = use.weight
+      sample.style.fontStyle = use.style
+      const meta = el('div', 'fam-meta', `${f.stacks.slice(0, 2).map((st) => formatFontStack(parseFontStack(st))).join(' | ')}${f.stacks.length > 2 ? ` | +${f.stacks.length - 2}` : ''} · ${f.weights.join(' ')}`)
+      rowEl.append(top, sample, meta)
+      rowEl.addEventListener('click', () => {
+        use.el.scrollIntoView({ block: 'center', behavior: 'instant' })
+        hold(use.el)
+      })
+      rowEl.addEventListener('mouseleave', () => hold(null))
+      panelBody.append(rowEl)
+    }
+    if (!families.length) panelBody.append(el('div', 'empty', 'No visible text on this page.'))
+
+    // Web fonts the page declared (@font-face / FontFace), whether or not anything uses them.
+    const faces = new Map<string, FontFace[]>()
+    document.fonts.forEach((f) => {
+      const name = unquote(f.family)
+      faces.set(name, [...(faces.get(name) ?? []), f])
+    })
+    panelBody.append(el('div', 'section label', `Web fonts · ${faces.size}`))
+    if (!faces.size) panelBody.append(el('div', 'empty', 'None — everything here is drawn with installed fonts.'))
+    for (const [name, list] of [...faces].sort((a, b) => a[0].localeCompare(b[0]))) {
+      const rowEl = el('div', 'face')
+      const title = el('span', 'fam-name', name)
+      if (list.some((f) => f.status === 'loaded')) title.style.fontFamily = formatFamily({ name, generic: false }) + ', sans-serif'
+      rowEl.append(title)
+      for (const f of list) {
+        const b = el('span', 'badge' + (f.status === 'loaded' ? ' ok' : f.status === 'error' ? ' bad' : ''), `${f.weight === 'normal' ? '400' : f.weight}${f.style !== 'normal' ? ' ' + f.style : ''}`)
+        b.title = f.status === 'loaded' ? 'Loaded' : f.status === 'error' ? 'Failed to load' : f.status === 'loading' ? 'Loading' : 'Declared, not used yet'
+        rowEl.append(b)
+      }
+      panelBody.append(rowEl)
+    }
+  }
+  const togglePanel = (open = !panel.classList.contains('open')) => {
+    panel.classList.toggle('open', open)
+    panelButton.classList.toggle('on', open)
+    if (open) renderPanel()
+  }
+
+  // ------------------------------------------------------------ hover
+  // The element whose card (or panel row) is under the pointer stays outlined.
+  let held: Element | null = null
   const outline = (el: Element) => {
     const r = el.getBoundingClientRect()
     Object.assign(box.style, { display: 'block', left: r.left - 2 + 'px', top: r.top - 2 + 'px', width: r.width + 4 + 'px', height: r.height + 4 + 'px' })
+  }
+  const hold = (el: Element | null) => {
+    held = el
+    if (el) outline(el)
+    else box.style.display = 'none'
+  }
+  const hideHover = () => {
+    tip.style.display = 'none'
+    if (held) outline(held)
+    else box.style.display = 'none'
   }
   const updateHover = () => {
     frame = 0
@@ -473,8 +591,24 @@ function createInspector(): InspectorApi {
     const exit = el('button', 'btn icon', '×')
     exit.title = 'Exit (Esc)'
     exit.addEventListener('click', () => api.stop())
-    bar.append(title, el('span', 'hint', 'Hover text · click to pin · Esc to exit'), exit)
-    layer.append(box, tip, bar)
+    panelButton = el('button', 'btn', 'Fonts on page')
+    panelButton.addEventListener('click', () => togglePanel())
+    bar.append(title, el('span', 'hint', 'Hover text · click to pin · Esc to exit'), panelButton, exit)
+
+    panel = el('div', 'panel')
+    const panelHead = el('div', 'panel-h')
+    panelMeta = el('div', 'meta')
+    const panelTitles = el('div', 'card-titles')
+    panelTitles.append(el('div', 'label', 'Fonts on this page'), panelMeta)
+    const refresh = el('button', 'btn', 'Rescan')
+    refresh.addEventListener('click', () => renderPanel())
+    const closePanel = el('button', 'btn icon', '×')
+    closePanel.title = 'Close'
+    closePanel.addEventListener('click', () => togglePanel(false))
+    panelHead.append(panelTitles, refresh, closePanel)
+    panelBody = el('div', 'panel-b')
+    panel.append(panelHead, panelBody)
+    layer.append(box, tip, panel, bar)
     shadow.append(layer)
     document.documentElement.append(host)
     for (const [type, fn] of listeners) window.addEventListener(type, fn, true)
@@ -487,6 +621,7 @@ function createInspector(): InspectorApi {
         mount()
       }
       if (opts?.at) pin(opts.at.x, opts.at.y)
+      if (opts?.panel) togglePanel(true)
     },
     stop() {
       if (!host) return

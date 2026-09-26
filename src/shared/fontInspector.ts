@@ -226,11 +226,14 @@ export interface FontInspectorRequest {
   enable?: boolean
   /** Also pin a card for the text at this point, relative to the page's view (zoomed pixels). */
   at?: { x: number; y: number }
+  /** Also open the "Fonts on this page" panel. */
+  panel?: boolean
 }
 
 /** Options for the overlay's start(); `at` is in CSS pixels of the viewport. */
 export interface StartOptions {
   at?: { x: number; y: number }
+  panel?: boolean
 }
 
 /** How the main process finds an element for the DevTools protocol: a structural selector, or (inside shadow trees) the point that was clicked. */
