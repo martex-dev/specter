@@ -19,6 +19,8 @@ interface PromptReq {
 const usePrompt = create<{ req: PromptReq | null }>(() => ({ req: null }))
 
 export function promptText(o: Omit<PromptReq, 'resolve'>): Promise<string | null> {
+  // A prompt replaced by another counts as cancelled, so its caller doesn't hang.
+  usePrompt.getState().req?.resolve(null)
   return new Promise((resolve) => usePrompt.setState({ req: { ...o, resolve } }))
 }
 
@@ -31,12 +33,18 @@ export function PromptLayer() {
   const req = usePrompt((s) => s.req)
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
+  const confirmRef = useRef<HTMLButtonElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (req) {
       setValue(req.initial ?? '')
       setTimeout(() => {
-        inputRef.current?.focus()
-        inputRef.current?.select()
+        // A confirmation has no field; focus a button so Enter/Escape reach the
+        // dialog instead of the web page that may still hold keyboard focus
+        // (Cancel for destructive ones, so a stray Enter doesn't confirm).
+        if (!inputRef.current) return (usePrompt.getState().req?.danger ? cancelRef : confirmRef).current?.focus()
+        inputRef.current.focus()
+        inputRef.current.select()
       }, 20)
     }
   }, [req])
@@ -53,10 +61,10 @@ export function PromptLayer() {
       width={460}
       footer={
         <>
-          <button className="btn ghost" onClick={() => done(null)}>
+          <button ref={cancelRef} className="btn ghost" onClick={() => done(null)}>
             Cancel
           </button>
-          <button className={'btn ' + (req.danger ? 'danger solid' : 'primary')} onClick={submit}>
+          <button ref={confirmRef} className={'btn ' + (req.danger ? 'danger solid' : 'primary')} onClick={submit}>
             {req.confirmLabel ?? 'Save'}
           </button>
         </>
