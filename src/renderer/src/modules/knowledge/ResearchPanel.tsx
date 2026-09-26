@@ -64,6 +64,8 @@ export default function ResearchPanel({ popout }: { popout?: boolean }) {
         }
       }
       await saveResearchSource({ missionId: m.id, quote: quote || undefined })
+    } catch (err) {
+      toast({ kind: 'error', title: 'Could not save source', body: String((err as Error)?.message ?? err) })
     } finally {
       setBusy(false)
     }

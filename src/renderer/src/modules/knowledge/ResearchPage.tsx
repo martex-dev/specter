@@ -442,7 +442,11 @@ function Sources({ m, upsert, reload }: { m: MissionFull; upsert: Upsert; reload
         <button className="btn sm" onClick={addUrl}>
           <Plus size={12} /> URL
         </button>
-        <button className="btn primary sm" disabled={!canSaveTab} onClick={() => saveResearchSource({ missionId: m.id }).then(reload)} data-tip={canSaveTab ? `Save “${tab?.title}”` : 'The active tab is not a web page'}>
+        <button className="btn primary sm" disabled={!canSaveTab} onClick={() =>
+            saveResearchSource({ missionId: m.id })
+              .then(reload)
+              .catch((e) => toast({ kind: 'error', title: 'Could not save source', body: String(e?.message ?? e) }))
+          } data-tip={canSaveTab ? `Save “${tab?.title}”` : 'The active tab is not a web page'}>
           <Globe size={12} /> Save active tab
         </button>
       </div>
