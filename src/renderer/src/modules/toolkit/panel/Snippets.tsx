@@ -1,6 +1,6 @@
 // Manual snippets — an opt-in alternative to clipboard history. Nothing is
 // captured automatically; the user adds text explicitly.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ClipboardPaste, Plus, X } from 'lucide-react'
 import { invoke } from '../../../lib/ipc'
 import { CopyBtn } from '../ui'
@@ -34,6 +34,17 @@ export default function Snippets() {
   const [items, setItems] = useState<Snippet[]>(load)
   const [text, setText] = useState('')
   const [label, setLabel] = useState('')
+
+  // Stay in sync with the other window (main window ↔ popped-out Tools panel);
+  // otherwise saving here would overwrite snippets added there.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === KEY) setItems(load())
+      else if (e.key === ENABLED) setEnabled(e.newValue === '1')
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const update = (next: Snippet[]) => {
     setItems(next)
