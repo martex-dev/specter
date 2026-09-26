@@ -247,4 +247,8 @@ export interface NodeTarget {
 export type PlatformResult = { fonts: PlatformFont[] } | { error: 'unavailable' | 'not-found' }
 
 /** What the overlay reports to the main process; its `next()` resolves with one of these. */
-export type InspectorEvent = { type: 'pin'; card: number; target: NodeTarget } | { type: 'copy'; text: string } | { type: 'exit' }
+export type InspectorEvent =
+  | { type: 'pin'; card: number; target: NodeTarget }
+  | { type: 'resolve'; scan: number; targets: (NodeTarget | null)[] }
+  | { type: 'copy'; text: string }
+  | { type: 'exit' }

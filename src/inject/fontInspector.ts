@@ -5,7 +5,8 @@
 //
 // The main process drives it through `window.__specterFonts` (the isolated world's global):
 // start() / stop(), next() — a promise that resolves with the overlay's next event — and
-// platform(), which delivers the fonts Chromium reports for a pinned element.
+// platform() / resolved(), which deliver the fonts Chromium reports for pinned elements
+// and for the families in the "Fonts on this page" panel.
 import {
   clipText,
   cssSnippet,
@@ -23,6 +24,7 @@ import {
   type FamilyUse,
   type FontFamily,
   type InspectorEvent,
+  type PlatformFont,
   type PlatformResult,
   type StartOptions
 } from '@shared/fontInspector'
@@ -32,6 +34,8 @@ export interface InspectorApi {
   stop(): void
   /** The main process's answer to a `pin` event: the fonts Chromium used for that card's text. */
   platform(card: number, result: PlatformResult): void
+  /** The answer to a `resolve` event: platform fonts for each family row of that scan (null: unavailable). */
+  resolved(scan: number, results: (PlatformFont[] | null)[] | null): void
   next(): Promise<InspectorEvent>
 }
 
@@ -91,6 +95,7 @@ const CSS = `
 .fam:hover { background: #191c22; }
 .fam-top { display: flex; align-items: baseline; gap: 8px; }
 .fam-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: #e9ebf0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fam-name .via { font-weight: 400; color: #7d8391; }
 .count { font: 400 11px/1 ${MONO_FONT}; color: #7d8391; }
 .fam-sample { margin-top: 3px; font-size: 17px; line-height: 1.3; color: #b3b8c3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fam-meta { margin-top: 3px; font: 400 10.5px/1.35 ${MONO_FONT}; color: #545a67; overflow-wrap: anywhere; }
@@ -412,6 +417,8 @@ function createInspector(): InspectorApi {
   let panelBody: HTMLElement
   let panelMeta: HTMLElement
   let panelButton: HTMLElement
+  let scanId = 0
+  let familyRows: { name: HTMLElement; estimate: string }[] = []
   const SKIP = new Set(['script', 'style', 'noscript', 'template', 'textarea'])
 
   /** Every element with visible text of its own, grouped by the family that renders it. */
@@ -448,12 +455,15 @@ function createInspector(): InspectorApi {
     const { families, firstUse, elements } = scanPage()
     panelMeta.textContent = `${families.length} ${families.length === 1 ? 'family' : 'families'} · ${elements} text elements`
     panelBody.replaceChildren(el('div', 'section label', 'Families in use'))
+    familyRows = []
     for (const f of families) {
       const use = firstUse.get(f.family)!
       const rowEl = el('button', 'fam')
       rowEl.title = 'Show the first use'
       const top = el('div', 'fam-top')
-      top.append(el('span', 'fam-name', f.family), el('span', 'count', `${f.count} ${f.count === 1 ? 'element' : 'elements'}`))
+      const name = el('span', 'fam-name', f.family)
+      familyRows.push({ name, estimate: f.family })
+      top.append(name, el('span', 'count', `${f.count} ${f.count === 1 ? 'element' : 'elements'}`))
       const sample = el('div', 'fam-sample', f.sample || 'Aa Bb Cc 0123')
       sample.style.fontFamily = use.stack
       sample.style.fontWeight = use.weight
@@ -468,6 +478,13 @@ function createInspector(): InspectorApi {
       panelBody.append(rowEl)
     }
     if (!families.length) panelBody.append(el('div', 'empty', 'No visible text on this page.'))
+    // Ask Chromium which platform font each family's first use is drawn with.
+    const targets = families.map((f) => {
+      const e = firstUse.get(f.family)!.el
+      const selector = selectorFor(e)
+      return selector ? { selector, x: 0, y: 0, localName: e.localName } : null
+    })
+    if (targets.length) emit({ type: 'resolve', scan: ++scanId, targets })
 
     // Web fonts the page declared (@font-face / FontFace), whether or not anything uses them.
     const faces = new Map<string, FontFace[]>()
@@ -637,6 +654,21 @@ function createInspector(): InspectorApi {
     platform(id, result) {
       const c = cards.get(id)
       if (c) showPlatform(c, result)
+    },
+    resolved(scan, results) {
+      if (scan !== scanId) return // a newer scan replaced these rows
+      if (!results) {
+        panelMeta.textContent += ' · estimated (DevTools protocol in use)'
+        return
+      }
+      results.forEach((fonts, i) => {
+        const row = familyRows[i]
+        const main = fonts?.length ? rankPlatformFonts(fonts)[0] : null
+        if (!row || !main) return
+        row.name.textContent = main.family
+        row.name.title = `${main.postScriptName} · ${main.custom ? 'web font' : 'installed'} (reported by Chromium)`
+        if (main.family.toLowerCase() !== row.estimate.toLowerCase()) row.name.append(el('span', 'via', main.custom ? ` · web font “${row.estimate}”` : ` · via ${row.estimate}`))
+      })
     },
     next() {
       const ev = queue.shift()

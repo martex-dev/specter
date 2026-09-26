@@ -63,6 +63,11 @@ function serve(wc: WebContents): void {
           const result: PlatformResult = fonts === undefined ? { error: 'unavailable' } : fonts ? { fonts } : { error: 'not-found' }
           await run(wc, `window.__specterFonts && window.__specterFonts.platform(${Number(ev.card)}, ${JSON.stringify(result)})`)
         }
+        if (ev.type === 'resolve') {
+          const targets = (Array.isArray(ev.targets) ? ev.targets : []).slice(0, 200)
+          const results = await platformFonts(wc, targets)
+          await run(wc, `window.__specterFonts && window.__specterFonts.resolved(${Number(ev.scan)}, ${JSON.stringify(results)})`)
+        }
       }
     } catch (err) {
       log.info('font inspector ended', err instanceof Error ? err.message : String(err))
@@ -86,7 +91,7 @@ type Send = (method: string, params?: object) => Promise<any>
  * found), or null if the debugger is unavailable. Attaches only for the duration of the call
  * and always detaches, so DevTools keeps working.
  */
-async function platformFonts(wc: WebContents, targets: NodeTarget[]): Promise<(PlatformFont[] | null)[] | null> {
+async function platformFonts(wc: WebContents, targets: (NodeTarget | null)[]): Promise<(PlatformFont[] | null)[] | null> {
   const dbg = wc.debugger
   if (dbg.isAttached()) return null // someone else (a full-page capture) is using it
   try {
@@ -101,7 +106,7 @@ async function platformFonts(wc: WebContents, targets: NodeTarget[]): Promise<(P
     await send('CSS.enable')
     const { root } = await send('DOM.getDocument', { depth: 0 })
     const out: (PlatformFont[] | null)[] = []
-    for (const t of targets) out.push(await fontsFor(send, root.nodeId, t).catch(() => null))
+    for (const t of targets) out.push(t ? await fontsFor(send, root.nodeId, t).catch(() => null) : null)
     return out
   } catch (err) {
     log.info('font inspection over the DevTools protocol failed', err instanceof Error ? err.message : String(err))
