@@ -174,15 +174,22 @@ function createInspector(): InspectorApi {
   const hasOwnText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.nodeValue!.trim())
   const FORM = new Set(['input', 'textarea', 'select', 'button'])
   const textElementAt = (x: number, y: number): Element | null => {
-    const pos = document.caretPositionFromPoint?.(x, y)
-    const node = pos?.offsetNode
+    let el = document.elementFromPoint(x, y)
+    if (!el || el === host) return null
+    // Descend into open shadow trees (web components) to the element really under the pointer.
+    const shadowRoots: ShadowRoot[] = []
+    while (el.shadowRoot) {
+      const inner: Element | null = el.shadowRoot.elementFromPoint(x, y)
+      if (!inner || inner === el) break
+      shadowRoots.push(el.shadowRoot)
+      el = inner
+    }
+    const node = document.caretPositionFromPoint?.(x, y, { shadowRoots })?.offsetNode
     if (node && node.nodeType === Node.TEXT_NODE && node.nodeValue!.trim()) {
       const range = document.createRange()
       range.selectNodeContents(node)
       for (const r of range.getClientRects()) if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return node.parentElement
     }
-    const el = document.elementFromPoint(x, y)
-    if (!el || el === host) return null
     return FORM.has(el.localName) || hasOwnText(el) ? el : null
   }
 
