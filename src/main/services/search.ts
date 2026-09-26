@@ -16,9 +16,10 @@ export function localSuggestions(text: string): Suggestion[] {
     const urlHit = h.url.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').startsWith(lower)
     out.push({ kind: 'history', title: h.title || h.url, url: h.url, score: 50 + Math.min(30, h.visits * 3) + (urlHit ? 40 : 0), subtitle: h.url })
   }
-  const like = '%' + q.replace(/[%_]/g, '') + '%'
+  // Escape LIKE wildcards (stripping them meant "snake_case" never matched a bookmark containing it).
+  const like = '%' + q.replace(/[\\%_]/g, '\\$&') + '%'
   const bms = all<{ title: string; url: string }>(
-    "SELECT title, url FROM bookmarks WHERE kind = 'bookmark' AND profile_id = ? AND (title LIKE ? OR url LIKE ? OR tags LIKE ?) LIMIT 6",
+    "SELECT title, url FROM bookmarks WHERE kind = 'bookmark' AND profile_id = ? AND (title LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\') LIMIT 6",
     activeProfileId(),
     like,
     like,
