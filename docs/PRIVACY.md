@@ -17,7 +17,8 @@ Chromium's, isolated per SPECTER profile.
 | --- | --- | --- |
 | Web pages | the sites you visit | when you browse |
 | Remote search suggestions | your search engine (DuckDuckGo / Google / Bing) | **off by default**; only while typing in the address bar when enabled |
-| Tracker blocking | none | the blocklist is built in |
+| Built-in tracker list | none | the list is built in |
+| Ad blocker filter lists | `ublockorigin.github.io` (fallback `ublockorigin.pages.dev`, `easylist.to`), `pgl.yoyo.org`, and `raw.githubusercontent.com` (scriptlet resources from the Ghostery adblocker project) | **on by default**: on first start, then as often as each list asks in its header (12 hours to 7 days), plus *Update now*; in a separate in-memory session without cookies — only the list files are requested, nothing about your browsing |
 | Local AI | your Ollama server (default `127.0.0.1`) | only when you send a prompt; a non-local AI address is flagged in the Privacy Center and AI panel |
 | Market data | Binance / Coinbase / CoinGecko / DexScreener public APIs, currency rates API | only when market tools are enabled and visible |
 | Translate page | Google Translate (the page URL) | only when you choose "Translate page" |
@@ -29,7 +30,8 @@ Chromium's, isolated per SPECTER profile.
 
 ## Protections
 
-- Built-in third-party tracker blocking (a compact list; its size is shown in the Privacy Center).
+- Ad blocker (on by default): uBlock Origin, EasyList, EasyPrivacy, malware and cookie-banner filter lists, including element hiding and uBlock's scriptlets (e.g. YouTube ads). Per-site off switch, your own filters, and the list of what was blocked in the Privacy Center.
+- Built-in third-party tracker blocking (a compact list that works before any filter list is downloaded; its size is shown in the Privacy Center).
 - Global Privacy Control header (on by default); Do Not Track (off by default).
 - HTTPS-first navigation with automatic HTTP fallback for sites without HTTPS.
 - Optional third-party cookie blocking (an approximation based on registrable domains — see the setting's description).
