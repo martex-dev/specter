@@ -340,7 +340,9 @@ export function NoteEditor({ id, compact, onOpenNote, onDeleted }: Props) {
           updateAutocomplete(e.target)
         }}
         onKeyDown={onKeyDown}
-        onClick={(e) => updateAutocomplete(e.currentTarget)}
+        // Any caret move (click, arrows, Home/End) re-evaluates the [[ popup so
+        // accepting a suggestion always replaces the text right before the caret.
+        onSelect={(e) => updateAutocomplete(e.currentTarget)}
         onBlur={() => {
           setTimeout(() => setAc(null), 150)
           flush()
