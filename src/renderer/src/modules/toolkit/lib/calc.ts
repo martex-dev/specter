@@ -233,7 +233,9 @@ class Parser {
         this.next()
         v = v % this.unary()
       } else if (this.startsOperand(t)) {
-        // Implicit multiplication: 2pi, 3(4+5), (1+2)(3+4)
+        // Implicit multiplication: 2pi, 3(4+5), (1+2)(3+4) — but never between
+        // two number literals ("1 000", "12 345", "1.2.3" are not products).
+        if (t.t === 'num' && this.toks[this.i - 1]?.t === 'num') throw new CalcError('Missing operator between numbers', t.pos)
         v = v * this.unary()
       } else return v
     }

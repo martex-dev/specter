@@ -57,6 +57,15 @@ describe('toolkit calculator parser', () => {
     expect(() => ev('2.5!')).toThrow(/Factorial/)
   })
 
+  it('does not multiply adjacent number literals', () => {
+    expect(() => ev('1 000')).toThrow(/Missing operator/)
+    expect(() => ev('12 345 + 1')).toThrow(/Missing operator/)
+    expect(() => ev('1.2.3')).toThrow(/Missing operator/)
+    expect(ev('2 pi')).toBeCloseTo(2 * Math.PI)
+    expect(ev('(2)3')).toBe(6)
+    expect(ev('2(3)4')).toBe(24)
+  })
+
   it('formats results without float noise', () => {
     expect(formatResult(ev('0.1+0.2'))).toBe('0.3')
     expect(formatResult(1 / 3)).toBe('0.33333333333333')
