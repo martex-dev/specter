@@ -25,7 +25,8 @@ function statusClass(s: number): string {
 
 function curlFor(method: string, url: string, headers: [string, string][], body: string): string {
   const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
-  const parts = ['curl', method !== 'GET' ? `-X ${method}` : '', q(url), ...headers.map(([k, v]) => `-H ${q(`${k}: ${v}`)}`), body && method !== 'GET' && method !== 'HEAD' ? `--data-raw ${q(body)}` : '']
+  // `-X HEAD` makes curl wait for a body that never comes; -I sends a real HEAD.
+  const parts = ['curl', method === 'HEAD' ? '-I' : method !== 'GET' ? `-X ${method}` : '', q(url), ...headers.map(([k, v]) => `-H ${q(`${k}: ${v}`)}`), body && method !== 'GET' && method !== 'HEAD' ? `--data-raw ${q(body)}` : '']
   return parts.filter(Boolean).join(' \\\n  ')
 }
 
