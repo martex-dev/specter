@@ -26,7 +26,7 @@ import { all, get, registerMigrations, run, tx, uid } from '../db'
 import { broadcast, handle, sendTo, windowOf } from '../ipc'
 import { createLogger } from '../logger'
 import { owningGuestOf } from '../guest'
-import { activeProfileId } from './profiles'
+import { activeProfileId, getProfile } from './profiles'
 import { getSetting } from './settings'
 
 const log = createLogger('passwords')
@@ -95,12 +95,12 @@ function decrypt(blob: Uint8Array): string {
 
 const COLS = 'id, origin, url, username, password, note, created_at, updated_at, last_used_at, times_used'
 
-function rowById(id: string): Row | undefined {
-  return get<Row>(`SELECT ${COLS} FROM logins WHERE id = ? AND profile_id = ?`, id, activeProfileId())
+function rowById(id: string, profileId = activeProfileId()): Row | undefined {
+  return get<Row>(`SELECT ${COLS} FROM logins WHERE id = ? AND profile_id = ?`, id, profileId)
 }
 
-function rowByKey(origin: string, username: string): Row | undefined {
-  return get<Row>(`SELECT ${COLS} FROM logins WHERE profile_id = ? AND origin = ? AND username = ?`, activeProfileId(), origin, username)
+function rowByKey(origin: string, username: string, profileId = activeProfileId()): Row | undefined {
+  return get<Row>(`SELECT ${COLS} FROM logins WHERE profile_id = ? AND origin = ? AND username = ?`, profileId, origin, username)
 }
 
 function listRows(): Row[] {
@@ -109,24 +109,24 @@ function listRows(): Row[] {
 
 const changed = () => broadcast('passwords:changed', undefined)
 
-/** Inserts or replaces the login for (origin, username). Returns what happened. */
-function upsert(url: string, username: string, password: string, note?: string): { row: Row; result: 'added' | 'updated' | 'unchanged' } {
+/** Inserts or replaces the login for (origin, username) in a profile (default: the open one). Returns what happened. */
+function upsert(url: string, username: string, password: string, note?: string, profileId = activeProfileId()): { row: Row; result: 'added' | 'updated' | 'unchanged' } {
   const origin = loginOrigin(url)
   if (!origin) throw new Error('Passwords can only be saved for http(s) websites.')
   if (!password) throw new Error('The password is empty.')
   const now = Date.now()
-  const cur = rowByKey(origin, username)
+  const cur = rowByKey(origin, username, profileId)
   if (cur) {
     const same = safeDecrypt(cur) === password
     if (same && (note === undefined || note === cur.note)) return { row: cur, result: 'unchanged' }
     run('UPDATE logins SET password = ?, note = ?, updated_at = ? WHERE id = ?', same ? cur.password : encrypt(password), note ?? cur.note, now, cur.id)
-    return { row: rowById(cur.id)!, result: 'updated' }
+    return { row: rowById(cur.id, profileId)!, result: 'updated' }
   }
   const id = uid('pw_')
   run(
     'INSERT INTO logins(id, profile_id, origin, url, username, password, note, created_at, updated_at, times_used) VALUES(?,?,?,?,?,?,?,?,?,0)',
     id,
-    activeProfileId(),
+    profileId,
     origin,
     url,
     username,
@@ -135,7 +135,7 @@ function upsert(url: string, username: string, password: string, note?: string):
     now,
     now
   )
-  return { row: rowById(id)!, result: 'added' }
+  return { row: rowById(id, profileId)!, result: 'added' }
 }
 
 /** A row whose blob can't be decrypted (copied from another PC or Windows account) reads as no password. */
@@ -430,8 +430,10 @@ export function registerPasswordsIpc(): void {
     changed()
   })
 
-  handle('passwords:importCsv', async (e): Promise<PasswordImportResult | null> => {
+  handle('passwords:importCsv', async (e, profileId): Promise<PasswordImportResult | null> => {
     if (!available()) throw new Error('Windows data protection is unavailable, so SPECTER can’t store passwords securely on this system.')
+    const target = profileId ?? activeProfileId()
+    if (!getProfile(target)) throw new Error('That SPECTER profile no longer exists.')
     const win = windowOf(e)
     const opts = {
       title: 'Import passwords',
@@ -446,11 +448,11 @@ export function registerPasswordsIpc(): void {
     const { logins, skipped } = loginsFromCsv(readFileSync(file, 'utf8'))
     const result: PasswordImportResult = { file, added: 0, updated: 0, unchanged: 0, skipped }
     tx(() => {
-      for (const l of logins) result[upsert(l.url, l.username.trim(), l.password, l.note || undefined).result]++
+      for (const l of logins) result[upsert(l.url, l.username.trim(), l.password, l.note || undefined, target).result]++
     })
     importedFiles.add(file)
     changed()
-    log.info('passwords imported', { added: result.added, updated: result.updated, unchanged: result.unchanged, skipped })
+    log.info('passwords imported', { profile: target, added: result.added, updated: result.updated, unchanged: result.unchanged, skipped })
     return result
   })
 
@@ -486,10 +488,12 @@ export function registerPasswordsIpc(): void {
     return r.filePath
   })
 
-  handle('passwords:openChromeExport', () => {
+  handle('passwords:openChromeExport', (_e, profileDir) => {
     const chrome = chromePath()
     if (!chrome) return false
-    spawn(chrome, ['chrome://password-manager/settings'], { detached: true, stdio: 'ignore' }).unref()
+    // Opens the password settings of that Chrome profile (each profile exports its own passwords).
+    const args = profileDir && /^(Default|Profile \d+)$/.test(profileDir) ? [`--profile-directory=${profileDir}`] : []
+    spawn(chrome, [...args, 'chrome://password-manager/settings'], { detached: true, stdio: 'ignore' }).unref()
     return true
   })
 

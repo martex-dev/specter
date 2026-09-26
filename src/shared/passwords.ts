@@ -64,12 +64,13 @@ declare module './ipc' {
     'passwords:reveal': (id: string) => string
     'passwords:save': (input: LoginInput) => SavedLogin
     'passwords:remove': (id: string) => void
-    'passwords:importCsv': () => PasswordImportResult | null
+    /** Imports into the given profile (default: the open one). */
+    'passwords:importCsv': (profileId?: string) => PasswordImportResult | null
     /** Moves the file that was just imported to the Recycle Bin (it holds passwords in plain text). */
     'passwords:trashImported': (file: string) => boolean
     'passwords:exportCsv': () => string | null
     /** Opens Chrome's password settings, where Chrome's own "Export passwords" button is. */
-    'passwords:openChromeExport': () => boolean
+    'passwords:openChromeExport': (profileDir?: string) => boolean
     'passwords:forUrl': (url: string) => LoginSuggestion[]
     'passwords:fillInTab': (webContentsId: number, id: string) => boolean
     'passwords:respondOffer': (offerId: string, action: 'save' | 'never' | 'dismiss', username?: string) => void
