@@ -57,9 +57,9 @@ export function showPageContextMenu(p: ContextMenuParams): void {
   const tabId = tabIdForWcId(p.webContentsId)
   const wv = tabId ? webviewFor(tabId) : null
   if (!wv || !tabId) return
-  const rect = wv.getBoundingClientRect()
-  const x = rect.left + p.x
-  const y = rect.top + p.y
+  // Chromium reports a guest's context-menu position in the window's coordinate space (the
+  // space copyImageAt expects too), not relative to the webview.
+  const { x, y } = p
   const items: MenuItem[] = []
   const sel = p.selectionText.trim()
   const engine = SEARCH_ENGINES.find((e) => e.id === getSetting('search.engine'))?.name ?? 'the web'
