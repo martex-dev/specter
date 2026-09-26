@@ -75,10 +75,7 @@ function Crypto({ sub }: PageProps) {
   }
 
   useEffect(() => {
-    if (!sub) return
-    const q = decodeSub(sub)
-    setInput(q)
-    run(q)
+    if (sub) run(decodeSub(sub))
   }, [sub])
 
   const coin = res?.coin
