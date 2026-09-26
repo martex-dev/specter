@@ -385,5 +385,9 @@ export const IPC_DOMAINS = [
   'widgets',
   'kv',
   'crypto',
-  'finance'
+  'finance',
+  'webapps',
+  'control',
+  'weather',
+  'news'
 ] as const
