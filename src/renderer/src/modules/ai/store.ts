@@ -290,18 +290,35 @@ function errText(err: unknown): string {
   return m.replace(/^Error invoking remote method '[^']+':\s*(\w*Error:\s*)?/, '')
 }
 
+/**
+ * Bumped by "New chat" / opening a conversation. A request that was still
+ * starting when the user switched away must not land in the new view.
+ */
+let viewEpoch = 0
+
+/** The user moved on while `ai:chat` / `ai:runAgents` was starting: stop that answer instead of adopting it. */
+function abandoned(epoch: number, start: AiChatStart): boolean {
+  if (epoch === viewEpoch) return false
+  void invoke('ai:cancel', start.requestId).catch(() => undefined)
+  return true
+}
+
 export async function send(prompt: string, opts: { action?: string; ctx?: ContextSelection } = {}): Promise<boolean> {
   const text = prompt.trim()
   const st = S()
   if (!text || st.activeRequestId || st.sending) return false
+  const epoch = viewEpoch
   set({ sending: true, error: null, view: 'chat' })
   const context = buildContextRequest(opts.ctx ?? st.ctx)
   try {
     const start = await invoke('ai:chat', { conversationId: st.conversationId, prompt: text, action: opts.action, model: st.model || undefined, context })
+    if (abandoned(epoch, start)) return false
     adopt(start, text)
-    set({ draft: '' })
+    // Only clear the composer when it held what was sent (not for quick actions, and not text typed meanwhile).
+    if (S().draft.trim() === text) set({ draft: '' })
     return true
   } catch (err) {
+    if (epoch !== viewEpoch) return false
     set({ sending: false, error: errText(err) })
     void refreshStatus(true)
     return false
@@ -311,9 +328,11 @@ export async function send(prompt: string, opts: { action?: string; ctx?: Contex
 export async function runAgents(agentIds: string[], focus?: string): Promise<boolean> {
   const st = S()
   if (st.activeRequestId || st.sending) return false
+  const epoch = viewEpoch
   set({ sending: true, error: null, view: 'chat' })
   try {
     const start = await invoke('ai:runAgents', { agents: agentIds, conversationId: st.conversationId, model: st.model || undefined, context: buildContextRequest(), prompt: focus })
+    if (abandoned(epoch, start)) return false
     adopt(start, focus?.trim() ? focus.trim() : 'Agent pipeline')
     // Replace the optimistic user text with what the main process stored.
     const conv = await invoke('ai:conversation', start.conversationId).catch(() => null)
@@ -321,7 +340,7 @@ export async function runAgents(agentIds: string[], focus?: string): Promise<boo
     if (stored) set((s) => ({ messages: s.messages.map((m) => (m.id === stored.id ? { ...m, content: stored.content } : m)) }))
     return true
   } catch (err) {
-    set({ sending: false, error: errText(err) })
+    if (epoch === viewEpoch) set({ sending: false, error: errText(err) })
     return false
   }
 }
@@ -333,13 +352,18 @@ export function stop(): void {
 
 export function newChat(): void {
   stop()
+  viewEpoch++
   set({ conversationId: null, title: '', messages: [], activeRequestId: null, sending: false, error: null, view: 'chat', selection: null, focusTick: S().focusTick + 1 })
 }
 
 export async function loadConversation(id: string): Promise<void> {
   if (S().activeRequestId) stop()
+  const epoch = ++viewEpoch
   const c = await invoke('ai:conversation', id).catch(() => null)
+  // A later click (or New chat) wins over this slower load.
+  if (epoch !== viewEpoch) return
   if (!c) {
+    set({ sending: false })
     toast({ kind: 'warn', title: 'Conversation not found' })
     return
   }
@@ -382,7 +406,7 @@ export async function askAbout(action: string | undefined, text: string): Promis
   }
   const prompt = action && action !== 'ask' ? actionPrompt(action) : null
   if (prompt && clean) {
-    if (S().activeRequestId) {
+    if (S().activeRequestId || S().sending) {
       toast({ kind: 'info', title: 'AI is still answering', body: 'Stop the current answer first.' })
       return
     }
@@ -395,7 +419,7 @@ export async function askPage(prompt?: string): Promise<void> {
   openPanel()
   set({ ctx: { ...S().ctx, page: true, selection: false }, selection: null, view: 'chat' })
   if (prompt?.trim()) {
-    if (S().activeRequestId) {
+    if (S().activeRequestId || S().sending) {
       toast({ kind: 'info', title: 'AI is still answering', body: 'Stop the current answer first.' })
       return
     }

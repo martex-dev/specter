@@ -10,7 +10,7 @@ const NO_CONTEXT = { page: false, selection: false, tabs: [], workspace: false, 
 
 function askPlain(q: string): void {
   openPanel()
-  if (useAi.getState().activeRequestId) {
+  if (useAi.getState().activeRequestId || useAi.getState().sending) {
     useAi.setState({ draft: q, view: 'chat' })
     toast({ kind: 'info', title: 'AI is still answering', body: 'Your question is in the composer — send it when the current answer finishes.' })
     return
