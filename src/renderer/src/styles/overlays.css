@@ -11,6 +11,9 @@
   justify-content: center;
   align-items: flex-start;
   padding-top: 12vh;
+  /* Over the title bar's drag region a click would move the window instead of
+     dismissing the overlay (and a dialog there couldn't be clicked). */
+  -webkit-app-region: no-drag;
 }
 :root[data-scheme='light'] .scrim {
   background: rgba(20, 24, 32, 0.18);
