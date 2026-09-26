@@ -335,3 +335,10 @@
   display: grid;
   place-items: center;
 }
+
+/* Inline search fields sit inside their own focused container; no extra ring. */
+.palette-input:focus-visible,
+.omnibox-input:focus-visible,
+.findbar input:focus-visible {
+  outline: none;
+}

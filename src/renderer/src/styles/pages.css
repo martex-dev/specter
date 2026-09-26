@@ -200,6 +200,15 @@
   margin-bottom: 26px;
   padding-left: 0.42em;
 }
+.ntp-greeting {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
 .ntp-clock {
   font-family: var(--font-display);
   font-size: 54px;
