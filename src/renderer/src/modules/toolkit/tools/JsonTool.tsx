@@ -14,6 +14,13 @@ export default function JsonTool() {
   const [sort, setSort] = useToolState('json.sort', false)
   const [view, setView] = useToolState<'text' | 'tree'>('json.view', 'text')
   const [depth, setDepth] = useState(2)
+  // Bumped by Expand all / Collapse so they re-apply even when `depth` is unchanged
+  // (nodes toggled by hand keep their own open state otherwise).
+  const [treeKey, setTreeKey] = useState(0)
+  const setAllDepth = (d: number) => {
+    setDepth(d)
+    setTreeKey((k) => k + 1)
+  }
   const ta = useRef<HTMLTextAreaElement>(null)
   const deb = useDebounced(src, src.length > 200_000 ? 300 : 60)
 
@@ -95,10 +102,10 @@ export default function JsonTool() {
             <>
               {view === 'tree' && (
                 <>
-                  <button className="btn sm ghost" onClick={() => setDepth(99)}>
+                  <button className="btn sm ghost" onClick={() => setAllDepth(99)}>
                     Expand all
                   </button>
-                  <button className="btn sm ghost" onClick={() => setDepth(1)}>
+                  <button className="btn sm ghost" onClick={() => setAllDepth(1)}>
                     Collapse
                   </button>
                 </>
@@ -115,7 +122,7 @@ export default function JsonTool() {
             <textarea className="tk-editor" readOnly value={output} spellCheck={false} aria-label="Formatted JSON" />
           ) : (
             <>
-              <JsonTree value={value} openDepth={depth} onPath={(p) => copyText(pathString(p), `Copied ${pathString(p)}`)} />
+              <JsonTree key={treeKey} value={value} openDepth={depth} onPath={(p) => copyText(pathString(p), `Copied ${pathString(p)}`)} />
               <div className="tk-ok">Click a key to copy its path.</div>
             </>
           )}

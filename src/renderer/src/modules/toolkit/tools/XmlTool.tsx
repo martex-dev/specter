@@ -137,6 +137,12 @@ export default function XmlTool() {
   const [view, setView] = useToolState<'tree' | 'pretty'>('xml.view', 'tree')
   const [xpath, setXpath] = useToolState('xml.xpath', '')
   const [depth, setDepth] = useState(3)
+  // Bumped by Expand all / Collapse so they re-apply even when `depth` is unchanged.
+  const [treeKey, setTreeKey] = useState(0)
+  const setAllDepth = (d: number) => {
+    setDepth(d)
+    setTreeKey((k) => k + 1)
+  }
   const deb = useDebounced(src, 100)
   const parsed = useMemo(() => {
     if (!deb.trim()) return null
@@ -206,10 +212,10 @@ export default function XmlTool() {
             <>
               {view === 'tree' && (
                 <>
-                  <button className="btn sm ghost" onClick={() => setDepth(99)}>
+                  <button className="btn sm ghost" onClick={() => setAllDepth(99)}>
                     Expand all
                   </button>
-                  <button className="btn sm ghost" onClick={() => setDepth(1)}>
+                  <button className="btn sm ghost" onClick={() => setAllDepth(1)}>
                     Collapse
                   </button>
                 </>
@@ -241,7 +247,7 @@ export default function XmlTool() {
           ) : !parsed.ok ? (
             <div className="empty">Fix the error to see the tree.</div>
           ) : view === 'tree' ? (
-            <div className="tk-json-tree mono selectable">
+            <div key={treeKey} className="tk-json-tree mono selectable">
               <XNode n={parsed.doc.documentElement} depth={0} openDepth={depth} />
             </div>
           ) : (
