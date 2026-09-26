@@ -726,7 +726,10 @@ export function setLayout(preset: SplitPreset, panes?: string[]): void {
   while (list.length < need && recent.length) list.push(recent.shift()!.id)
   const created: string[] = []
   while (list.length + created.length < need) created.push(newTab('specter://newtab', { background: true, wsId: ws.id }))
-  list = [...list, ...created].slice(0, need)
+  list = [...list, ...created]
+  // Shrinking the split (e.g. quadrant → 50/50) must keep the focused tab on screen.
+  if (ws.activeTabId && list.indexOf(ws.activeTabId) >= need) list = [ws.activeTabId, ...list.filter((id) => id !== ws.activeTabId)]
+  list = list.slice(0, need)
   updateWs(ws.id, (w) => ({ ...w, layout: { preset, panes: list }, tabs: w.tabs.map((t) => (list.includes(t.id) ? { ...t, suspended: false } : t)) }))
 }
 

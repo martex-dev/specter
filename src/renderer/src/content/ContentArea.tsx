@@ -236,7 +236,10 @@ const Pane = memo(function Pane({ tab, rect, split, focused, partition, findOpen
           <button
             className="icon-btn sm"
             onClick={() => {
-              const panes = useBrowser.getState().open[useBrowser.getState().activeWsId]?.layout.panes.filter((p) => p !== tab.id) ?? []
+              const cur = useBrowser.getState().open[useBrowser.getState().activeWsId]
+              const panes = cur?.layout.panes.filter((p) => p !== tab.id) ?? []
+              // setLayout keeps the focused tab on screen, so move focus off the removed pane first.
+              if (cur?.activeTabId === tab.id && panes.length) activateTab(panes[0])
               if (panes.length < 2) setLayout('single')
               else setLayout(paneCount - 1 === 3 ? 'three-column' : '50/50', panes)
             }}
