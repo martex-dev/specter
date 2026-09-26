@@ -64,6 +64,7 @@ export function TabSearch() {
             placeholder={`Search ${total} open tabs and recently closed…`}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (e.key === 'ArrowDown') {
                 e.preventDefault()
                 setSel((s) => Math.min(rows.length - 1, s + 1))

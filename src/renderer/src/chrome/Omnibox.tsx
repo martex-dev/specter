@@ -120,7 +120,7 @@ export function Omnibox() {
       setSel(0)
 
       // Inline autocomplete from a strong history/bookmark URL match.
-      if (scope === 'default' && !deletingRef.current && q && !/\s/.test(q) && inputRef.current) {
+      if (scope === 'default' && !deletingRef.current && !composingRef.current && q && !/\s/.test(q) && inputRef.current) {
         const typed = typedRef.current
         const hit = merged.find((m) => m.completion && m.completion.toLowerCase().startsWith(typed.toLowerCase()))
         if (hit && hit.completion && hit.completion.length > typed.length && document.activeElement === inputRef.current && inputRef.current.value === typed) {
@@ -198,6 +198,8 @@ export function Omnibox() {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     deletingRef.current = e.key === 'Backspace' || e.key === 'Delete'
+    // Enter/Escape/arrows while an IME is composing belong to the IME.
+    if (e.nativeEvent.isComposing) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (!open) {
@@ -270,6 +272,8 @@ export function Omnibox() {
               style={!focused && shown ? { opacity: 0 } : undefined}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={onKeyDown}
+              onCompositionStart={() => (composingRef.current = true)}
+              onCompositionEnd={() => (composingRef.current = false)}
               onFocus={(e) => {
                 setFocused(true)
                 useUi.setState({ omniboxFocused: true })

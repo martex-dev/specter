@@ -75,7 +75,7 @@ export function PromptLayer() {
               placeholder={req.placeholder}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.ctrlKey) submit()
+                if (e.key === 'Enter' && e.ctrlKey && !e.nativeEvent.isComposing) submit()
               }}
             />
           ) : (
@@ -86,7 +86,7 @@ export function PromptLayer() {
               placeholder={req.placeholder}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') submit()
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) submit()
               }}
             />
           )}

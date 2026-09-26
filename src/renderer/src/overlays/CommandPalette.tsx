@@ -153,6 +153,7 @@ export function CommandPalette() {
             placeholder="Search or run a command…   ( > commands only )"
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (e.key === 'ArrowDown') {
                 e.preventDefault()
                 setSel((s) => Math.min(items.length - 1, s + 1))
