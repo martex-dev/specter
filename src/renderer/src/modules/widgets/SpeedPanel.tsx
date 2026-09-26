@@ -1,5 +1,5 @@
 // Speed test side panel — Cloudflare endpoints, gauge, history.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Info, Play, Square, Timer, Trash2, Waves } from 'lucide-react'
 import type { SpeedProgress, SpeedResult } from '@shared/modules/widgets'
 import { invoke, on } from '../../lib/ipc'
@@ -93,12 +93,27 @@ export default function SpeedPanel() {
         setLast((l) => l ?? h[0] ?? null)
       })
       .catch(() => undefined)
+  const startedHere = useRef(false)
   useEffect(() => {
     loadHistory()
-    return on('widgets:speedProgress', (p) => setProg(p))
+    return on('widgets:speedProgress', (p) => {
+      setProg(p)
+      if (startedHere.current) return
+      // A test started before this panel was (re)opened, or in another window: follow it.
+      if (p.phase === 'done' || p.phase === 'error') {
+        setRunning(false)
+        invoke('widgets:speedHistory')
+          .then((h) => {
+            setHistory(h)
+            setLast(h[0] ?? null)
+          })
+          .catch(() => undefined)
+      } else setRunning(true)
+    })
   }, [])
 
   const start = async () => {
+    startedHere.current = true
     setRunning(true)
     setError(null)
     setProg({ phase: 'latency', progress: 0 })
@@ -109,6 +124,7 @@ export default function SpeedPanel() {
     } catch (e) {
       setError(errorText(e))
     } finally {
+      startedHere.current = false
       setRunning(false)
       loadHistory()
     }
