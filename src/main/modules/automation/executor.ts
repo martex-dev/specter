@@ -5,7 +5,6 @@
 import { BrowserWindow, webContents } from 'electron'
 import type { AutomationAction, AutomationStep, ExecRequest } from '@shared/modules/automation'
 import { SAFE_SETTING_KEYS } from '@shared/modules/automation'
-import { bus } from '../../bus'
 import { uid } from '../../db'
 import { sendTo } from '../../ipc'
 import { createLogger } from '../../logger'
@@ -121,8 +120,8 @@ async function runOne(a: AutomationAction, ctx: ExecContext): Promise<Automation
       return { type: a.type, ok: true, detail: `Notified “${title}”` }
     }
     case 'performanceMode':
+      // The system module emits SYSTEM_MODE_CHANGED when the setting actually changes.
       setSetting('performance.mode', a.mode)
-      bus.emit('SYSTEM_MODE_CHANGED', { mode: a.mode })
       return { type: a.type, ok: true, detail: `Performance mode → ${a.mode}` }
     case 'setting':
       if (!SAFE_SETTING_KEYS.includes(a.key)) return { type: a.type, ok: false, detail: `Setting ${a.key} is not allowed` }
