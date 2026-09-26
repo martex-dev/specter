@@ -15,9 +15,36 @@ export const DEFAULT_CLOCKS: ClocksState = {
   ]
 }
 
+/** Current names for zones Chromium still lists under their old names. */
+const RENAMED: Record<string, string> = {
+  'Asia/Calcutta': 'Asia/Kolkata',
+  'Europe/Kiev': 'Europe/Kyiv',
+  'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+  'Asia/Katmandu': 'Asia/Kathmandu',
+  'Asia/Rangoon': 'Asia/Yangon',
+  'America/Godthab': 'America/Nuuk',
+  'Atlantic/Faeroe': 'Atlantic/Faroe',
+  'Pacific/Enderbury': 'Pacific/Kanton',
+  'Pacific/Truk': 'Pacific/Chuuk',
+  'Pacific/Ponape': 'Pacific/Pohnpei',
+  'Africa/Asmera': 'Africa/Asmara'
+}
+
+function validZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function allZones(): string[] {
   try {
-    return (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf('timeZone')
+    // Chromium's list has no "UTC" and uses old names (Asia/Calcutta, Europe/Kiev), so
+    // searching "UTC", "Kolkata" or "Kyiv" found nothing.
+    const list = (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf('timeZone').map((z) => (RENAMED[z] && validZone(RENAMED[z]) ? RENAMED[z] : z))
+    return list.includes('UTC') ? list : ['UTC', ...list]
   } catch {
     return ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo', 'Australia/Sydney']
   }
