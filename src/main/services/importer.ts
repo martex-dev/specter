@@ -7,9 +7,9 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type { ImportResult, ImportSource } from '@shared/ipc'
 import { hostname } from '@shared/url'
-import { run, tx } from '../db'
+import { get, run, tx } from '../db'
 import { handle } from '../ipc'
-import { addBookmark, bookmarkBatch, otherFolderId } from './bookmarks'
+import { addBookmark, bookmarkBatch, otherFolderId, removeBookmark } from './bookmarks'
 import { activeProfileId } from './profiles'
 import { createLogger } from '../logger'
 
@@ -109,23 +109,33 @@ function importChromiumBookmarks(profilePath: string, parentId: string): number 
   return count
 }
 
+/** Adds one visit unless it is already there, so importing twice doesn't double the history. */
+function insertVisit(url: string, title: string, visitedAt: number, profile: string): boolean {
+  if (!/^https?:/i.test(url) || !(visitedAt > 0)) return false
+  if (get('SELECT 1 FROM history WHERE url = ? AND visited_at = ? AND profile_id = ?', url, visitedAt, profile)) return false
+  run('INSERT INTO history(url, title, visited_at, workspace_id, profile_id, domain) VALUES(?,?,?,?,?,?)', url, title, visitedAt, null, profile, hostname(url))
+  return true
+}
+
 function importChromiumHistory(profilePath: string): number {
   const file = join(profilePath, 'History')
   if (!existsSync(file)) return 0
   const { db, cleanup } = openCopy(file)
   try {
-    const rows = db.prepare('SELECT url, title, last_visit_time FROM urls WHERE hidden = 0 ORDER BY last_visit_time DESC LIMIT 25000').all() as { url: string; title: string; last_visit_time: number }[]
+    const q = db.prepare('SELECT url, title, last_visit_time FROM urls WHERE hidden = 0 ORDER BY last_visit_time DESC LIMIT 25000')
+    // WebKit timestamps (microseconds since 1601) are past Number.MAX_SAFE_INTEGER,
+    // which node:sqlite refuses to return as a number.
+    q.setReadBigInts(true)
+    const rows = q.all() as { url: string; title: string | null; last_visit_time: bigint }[]
     const profile = activeProfileId()
+    let added = 0
     tx(() => {
       for (const r of rows) {
-        if (!/^https?:/.test(r.url)) continue
-        // WebKit epoch: microseconds since 1601-01-01.
-        const ts = Math.round(Number(r.last_visit_time) / 1000 - 11644473600000)
-        if (ts <= 0) continue
-        run('INSERT INTO history(url, title, visited_at, workspace_id, profile_id, domain) VALUES(?,?,?,?,?,?)', r.url, r.title ?? '', ts, null, profile, hostname(r.url))
+        const ts = Number(BigInt(r.last_visit_time) / 1000n) - 11644473600000
+        if (insertVisit(r.url, r.title ?? '', ts, profile)) added++
       }
     })
-    return rows.length
+    return added
   } finally {
     cleanup()
   }
@@ -136,19 +146,13 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
   const { db, cleanup } = openCopy(join(profilePath, 'places.sqlite'))
   try {
     if (what.history) {
-      const rows = db.prepare('SELECT url, title, last_visit_date FROM moz_places WHERE last_visit_date IS NOT NULL AND hidden = 0 ORDER BY last_visit_date DESC LIMIT 25000').all() as {
-        url: string
-        title: string | null
-        last_visit_date: number
-      }[]
+      const q = db.prepare('SELECT url, title, last_visit_date FROM moz_places WHERE last_visit_date IS NOT NULL AND hidden = 0 ORDER BY last_visit_date DESC LIMIT 25000')
+      q.setReadBigInts(true)
+      const rows = q.all() as { url: string; title: string | null; last_visit_date: bigint }[]
       const profile = activeProfileId()
       tx(() => {
-        for (const r of rows) {
-          if (!/^https?:/.test(r.url)) continue
-          run('INSERT INTO history(url, title, visited_at, workspace_id, profile_id, domain) VALUES(?,?,?,?,?,?)', r.url, r.title ?? '', Math.round(Number(r.last_visit_date) / 1000), null, profile, hostname(r.url))
-        }
+        for (const r of rows) if (insertVisit(r.url, r.title ?? '', Number(BigInt(r.last_visit_date) / 1000n), profile)) result.history++
       })
-      result.history = rows.length
     }
     if (what.bookmarks) {
       const rows = db
@@ -188,12 +192,18 @@ export function registerImportIpc(): void {
     const result: ImportResult = { bookmarks: 0, history: 0, errors: [] }
     let folderId = otherFolderId()
     if (what.bookmarks) folderId = addBookmark({ kind: 'folder', title: `Imported from ${source.name}`, parentId: otherFolderId() }).id
+    // Don't leave an empty "Imported from …" folder behind when there was nothing to bring over.
+    const done = (r: ImportResult): ImportResult => {
+      if (what.bookmarks && r.bookmarks === 0) removeBookmark(folderId)
+      log.info('import finished', { sourceId, ...r })
+      return r
+    }
     if (sourceId === 'firefox') {
       try {
-        return importFirefox(profilePath, what, folderId)
+        return done(importFirefox(profilePath, what, folderId))
       } catch (err: any) {
         log.error('firefox import failed', err)
-        return { ...result, errors: [String(err?.message ?? err)] }
+        return done({ ...result, errors: [String(err?.message ?? err)] })
       }
     }
     if (what.bookmarks) {
@@ -210,7 +220,6 @@ export function registerImportIpc(): void {
         result.errors.push('History: ' + (err?.message ?? err))
       }
     }
-    log.info('import finished', { sourceId, ...result })
-    return result
+    return done(result)
   })
 }

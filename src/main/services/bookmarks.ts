@@ -95,6 +95,13 @@ function removeRecursive(id: string): void {
   run('DELETE FROM bookmarks WHERE id = ?', id)
 }
 
+/** Removes a bookmark or folder (with its contents). The two root folders are kept. */
+export function removeBookmark(id: string): void {
+  if (id.startsWith('bar_') || id.startsWith('other_')) return
+  tx(() => removeRecursive(id))
+  broadcast('bookmarks:changed', undefined)
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
@@ -166,11 +173,7 @@ export function registerBookmarksIpc(): void {
     )
     broadcast('bookmarks:changed', undefined)
   })
-  handle('bookmarks:remove', (_e, id) => {
-    if (id.startsWith('bar_') || id.startsWith('other_')) return
-    tx(() => removeRecursive(id))
-    broadcast('bookmarks:changed', undefined)
-  })
+  handle('bookmarks:remove', (_e, id) => removeBookmark(id))
   handle('bookmarks:move', (_e, id, parentId, index) => {
     const target = parentId ?? barFolderId()
     // Prevent moving a folder into itself/descendant.
