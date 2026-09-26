@@ -77,10 +77,23 @@ function init(): void {
     return pws.find((p) => p.autocomplete !== 'new-password') ?? (pws.length === 1 ? pws[0] : undefined)
   }
 
+  const attrs = (i: HTMLInputElement) => `${i.name} ${i.id} ${i.placeholder} ${i.getAttribute('aria-label') ?? ''}`
+
+  /** A password field for choosing a new password (sign-up, change password), where a strong one can be suggested. */
+  function isNewPasswordField(el: HTMLInputElement): boolean {
+    if (!isPassword(el) || el.readOnly || el.disabled) return false
+    if (el.autocomplete === 'new-password') return true
+    if (el.autocomplete === 'current-password' || /current|old|existing/i.test(attrs(el))) return false
+    if (/new|confirm|create|regist|sign.?up|repeat|retype|verify/i.test(attrs(el))) return true
+    // Two password fields are password + confirmation; with three, the first is the current one.
+    const pws = passwordsIn(loginRoot(el) ?? document)
+    return pws.length >= 2 && pws.indexOf(el) >= (pws.length >= 3 ? 1 : 0)
+  }
+
   /** A field worth showing suggestions on: a password field, the username of a sign-in form, or a lone username step. */
   function isLoginField(el: HTMLInputElement): boolean {
     if (el.readOnly || el.disabled) return false
-    if (isPassword(el)) return el.autocomplete !== 'new-password' || passwordsIn(loginRoot(el) ?? document).length === 1
+    if (isPassword(el)) return !isNewPasswordField(el) || passwordsIn(loginRoot(el) ?? document).length === 1
     if (!isText(el)) return false
     const root = loginRoot(el)
     if (root) return usernameIn(root, fillablePassword(passwordsIn(root)), true) === el
@@ -116,7 +129,14 @@ function init(): void {
     return cache.list
   }
 
-  let menu: { host: HTMLElement; field: HTMLInputElement; items: HTMLElement[]; list: Suggestion[]; sel: number } | null = null
+  /** One row of the menu: a saved login, or a suggested new password. */
+  interface Entry {
+    title: string
+    sub: string
+    mono?: boolean
+    run: () => void
+  }
+  let menu: { host: HTMLElement; field: HTMLInputElement; items: HTMLElement[]; entries: Entry[]; sel: number } | null = null
 
   const CSS = `
     :host { all: initial; }
@@ -128,6 +148,7 @@ function init(): void {
     .t { min-width: 0; }
     .u { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .h { font-size: 11px; color: #8b8f9c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .h.mono { font: 12px/1.4 Consolas, "Cascadia Mono", monospace; color: #c9ccd6; letter-spacing: .02em; }
     .f { border-top: 1px solid #2c2f38; margin-top: 4px; padding: 7px 10px 5px; font-size: 11.5px; color: #8b8f9c; display: flex; gap: 6px; align-items: center; cursor: pointer; }
     .f:hover { color: #e8e9ee; }
   `
@@ -162,14 +183,13 @@ function init(): void {
   }
 
   async function pick(s: Suggestion, field: HTMLInputElement): Promise<void> {
-    hideMenu()
     const login = (await ipcRenderer.invoke('specter-pw:fill', s.id).catch(() => null)) as { username: string; password: string } | null
     if (login) fillAround(field, login)
   }
 
-  function showMenu(field: HTMLInputElement, list: Suggestion[]): void {
+  function showMenu(field: HTMLInputElement, entries: Entry[]): void {
     hideMenu()
-    if (!list.length || document.activeElement !== field) return
+    if (!entries.length || document.activeElement !== field) return
     const host = document.createElement('specter-password-menu')
     host.setAttribute('popover', 'manual')
     host.style.cssText = 'position:fixed;inset:auto;margin:0;padding:0;border:0;background:transparent;overflow:visible;z-index:2147483647;'
@@ -179,7 +199,7 @@ function init(): void {
     const box = document.createElement('div')
     box.className = 'm'
     box.setAttribute('role', 'listbox')
-    const items = list.slice(0, 8).map((s) => {
+    const items = entries.map((en) => {
       const item = document.createElement('div')
       item.className = 'i'
       item.setAttribute('role', 'option')
@@ -190,14 +210,16 @@ function init(): void {
       t.className = 't'
       const u = document.createElement('div')
       u.className = 'u'
-      u.textContent = s.username || '(no username)'
+      u.textContent = en.title
       const h = document.createElement('div')
-      h.className = 'h'
-      h.textContent = s.exact ? '••••••••' : `Saved for ${s.host}`
+      h.className = en.mono ? 'h mono' : 'h'
+      h.textContent = en.sub
       t.append(u, h)
       item.append(k, t)
       item.addEventListener('click', (e) => {
-        if (e.isTrusted) void pick(s, field)
+        if (!e.isTrusted) return
+        hideMenu()
+        en.run()
       })
       box.append(item)
       return item
@@ -220,14 +242,34 @@ function init(): void {
     } catch {
       /* older engines: the fixed position + z-index still apply */
     }
-    menu = { host, field, items, list: list.slice(0, 8), sel: -1 }
+    menu = { host, field, items, entries, sel: -1 }
     place()
   }
 
+  const loginEntry = (s: Suggestion, field: HTMLInputElement): Entry => ({
+    title: s.username || '(no username)',
+    sub: s.exact ? '••••••••' : `Saved for ${s.host}`,
+    run: () => void pick(s, field)
+  })
+
+  /** Puts a suggested password into every new-password field of the form (password and confirmation). */
+  function fillNewPassword(field: HTMLInputElement, password: string): void {
+    const targets = passwordsIn(loginRoot(field) ?? document).filter(isNewPasswordField)
+    for (const p of targets.length ? targets : [field]) setValue(p, password)
+  }
+
   async function offerFor(field: HTMLInputElement): Promise<void> {
-    if (!isLoginField(field)) return
-    const list = await suggestions()
-    if (document.activeElement === field && (!menu || menu.field !== field)) showMenu(field, list)
+    const fresh = isNewPasswordField(field)
+    if (!fresh && !isLoginField(field)) return
+    const entries: Entry[] = []
+    if (fresh) {
+      const max = field.maxLength > 0 ? field.maxLength : undefined
+      const generated = (await ipcRenderer.invoke('specter-pw:generate', max).catch(() => null)) as string | null
+      if (generated) entries.push({ title: 'Use a strong password', sub: generated, mono: true, run: () => fillNewPassword(field, generated) })
+    }
+    // A lone "new-password" field is often a mislabelled sign-in field: offer saved logins too.
+    if (!fresh || isLoginField(field)) entries.push(...(await suggestions()).slice(0, 8).map((s) => loginEntry(s, field)))
+    if (document.activeElement === field && (!menu || menu.field !== field)) showMenu(field, entries)
   }
 
   document.addEventListener(
@@ -321,7 +363,9 @@ function init(): void {
         if (e.key === 'Enter' && menu.sel >= 0) {
           e.preventDefault()
           e.stopImmediatePropagation()
-          void pick(menu.list[menu.sel], menu.field)
+          const entry = menu.entries[menu.sel]
+          hideMenu()
+          entry.run()
           return
         }
         if (e.key === 'Escape' || e.key === 'Tab') hideMenu()
