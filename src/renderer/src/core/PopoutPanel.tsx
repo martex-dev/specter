@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Pin, PinOff } from 'lucide-react'
 import { sidePanels } from '../lib/registry'
-import { applyTheme } from '../lib/themes'
+import { applyTheme, overlayColor } from '../lib/themes'
 import { useSetting } from '../stores/settings'
 import { invoke } from '../lib/ipc'
 import { MenuLayer, PromptLayerless, Toasts, TooltipLayer } from './popoutUi'
@@ -10,11 +10,13 @@ import { MenuLayer, PromptLayerless, Toasts, TooltipLayer } from './popoutUi'
 export function PopoutPanel({ id }: { id: string }) {
   const def = sidePanels.get(id)
   const theme = useSetting('appearance.theme')
+  const palette = useSetting('appearance.palette')
+  const accent = useSetting('appearance.accent')
   const [onTop, setOnTop] = useState(false)
   useEffect(() => {
-    const t = applyTheme(theme)
-    invoke('window:setTitleBarOverlay', { color: t.bg0, symbolColor: t.fg1, height: 32 }).catch(() => undefined)
-  }, [theme])
+    const t = applyTheme(theme, palette, accent)
+    invoke('window:setTitleBarOverlay', { color: overlayColor(t.palette.bg0), symbolColor: t.palette.fg1, height: 32 }).catch(() => undefined)
+  }, [theme, palette, accent])
   if (!def) return <div className="empty">Unknown panel “{id}”.</div>
   const C = def.component
   return (
