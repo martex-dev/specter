@@ -4,6 +4,9 @@ import './styles/base.css'
 import './styles/chrome.css'
 import './styles/overlays.css'
 import './styles/pages.css'
+import './styles/dock.css'
+import './styles/layouts.css'
+import './styles/themes.css'
 import { invoke } from './lib/ipc'
 import { applyTheme } from './lib/themes'
 import { useSettingsStore } from './stores/settings'
@@ -36,7 +39,7 @@ Object.defineProperty(window, '__specterDebug', {
 async function boot() {
   await useSettingsStore.getState().load()
   const s = useSettingsStore.getState().s
-  applyTheme(s['appearance.theme'], s['appearance.accent'], s['appearance.fontFamily'])
+  applyTheme(s['appearance.theme'], s['appearance.palette'], s['appearance.accent'], s['appearance.fontFamily'], s['appearance.layout'])
   document.documentElement.dataset.motion = s['appearance.motion']
   document.documentElement.dataset.density = s['appearance.density']
   registerCore()
