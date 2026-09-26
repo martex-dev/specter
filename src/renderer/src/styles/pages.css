@@ -346,8 +346,10 @@
   color: var(--fg-1);
   margin: 0 0 6px;
   position: sticky;
-  top: 0;
-  background: var(--bg-1);
+  /* below the sticky filter bar (34px controls + 2×8px padding), not hidden under it */
+  top: 50px;
+  /* opaque: translucent palettes (Aurora) would show the rows scrolling underneath */
+  background: var(--solid-1);
   padding: 6px 0;
   z-index: 1;
 }

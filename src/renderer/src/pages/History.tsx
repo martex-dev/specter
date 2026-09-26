@@ -49,16 +49,28 @@ export default function History({ query }: PageProps) {
       record('historySearch', performance.now() - t0)
       setRows(append ? [...rows, ...res] : res)
       setMore(res.length === 300)
+      if (!append) {
+        // Keep the visit count and the selection in step with what is listed
+        // (after deletions, and so hidden rows can't be bulk-deleted).
+        invoke('history:count').then(setTotal)
+        setSelected((s) => {
+          if (!s.size) return s
+          const ids = new Set(res.map((r) => r.id))
+          const next = new Set([...s].filter((x) => ids.has(x)))
+          return next.size === s.size ? s : next
+        })
+      }
     },
     [text, from, domain, wsFilter, rows]
   )
 
   useEffect(() => {
     const t = setTimeout(() => load(false), 120)
-    invoke('history:count').then(setTotal)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, from, domain, wsFilter])
+
+  const filtered = !!(text.trim() || domain || wsFilter || range !== 'all')
 
   const byDay = useMemo(() => {
     const groups = new Map<string, HistoryEntry[]>()
@@ -103,7 +115,7 @@ export default function History({ query }: PageProps) {
           <Trash2 size={14} /> Clear all
         </button>
       </div>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, background: 'var(--bg-1)', padding: '8px 0', zIndex: 2 }}>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8, position: 'sticky', top: 0, background: 'var(--solid-1)', padding: '8px 0', zIndex: 2 }}>
         <div className="row grow" style={{ minWidth: 240, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--fg-3)' }} />
           <input className="input grow" style={{ paddingLeft: 30, height: 34 }} placeholder="Search history titles and URLs…" value={text} onChange={(e) => setText(e.target.value)} autoFocus />
@@ -137,7 +149,7 @@ export default function History({ query }: PageProps) {
       {rows.length === 0 && (
         <div className="empty">
           <Calendar size={26} />
-          {text || domain ? 'No history matches your filters.' : 'No browsing history yet.'}
+          {filtered ? 'No history matches your filters.' : 'No browsing history yet.'}
         </div>
       )}
       {byDay.map(([day, items]) => (
@@ -147,8 +159,22 @@ export default function History({ query }: PageProps) {
             <button
               className="btn sm ghost"
               onClick={async () => {
-                const ts = items.map((i) => i.visitedAt)
-                const n = await invoke('history:deleteRange', Math.min(...ts), Math.max(...ts))
+                // With a search/filter active, only the matching entries shown for this day
+                // are removed; otherwise the whole local calendar day (including rows not
+                // loaded yet). Never a raw min..max span, which would sweep up non-matching visits.
+                const what = filtered ? `${items.length} matching entries from ${day}` : `all history from ${day}`
+                if (!(await confirmAction(`Delete ${what}?`, 'This cannot be undone.', 'Delete', true))) return
+                let n: number
+                if (filtered) {
+                  await invoke('history:delete', items.map((i) => i.id))
+                  n = items.length
+                } else {
+                  const start = new Date(items[0].visitedAt)
+                  start.setHours(0, 0, 0, 0)
+                  const end = new Date(start)
+                  end.setDate(end.getDate() + 1)
+                  n = await invoke('history:deleteRange', start.getTime(), end.getTime() - 1)
+                }
                 toast({ kind: 'ok', title: `Deleted ${n} entries` })
                 load(false)
               }}
