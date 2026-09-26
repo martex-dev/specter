@@ -177,6 +177,11 @@ export interface Settings {
   'advanced.checkUpdates': boolean
   /** Repository the notify-only checker asks (installed builds always use the publish config). */
   'advanced.updateRepo': string
+
+  /** Ask to save passwords after signing in. */
+  'passwords.offerToSave': boolean
+  /** Show saved logins under sign-in fields. */
+  'passwords.autofill': boolean
 }
 
 export type SettingKey = keyof Settings
@@ -312,7 +317,10 @@ export const DEFAULT_SETTINGS: Settings = {
   'advanced.tray': false,
   'advanced.autoUpdate': true,
   'advanced.checkUpdates': false,
-  'advanced.updateRepo': 'martex-dev/specter'
+  'advanced.updateRepo': 'martex-dev/specter',
+
+  'passwords.offerToSave': true,
+  'passwords.autofill': true
 }
 
 export const SUSPEND_MS: Record<SuspendAfter, number> = {
