@@ -115,6 +115,8 @@ export default function RegexTool() {
   useEffect(() => {
     if (!runner.current) return
     if (!dp) {
+      // A run still in flight is ignored (alive = false), so clear its spinner here.
+      setBusy(false)
       setRes(null)
       return
     }
