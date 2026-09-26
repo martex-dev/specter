@@ -59,15 +59,16 @@ export async function saveSelectionNote(args: { text?: string; url?: string; tit
 export async function savePageNote(args: { url?: string; title?: string; text?: string } = {}): Promise<void> {
   const tab = activeTab()
   const url = args.url ?? (tab && !isInternal(tab.url) ? tab.url : '')
-  if (!url) {
+  const text = (args.text ?? '').trim()
+  if (!url && !text) {
     toast({ kind: 'warn', title: 'Open a web page to save it as a note' })
     return
   }
-  const title = titleFor(url, args.title) || url
-  const text = (args.text ?? '').trim()
-  const body = `[${title}](${url})\n\n${text ? quoteBlock(text) + '\n\n' : ''}`
-  const n = await invoke('notes:create', { title, body, tags: ['page'], sourceUrl: url, workspaceId: currentWorkspaceId() })
-  toast({ kind: 'ok', title: 'Page saved to notes', body: title, action: { label: 'Open', run: () => openNote(n.id) } })
+  // Text without a page (e.g. an AI answer given without page context) is saved as-is.
+  const title = titleFor(url || undefined, args.title) || url || 'Untitled'
+  const body = url ? `[${title}](${url})\n\n${text ? quoteBlock(text) + '\n\n' : ''}` : text + '\n'
+  const n = await invoke('notes:create', { title, body, tags: url ? ['page'] : [], sourceUrl: url || null, workspaceId: currentWorkspaceId() })
+  toast({ kind: 'ok', title: url ? 'Page saved to notes' : 'Saved to notes', body: title, action: { label: 'Open', run: () => openNote(n.id) } })
 }
 
 /** Menu to choose a mission; resolves null if dismissed. */
