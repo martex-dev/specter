@@ -54,7 +54,11 @@ function TextMode() {
             checked={urlSafe}
             onChange={(e) => {
               setUrlSafe(e.target.checked)
-              setEncoded(encodeBase64(plain, e.target.checked))
+              if (binary) {
+                // Decoded binary has no text side to re-encode from: convert the bytes.
+                const b64 = bytesToBase64(binary)
+                setEncoded(e.target.checked ? b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : b64)
+              } else if (!err) setEncoded(encodeBase64(plain, e.target.checked))
             }}
           />
           URL-safe alphabet (-_ , no padding)
