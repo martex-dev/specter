@@ -63,7 +63,10 @@ import {
   User,
   Minimize2,
   RefreshCw,
-  CloudDownload
+  CloudDownload,
+  ChevronsRight,
+  ChevronsLeft,
+  Film
 } from 'lucide-react'
 import { resolveTheme, THEMES } from '../lib/themes'
 import { switchTheme } from '../lib/fx'
@@ -71,6 +74,7 @@ import type { PerformanceMode } from '@shared/settings'
 import { isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { toggleAdblockForActiveSite } from '../lib/adblock'
+import { toggleVideoToolsForActiveSite, videoSpeed } from '../lib/video'
 import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
 import { registerCommands, runCommand, type Command } from '../lib/commands'
 import { webviewFor, wcIdFor } from '../lib/webviews'
@@ -640,6 +644,40 @@ export function registerCoreCommands(): void {
         if (wcId !== null) invoke('guest:mediaControl', wcId, 'pip')
       }
     },
+    {
+      id: 'video.faster',
+      title: 'Speed up video',
+      category: 'Page',
+      icon: ChevronsRight,
+      keywords: ['playback speed', 'faster', 'rate', 'audio', 'media'],
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
+        if (wcId !== null) void videoSpeed(wcId, 'faster')
+      }
+    },
+    {
+      id: 'video.slower',
+      title: 'Slow down video',
+      category: 'Page',
+      icon: ChevronsLeft,
+      keywords: ['playback speed', 'slower', 'rate', 'audio', 'media'],
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
+        if (wcId !== null) void videoSpeed(wcId, 'slower')
+      }
+    },
+    {
+      id: 'video.reset',
+      title: 'Reset video speed to 1×',
+      category: 'Page',
+      icon: RotateCcw,
+      keywords: ['playback speed', 'normal speed', 'rate', 'audio', 'media'],
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
+        if (wcId !== null) void videoSpeed(wcId, 'reset')
+      }
+    },
+    { id: 'video.toggleSite', title: 'Toggle video tools on this site', category: 'Page', icon: Film, keywords: ['speed keys', 'video speed controller', 'badge'], run: () => toggleVideoToolsForActiveSite() },
     { id: 'save.toSpecter', title: 'Save to SPECTER…', category: 'Knowledge', icon: BookmarkPlus, run: () => openOverlay('saveTo') },
     { id: 'capture.quick', title: 'Quick capture selection', category: 'Knowledge', icon: ClipboardList, run: () => openOverlay('capture') },
     // ---------------- app
