@@ -847,6 +847,21 @@ export function normalizeSymbol(input: string): string | null {
 
 export const DEFAULT_WATCHLIST = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'DOGE', 'ADA', 'LINK']
 
+/**
+ * Parses a user-typed number. Accepts "1,234.5", "1.234,5", "0,001" (decimal
+ * comma) and "1 234,5". A lone comma is a thousands separator only when it
+ * groups digits like "1,234" / "12,345,678" (never "0,001" or "1,5").
+ */
+export function parseNum(s: string): number {
+  let t = String(s ?? '').trim().replace(/[\s_'  ]/g, '')
+  if (!t) return NaN
+  const comma = t.lastIndexOf(',')
+  const dot = t.lastIndexOf('.')
+  if (comma !== -1 && dot !== -1) t = comma > dot ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '')
+  else if (comma !== -1) t = /^[+-]?[1-9]\d{0,2}(,\d{3})+$/.test(t) ? t.replace(/,/g, '') : t.replace(',', '.')
+  return Number(t)
+}
+
 // ---------------------------------------------------------------- IPC contract
 
 declare module '../ipc' {

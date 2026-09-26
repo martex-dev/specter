@@ -16,7 +16,7 @@ import { toast, toggleSidePanel } from '../../stores/ui'
 import { promptText } from '../../components/prompt'
 import { cachedQuote, watchedSymbols } from './store'
 import { HudTicker, MarketStatusItem, MarketStrip } from './widgets'
-import { px } from './ui'
+import { parseNum, px } from './ui'
 import './markets.css'
 
 const enabled = () => getSetting('markets.enabled')
@@ -69,7 +69,7 @@ async function addAlertFlow(args?: { symbol?: string; kind?: AlertKind; threshol
     const m = /^\s*(%|vol(?:ume)?)?\s*([<>])\s*(-?[\d.,e+]+)\s*$/i.exec(t)
     if (!m) return void toast({ kind: 'warn', title: 'Could not parse condition', body: 'Use “> 70000”, “< 60000”, “% > 5” or “vol > 1e9”.' })
     const [, what, op, num] = m
-    threshold = Number(num.replace(/,/g, ''))
+    threshold = parseNum(num)
     kind = !what ? (op === '>' ? 'price_above' : 'price_below') : what === '%' ? (op === '>' ? 'change_above' : 'change_below') : 'volume_above'
     if (what && what !== '%' && op === '<') return void toast({ kind: 'warn', title: 'Only “volume above” alerts are supported' })
   }

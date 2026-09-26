@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeRiskIndicators, fin, looksLikeAddress, normalizeSymbol, type DexPair } from '@shared/modules/markets'
+import { computeRiskIndicators, fin, looksLikeAddress, normalizeSymbol, parseNum, type DexPair } from '@shared/modules/markets'
 
 describe('finance formulas', () => {
   it('compound interest with and without contributions', () => {
@@ -62,6 +62,29 @@ describe('finance formulas', () => {
     expect(fin.convert(100, 'USD', 'EUR', 'USD', rates)).toBeCloseTo(90)
     expect(fin.convert(90, 'EUR', 'GBP', 'USD', rates)).toBeCloseTo(80)
     expect(fin.convert(1, 'USD', 'XXX', 'USD', rates)).toBeNull()
+  })
+})
+
+describe('user number input', () => {
+  it('accepts a decimal point or a decimal comma', () => {
+    expect(parseNum('0.001')).toBe(0.001)
+    expect(parseNum('0,001')).toBe(0.001)
+    expect(parseNum('0,00001234')).toBe(0.00001234)
+    expect(parseNum('1,5')).toBe(1.5)
+    expect(parseNum('-0,5')).toBe(-0.5)
+  })
+  it('strips thousands separators', () => {
+    expect(parseNum('1,234.5')).toBe(1234.5)
+    expect(parseNum('12,345,678')).toBe(12345678)
+    expect(parseNum('1.234,5')).toBe(1234.5)
+    expect(parseNum('1 234,5')).toBe(1234.5)
+    expect(parseNum('1e9')).toBe(1e9)
+  })
+  it('rejects empty and malformed input', () => {
+    expect(parseNum('')).toBeNaN()
+    expect(parseNum('  ')).toBeNaN()
+    expect(parseNum('1,2,3')).toBeNaN()
+    expect(parseNum('abc')).toBeNaN()
   })
 })
 

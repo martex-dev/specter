@@ -158,9 +158,5 @@ export function Field({ label, children, hint, width }: { label: string; childre
   )
 }
 
-/** Parses a user-typed number (accepts "1,234.5" and "1 234,5"-free forms). */
-export function parseNum(s: string): number {
-  const t = s.trim().replace(/[\s_]/g, '').replace(/,(?=\d{3}(\D|$))/g, '')
-  if (!t) return NaN
-  return Number(t.replace(',', '.'))
-}
+/** Parses a user-typed number (decimal comma or point, optional grouping). */
+export { parseNum } from '@shared/modules/markets'
