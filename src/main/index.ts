@@ -1,5 +1,6 @@
 // SPECTER main process entry.
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, crashReporter } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Tray, crashReporter } from 'electron'
+import { existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { openDatabase, closeDatabase, isDbOpen } from './db'
@@ -37,12 +38,28 @@ const log = createLogger('main')
 crashReporter.start({ uploadToServer: false })
 
 // Database must be available before 'ready' so hardware-acceleration settings apply.
-try {
+let dbError: unknown = null
+function openStore(): void {
   openDatabase(join(app.getPath('userData'), 'specter.db'))
   loadSettings()
+}
+try {
+  try {
+    openStore()
+  } catch (err) {
+    closeDatabase()
+    if (!/not a database|malformed|corrupt/i.test(String((err as Error)?.message ?? err))) throw err
+    // A corrupt file would otherwise keep SPECTER from ever starting: set it aside (not deleted) and start fresh.
+    const file = join(app.getPath('userData'), 'specter.db')
+    const aside = `${file}.corrupt-${Date.now()}`
+    log.error(`database is corrupt; moving it to ${aside}`, err)
+    for (const ext of ['', '-wal', '-shm']) if (existsSync(file + ext)) renameSync(file + ext, aside + ext)
+    openStore()
+  }
   if (!getSetting('browser.hardwareAcceleration')) app.disableHardwareAcceleration()
   if (!getSetting('browser.smoothScrolling')) app.commandLine.appendSwitch('disable-smooth-scrolling')
 } catch (err) {
+  dbError = err
   log.error('failed to open database', err)
 }
 
@@ -158,7 +175,17 @@ async function bootstrapProfile(): Promise<void> {
   await loadStoredExtensions()
 }
 
+/** Startup failed before any window opened: say so and exit instead of lingering invisibly (holding the single-instance lock). */
+function fatalStartup(err: unknown): void {
+  log.error('startup failed', err)
+  if (BrowserWindow.getAllWindows().length) return
+  const detail = String((err as Error)?.message ?? err)
+  dialog.showErrorBox('SPECTER could not start', `${detail}\n\nProfile folder: ${app.getPath('userData')}`)
+  app.exit(1)
+}
+
 startupDone = app.whenReady().then(async () => {
+  if (dbError) return fatalStartup(dbError)
   const t0 = performance.now()
   // Present as plain Chrome: some sites (e.g. Google sign-in) refuse user agents that mention Electron.
   app.userAgentFallback = desktopUserAgent(app.userAgentFallback)
@@ -186,7 +213,7 @@ startupDone = app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createBrowserWindow({})
   })
-})
+}).catch(fatalStartup)
 
 import('./services/settings').then(({ onSettingChanged }) =>
   onSettingChanged((key) => {
