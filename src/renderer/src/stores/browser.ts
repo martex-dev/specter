@@ -269,7 +269,8 @@ export function initBrowser(init: InitialSession): void {
   }
   set({ ready: true, windowId: init.windowId, profile: init.profile, workspaces: init.workspaces, open, openOrder, activeWsId, restorePrompt: init.restorePrompt })
   const ws = open[activeWsId]
-  if (ws && ws.tabs.length === 0) newTab('specter://newtab')
+  // A window opened for a URL (e.g. "Move tab to new window") shows just that tab.
+  if (ws && ws.tabs.length === 0 && !init.initialUrls.length) newTab('specter://newtab')
   for (const url of init.initialUrls) newTab(url)
   persistSession()
 }
