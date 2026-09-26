@@ -208,13 +208,16 @@ export function pomodoroPhaseLength(): number {
   return phaseMs(pomodoro.phase)
 }
 export function pomodoroConfigure(patch: Partial<PomodoroConfig>): void {
+  const before = phaseMs(pomodoro.phase)
   pomodoro.config = { ...pomodoro.config, ...patch }
   try {
     localStorage.setItem(POMO_KEY, JSON.stringify(pomodoro.config))
   } catch {
     /* ignore */
   }
-  if (pomodoro.endsAt === null) pomodoro.remaining = phaseMs(pomodoro.phase)
+  // Only a new length for the current phase resets it — toggling auto-start or
+  // changing rounds must not throw away a paused session's remaining time.
+  if (pomodoro.endsAt === null && phaseMs(pomodoro.phase) !== before) pomodoro.remaining = phaseMs(pomodoro.phase)
   emit()
 }
 export function pomodoroToggle(): void {
