@@ -58,6 +58,8 @@ export const DEFAULT_KEYBINDINGS: Record<string, string> = {
 
 export interface KeyInput {
   key: string
+  /** Physical key (KeyboardEvent.code), used when the layout reports a non-Latin character. */
+  code?: string
   control?: boolean
   ctrl?: boolean
   shift?: boolean
@@ -87,17 +89,27 @@ const KEY_ALIASES: Record<string, string> = {
 export function normalizeKey(key: string): string {
   const lower = key.toLowerCase()
   if (KEY_ALIASES[lower]) return KEY_ALIASES[lower]
-  if (key.length === 1) return key.toUpperCase()
+  if (key.length <= 1) return key.toUpperCase()
   // F1..F24, Tab, Enter, Home etc.
   return key[0].toUpperCase() + key.slice(1)
 }
 
 /** Converts a key event into the canonical "Ctrl+Shift+K" form. */
 export function eventToAccelerator(e: KeyInput): string | null {
-  const key = normalizeKey(e.key)
+  let key = normalizeKey(e.key)
   if (['Control', 'Shift', 'Alt', 'Meta', 'Os', 'AltGraph'].includes(key)) return null
+  const ctrl = !!(e.control || e.ctrl)
+  // Non-Latin layouts (Cyrillic, Greek, ...) report the localized letter for Ctrl+T ("т"),
+  // AZERTY reports "&" for Ctrl+1: fall back to the physical key so shortcuts work on
+  // every layout. Ctrl+Alt is AltGr on Windows, where the typed character must win.
+  if (e.code && !(ctrl && e.alt)) {
+    const letter = /^Key([A-Z])$/.exec(e.code)
+    const digit = /^Digit(\d)$/.exec(e.code)
+    if (letter && !/^[A-Z]$/.test(key)) key = letter[1]
+    else if (digit && !/^\d$/.test(key)) key = digit[1]
+  }
   const parts: string[] = []
-  if (e.control || e.ctrl) parts.push('Ctrl')
+  if (ctrl) parts.push('Ctrl')
   if (e.alt) parts.push('Alt')
   if (e.shift) parts.push('Shift')
   if (e.meta) parts.push('Meta')

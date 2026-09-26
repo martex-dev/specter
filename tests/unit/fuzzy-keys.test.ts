@@ -47,6 +47,16 @@ describe('keys', () => {
     expect(eventToAccelerator({ key: 'F12' })).toBe('F12')
     expect(eventToAccelerator({ key: 'Control', ctrl: true })).toBeNull()
   })
+  it('uses the physical key on non-Latin and AZERTY layouts', () => {
+    expect(eventToAccelerator({ key: 'т', code: 'KeyT', ctrl: true })).toBe('Ctrl+T')
+    expect(eventToAccelerator({ key: 'д', code: 'KeyD', alt: true })).toBe('Alt+D')
+    expect(eventToAccelerator({ key: '&', code: 'Digit1', ctrl: true })).toBe('Ctrl+1')
+    // Latin layouts keep the typed letter (AZERTY "A" sits on KeyQ).
+    expect(eventToAccelerator({ key: 'a', code: 'KeyQ', ctrl: true })).toBe('Ctrl+A')
+    // Ctrl+Alt is AltGr: the typed character wins.
+    expect(eventToAccelerator({ key: 'ś', code: 'KeyS', ctrl: true, alt: true })).toBe('Ctrl+Alt+Ś')
+    expect(eventToAccelerator({ key: '', ctrl: true })).toBe('Ctrl+')
+  })
   it('resolves default bindings and overrides', () => {
     const b = resolveBindings({ 'palette.open': 'Ctrl+Shift+Space', 'tabs.search': '' })
     expect(b['palette.open']).toBe('Ctrl+Shift+Space')

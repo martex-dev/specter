@@ -93,7 +93,7 @@ function setupGuest(wc: WebContents): void {
 
   wc.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return
-    const acc = eventToAccelerator({ key: input.key, control: input.control, shift: input.shift, alt: input.alt, meta: input.meta })
+    const acc = eventToAccelerator({ key: input.key, code: input.code, control: input.control, shift: input.shift, alt: input.alt, meta: input.meta })
     if (!acc) return
     const cmd = keyIndex.get(acc)
     if (cmd && isChord(acc)) {
