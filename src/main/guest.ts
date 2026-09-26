@@ -227,7 +227,9 @@ function setupGuest(wc: WebContents): void {
 
   wc.on('zoom-changed', (_e, direction) => {
     const cur = wc.getZoomFactor()
-    const steps = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5]
+    // Tabs zoom up to 500%; other webviews (sidebar web apps) persist their zoom clamped to
+    // 300% (clampZoom), so stepping past that showed 400/500% and reloaded at 300%.
+    const steps = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5].filter((s) => guestTabs.has(wc.id) || s <= 3)
     const next =
       direction === 'in'
         ? (steps.find((s) => s > cur + 0.001) ?? steps[steps.length - 1])
