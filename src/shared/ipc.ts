@@ -78,13 +78,38 @@ export interface InitialSession {
 export interface ImportSource {
   id: 'chrome' | 'edge' | 'brave' | 'opera' | 'vivaldi' | 'firefox'
   name: string
-  profiles: { name: string; path: string }[]
+  profiles: ImportSourceProfile[]
+}
+
+export interface ImportSourceProfile {
+  /** Display name, e.g. "Work (Profile 1)". */
+  name: string
+  path: string
+  /** The browser's own profile name ("Work"), used to name a new SPECTER profile. */
+  label?: string
+  /** Chromium profile folder ("Default", "Profile 1"). */
+  dir?: string
+  /** Signed-in account shown by the browser for this profile. */
+  account?: string
+  /** Profile colour (#rrggbb) when the browser has one. */
+  color?: string
+  /** SPECTER profile this one was imported into before, if it still exists. */
+  importedInto?: string
 }
 
 export interface ImportResult {
   bookmarks: number
   history: number
   errors: string[]
+}
+
+/** Where an import goes: the open profile, a new SPECTER profile, or an existing profile id. */
+export type ImportTarget = 'current' | 'new' | { profileId: string }
+
+export interface ProfileImportResult extends ImportResult {
+  profileId: string
+  profileName: string
+  created: boolean
 }
 
 export interface FindOptions {
@@ -339,6 +364,7 @@ export interface IpcContract {
   // Import
   'import:sources': () => ImportSource[]
   'import:run': (sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }) => ImportResult
+  'import:toProfile': (sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }, target: ImportTarget) => ProfileImportResult
 
   // Notifications center
   'notifications:list': () => NotificationItem[]
