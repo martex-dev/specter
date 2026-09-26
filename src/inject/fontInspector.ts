@@ -12,6 +12,7 @@ import {
   cssSnippet,
   formatFamily,
   formatFontStack,
+  groupFontFaces,
   lineHeightRatio,
   matchStackEntry,
   parseCssColor,
@@ -21,6 +22,7 @@ import {
   tidyLength,
   toHex,
   weightName,
+  type FaceInfo,
   type FamilyUse,
   type FontFamily,
   type InspectorEvent,
@@ -487,21 +489,19 @@ function createInspector(): InspectorApi {
     if (targets.length) emit({ type: 'resolve', scan: ++scanId, targets })
 
     // Web fonts the page declared (@font-face / FontFace), whether or not anything uses them.
-    const faces = new Map<string, FontFace[]>()
-    document.fonts.forEach((f) => {
-      const name = unquote(f.family)
-      faces.set(name, [...(faces.get(name) ?? []), f])
-    })
-    panelBody.append(el('div', 'section label', `Web fonts · ${faces.size}`))
-    if (!faces.size) panelBody.append(el('div', 'empty', 'None — everything here is drawn with installed fonts.'))
-    for (const [name, list] of [...faces].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const faces: FaceInfo[] = []
+    document.fonts.forEach((f) => faces.push({ family: f.family, weight: f.weight, style: f.style, status: f.status }))
+    const groups = groupFontFaces(faces)
+    panelBody.append(el('div', 'section label', `Web fonts · ${groups.length}`))
+    if (!groups.length) panelBody.append(el('div', 'empty', 'None — everything here is drawn with installed fonts.'))
+    for (const g of groups) {
       const rowEl = el('div', 'face')
-      const title = el('span', 'fam-name', name)
-      if (list.some((f) => f.status === 'loaded')) title.style.fontFamily = formatFamily({ name, generic: false }) + ', sans-serif'
+      const title = el('span', 'fam-name', g.family)
+      if (g.variants.some((v) => v.status === 'loaded')) title.style.fontFamily = formatFamily({ name: g.family, generic: false }) + ', sans-serif'
       rowEl.append(title)
-      for (const f of list) {
-        const b = el('span', 'badge' + (f.status === 'loaded' ? ' ok' : f.status === 'error' ? ' bad' : ''), `${f.weight === 'normal' ? '400' : f.weight}${f.style !== 'normal' ? ' ' + f.style : ''}`)
-        b.title = f.status === 'loaded' ? 'Loaded' : f.status === 'error' ? 'Failed to load' : f.status === 'loading' ? 'Loading' : 'Declared, not used yet'
+      for (const v of g.variants) {
+        const b = el('span', 'badge' + (v.status === 'loaded' ? ' ok' : v.status === 'error' ? ' bad' : ''), v.label)
+        b.title = v.status === 'loaded' ? 'Loaded' : v.status === 'error' ? 'Failed to load' : v.status === 'loading' ? 'Loading' : 'Declared, not used yet'
         rowEl.append(b)
       }
       panelBody.append(rowEl)

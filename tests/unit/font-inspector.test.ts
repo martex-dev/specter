@@ -4,10 +4,12 @@ import {
   cssSnippet,
   formatFamily,
   formatFontStack,
+  groupFontFaces,
   lineHeightRatio,
   matchStackEntry,
   parseCssColor,
   parseFontStack,
+  rankPlatformFonts,
   tallyFamilies,
   tidyLength,
   toHex,
@@ -62,6 +64,15 @@ describe('font stacks', () => {
     expect(matchStackEntry(stack, 'segoe ui')).toBe(1)
     expect(matchStackEntry(stack, 'Arial')).toBe(-1)
     expect(matchStackEntry(parseFontStack('sans-serif'), 'sans-serif')).toBe(-1)
+  })
+
+  it('ranks platform fonts by glyphs drawn', () => {
+    const fonts = [
+      { family: 'Segoe UI Emoji', postScriptName: 'SegoeUIEmoji', custom: false, glyphs: 1 },
+      { family: 'Segoe UI', postScriptName: 'SegoeUI', custom: false, glyphs: 21 }
+    ]
+    expect(rankPlatformFonts(fonts).map((f) => f.family)).toEqual(['Segoe UI', 'Segoe UI Emoji'])
+    expect(fonts[0].family).toBe('Segoe UI Emoji')
   })
 })
 
@@ -138,6 +149,37 @@ describe('page summary', () => {
   it('clips sample text', () => {
     expect(clipText('  hello\n\n  world  ', 40)).toBe('hello world')
     expect(clipText('abcdefghij', 5)).toBe('abcd…')
+  })
+
+  it('groups web font subsets into one variant per weight and style', () => {
+    const g = groupFontFaces([
+      { family: '"Inter"', weight: '100 900', style: 'normal', status: 'loaded' },
+      { family: 'Inter', weight: '100 900', style: 'normal', status: 'unloaded' },
+      { family: 'Inter', weight: '100 900', style: 'italic', status: 'unloaded' },
+      { family: 'Broken', weight: 'normal', style: 'normal', status: 'error' },
+      { family: 'Broken', weight: 'normal', style: 'normal', status: 'error' },
+      { family: 'Mixed', weight: '700', style: 'normal', status: 'error' },
+      { family: 'Mixed', weight: '700', style: 'normal', status: 'loading' },
+      { family: 'Mixed', weight: '300', style: 'normal', status: 'unloaded' }
+    ])
+    expect(g).toEqual([
+      { family: 'Broken', variants: [{ label: '400', status: 'error' }] },
+      {
+        family: 'Inter',
+        variants: [
+          { label: '100 900', status: 'loaded' },
+          { label: '100 900 italic', status: 'unloaded' }
+        ]
+      },
+      {
+        family: 'Mixed',
+        variants: [
+          { label: '300', status: 'unloaded' },
+          { label: '700', status: 'loading' }
+        ]
+      }
+    ])
+    expect(groupFontFaces([])).toEqual([])
   })
 
   it('tallies families by use', () => {

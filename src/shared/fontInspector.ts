@@ -205,6 +205,44 @@ export function tallyFamilies(uses: FamilyUse[]): FamilyTally[] {
   return [...map.values()].sort((a, b) => b.count - a.count || a.family.localeCompare(b.family))
 }
 
+export type FaceStatus = 'unloaded' | 'loading' | 'loaded' | 'error'
+
+export interface FaceInfo {
+  family: string
+  weight: string
+  style: string
+  status: FaceStatus
+}
+
+export interface FaceGroup {
+  family: string
+  variants: { label: string; status: FaceStatus }[]
+}
+
+/**
+ * Web fonts by family, one variant per weight and style. Sites split each face into many
+ * unicode-range subsets; a variant counts as loaded if any subset loaded, failed only if all did.
+ */
+export function groupFontFaces(faces: FaceInfo[]): FaceGroup[] {
+  const rank: Record<FaceStatus, number> = { error: 0, unloaded: 1, loading: 2, loaded: 3 }
+  const families = new Map<string, Map<string, FaceStatus[]>>()
+  for (const f of faces) {
+    const family = f.family.trim().replace(/^(['"])(.*)\1$/, '$2')
+    const label = (f.weight === 'normal' ? '400' : f.weight) + (f.style === 'normal' ? '' : ' ' + f.style)
+    if (!families.has(family)) families.set(family, new Map())
+    const variants = families.get(family)!
+    variants.set(label, [...(variants.get(label) ?? []), f.status])
+  }
+  return [...families]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([family, variants]) => ({
+      family,
+      variants: [...variants]
+        .map(([label, statuses]) => ({ label, status: statuses.every((s) => s === 'error') ? ('error' as const) : statuses.filter((s) => s !== 'error').sort((a, b) => rank[b] - rank[a])[0] }))
+        .sort((a, b) => parseFloat(a.label) - parseFloat(b.label) || a.label.localeCompare(b.label))
+    }))
+}
+
 /** A font Chromium actually used to draw an element's text (CSS.getPlatformFontsForNode). */
 export interface PlatformFont {
   family: string
