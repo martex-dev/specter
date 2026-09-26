@@ -53,7 +53,9 @@ export function formatCompact(n: number | null | undefined): string {
 
 export function pct(n: number | null | undefined, digits = 2): string {
   if (n === null || n === undefined || !isFinite(n)) return '—'
-  return `${n >= 0 ? '+' : ''}${n.toFixed(digits)}%`
+  // Sign follows the displayed value: 0 and values that round to zero show no sign ("0.00%").
+  const r = Number(n.toFixed(digits))
+  return `${r > 0 ? '+' : ''}${(r === 0 ? 0 : r).toFixed(digits)}%`
 }
 
 export function faviconFallback(url: string): string {
