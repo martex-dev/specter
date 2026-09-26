@@ -31,7 +31,7 @@ Chromium's.
 | --- | --- | --- |
 | Main process | trusted | Node.js, filesystem, SQLite, child processes (modules only, with timeouts) |
 | SPECTER UI renderer | trusted UI, sandboxed | only `window.specter.invoke/on` through the preload; the main process rejects IPC from any other sender |
-| Tab guests (`<webview>`) | untrusted web content | Chromium sandbox, context isolation, no preload, no Node; `will-attach-webview` strips any preload and forces safe preferences |
+| Tab guests (`<webview>`) | untrusted web content | Chromium sandbox, context isolation, no Node; `will-attach-webview` strips any preload and forces safe preferences; the only preloads are the ad blocker's two isolated-world scripts (session-registered) |
 | Pop-ups with `window.opener` (OAuth) | untrusted | separate sandboxed BrowserWindow in the same profile partition |
 
 Scripts SPECTER runs inside pages (reader mode, page stats, regex find, media
@@ -50,7 +50,7 @@ src/
     guest.ts         webview hardening, shortcuts inside pages, pop-up policy, context menu, crash/zoom events
     db.ts            SQLite with per-module migrations
     ipc.ts / bus.ts / logger.ts
-    services/        settings, history, bookmarks, downloads, permissions, privacy (+trackers), profiles,
+    services/        settings, history, bookmarks, downloads, permissions, privacy (+trackers, adblock), profiles,
                      workspaces, page tools, search, importer, notifications, diagnostics, net (rate-limited fetch)
     modules/         ai, markets, system, knowledge, developer, automation, toolkit
   preload/           the only bridge from the UI to the main process
@@ -96,5 +96,8 @@ suggestions) → merged, de-duplicated, ranked → Enter runs the item or naviga
 **A web page asks for the camera** → `setPermissionRequestHandler` → stored decision? → otherwise an
 inline prompt bar in that tab → the user's choice (optionally remembered per origin).
 
-**A tracker request** → `webRequest.onBeforeRequest` → third-party + on the built-in list → cancelled,
-counted, shown in the HUD and Privacy Center.
+**An ad request** → `webRequest.onBeforeRequest` (privacy.ts) → the ad blocker's filter engine
+(adblock.ts, Ghostery's engine fed with uBlock Origin / EasyList lists) or the built-in tracker list →
+cancelled or redirected to a harmless stub, counted, shown in the HUD, the site popover and the Privacy
+Center. Element hiding and scriptlets are applied by two frame preloads at document start.
+Lists are compiled in a worker thread and the compiled engine is cached on disk.

@@ -11,6 +11,11 @@
   The live Security dashboard (`specter://security`) *probes* each open page to confirm that Node.js
   and SPECTER's bridge are unreachable from it.
 - **Page helpers** run in an isolated JavaScript world, invisible to page scripts.
+- **Ad blocker**: web pages get exactly two session preloads, both in the isolated world and exposing
+  nothing to the page: SPECTER's scriptlet loader (`src/preload/adblock.ts`) and Ghostery's cosmetic
+  filter script. They can reach only three ad-blocker channels, which the main process answers only for
+  tab and pop-up contents of a profile session. Scriptlets from the filter lists run in the page's main
+  world, as they do in uBlock Origin.
 - **The UI never navigates**: `will-navigate` and `window.open` from the UI are blocked.
 
 ## Permissions
