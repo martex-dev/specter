@@ -108,8 +108,14 @@ const FIND_STEP_DEF = `window.__specterFindStep = (d) => {
   return { matches: st.ranges.length, active: st.idx + 1 };
 };`
 
-const MEDIA_PICK = `const __pick = () => {
-  const els = [...document.querySelectorAll('video, audio')];
+// Same-origin frames included (embedded players), like video tools.
+const MEDIA_PICK = `const __media = (d, out, depth) => {
+  out.push(...d.querySelectorAll('video, audio'));
+  if (depth < 4) for (const f of d.querySelectorAll('iframe, frame')) { try { const cd = f.contentDocument; if (cd) __media(cd, out, depth + 1); } catch (e) {} }
+  return out;
+};
+const __pick = () => {
+  const els = __media(document, [], 0);
   if (!els.length) return null;
   return els.find(e => !e.paused) || els.filter(e => e.tagName === 'VIDEO').sort((a, b) => (b.clientWidth * b.clientHeight) - (a.clientWidth * a.clientHeight))[0] || els[0];
 };`
@@ -341,7 +347,7 @@ export function registerPageIpc(): void {
       seek: `m.currentTime = Math.max(0, m.currentTime + ${v})`,
       rate: `m.playbackRate = ${Math.min(16, Math.max(0.0625, v || 1))}`,
       volume: `m.volume = ${Math.min(1, Math.max(0, v))}`,
-      pip: `(document.pictureInPictureElement ? document.exitPictureInPicture() : (m.tagName === 'VIDEO' && m.requestPictureInPicture()))`
+      pip: `((d) => d ? d.exitPictureInPicture() : (m.tagName === 'VIDEO' && m.requestPictureInPicture()))([document, m.ownerDocument].find((d) => d.pictureInPictureElement))`
     }
     await run(wcId, `(() => { ${MEDIA_PICK} const m = __pick(); if (!m) return false; ${body[action]}; return true; })()`, true)
   })

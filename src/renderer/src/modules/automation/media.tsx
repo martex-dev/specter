@@ -121,7 +121,7 @@ function MediaCard({ tab, compact }: { tab: MediaTab; compact?: boolean }) {
         </div>
       ) : missing ? (
         <div className="dim" style={{ fontSize: 11.5, marginTop: 8 }}>
-          No media element found on this page (it may use a custom player or be inside a frame). Use “Mute tab” or go to the tab.
+          No media element found on this page (it may use a custom player or be inside a frame from another site). Use “Mute tab” or go to the tab.
         </div>
       ) : (
         <>
