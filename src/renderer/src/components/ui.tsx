@@ -73,11 +73,18 @@ export function TooltipLayer() {
       current = null
       setTip(null)
     }
+    // Leaving the window (or entering a title-bar drag region) fires no mouseover,
+    // only a mouseout with no related target.
+    const out = (e: MouseEvent) => {
+      if (!e.relatedTarget) hide()
+    }
     document.addEventListener('mouseover', over)
+    document.addEventListener('mouseout', out)
     document.addEventListener('mousedown', hide, true)
     window.addEventListener('blur', hide)
     return () => {
       document.removeEventListener('mouseover', over)
+      document.removeEventListener('mouseout', out)
       document.removeEventListener('mousedown', hide, true)
       window.removeEventListener('blur', hide)
     }
