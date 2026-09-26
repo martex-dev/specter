@@ -58,8 +58,8 @@ export function buildUserMessage(prompt: string, items: AiContextItem[]): string
  * failed (or was stopped before any text) is left out, so retrying it doesn't
  * send the model the same question twice.
  */
-export function completedTurns(rows: { role: 'user' | 'assistant'; content: string; status: string }[]): ChatMessage[] {
-  const out: ChatMessage[] = []
+export function completedTurns(rows: { role: 'user' | 'assistant'; content: string; status: string }[]): { role: 'user' | 'assistant'; content: string }[] {
+  const out: { role: 'user' | 'assistant'; content: string }[] = []
   for (let i = 0; i < rows.length - 1; i++) {
     const q = rows[i]
     const a = rows[i + 1]
