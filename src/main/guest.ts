@@ -1,5 +1,5 @@
 // Tab guest (webview) hardening and event plumbing.
-import { app, BrowserWindow, shell, webContents, type WebContents } from 'electron'
+import { app, BrowserWindow, dialog, shell, webContents, type WebContents } from 'electron'
 import { bindingIndex, eventToAccelerator, isChord, resolveBindings } from '@shared/keys'
 import { sendTo } from './ipc'
 import { createLogger } from './logger'
@@ -223,6 +223,17 @@ function setupGuest(wc: WebContents): void {
 
   wc.on('certificate-error', () => {
     // Default Chromium behaviour (reject) is kept; the renderer shows the error page.
+  })
+
+  // A page's beforeunload guard ("unsaved changes"): without a handler Electron silently
+  // cancels the navigation/reload, so typing a URL or pressing F5 did nothing. Ask like
+  // Chrome does. Only tabs: sidebar web apps install their own handler (always leave).
+  wc.on('will-prevent-unload', (event) => {
+    if (!guestTabs.has(wc.id)) return
+    const win = hostWindowOf(wc)
+    const opts = { type: 'question' as const, buttons: ['Leave', 'Stay'], defaultId: 0, cancelId: 1, title: 'Leave site?', message: 'Leave site?', detail: 'Changes you made may not be saved.' }
+    const choice = win ? dialog.showMessageBoxSync(win, opts) : dialog.showMessageBoxSync(opts)
+    if (choice === 0) event.preventDefault()
   })
 
   wc.on('zoom-changed', (_e, direction) => {
