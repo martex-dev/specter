@@ -118,6 +118,13 @@ export function NoteEditor({ id, compact, onOpenNote, onDeleted }: Props) {
     }
   }, [id, load, loadTitles, flush])
 
+  // Closing the window unloads the page without unmounting React: save the last keystrokes too.
+  useEffect(() => {
+    const onHide = () => void flush()
+    window.addEventListener('pagehide', onHide)
+    return () => window.removeEventListener('pagehide', onHide)
+  }, [flush])
+
   useIpcRefresh(
     ['notes:changed'],
     () => {
