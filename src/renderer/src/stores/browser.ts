@@ -141,31 +141,35 @@ const PERSISTED_KEYS = new Set(['url', 'title', 'favicon', 'pinned', 'groupId', 
 export function toPersisted(ws: RuntimeWorkspace): WorkspaceState {
   const kept = ws.tabs.filter((t) => !t.temporary)
   const keptIds = new Set(kept.map((t) => t.id))
-  // Temporary tabs are not saved, so the active tab / split panes must not point at one
-  // (a restore would otherwise show an empty content area with no active tab).
+  // Temporary tabs are not saved: refocus the most recent saved tab and refit the split
+  // (keeping the preset would restore an empty pane slot).
   const activeTabId = ws.activeTabId && keptIds.has(ws.activeTabId) ? ws.activeTabId : [...kept].sort((a, b) => b.lastActive - a.lastActive)[0]?.id
   const panes = ws.layout.panes.filter((id) => keptIds.has(id))
   const layout = panes.length === ws.layout.panes.length ? ws.layout : panes.length > 1 ? { ...ws.layout, panes, preset: fitPreset(ws.layout.preset, panes.length), sizes: undefined } : { preset: 'single' as const, panes: [] }
   return {
-    tabs: kept
-      .map((t) => ({
-        id: t.id,
-        url: t.url,
-        title: t.title,
-        favicon: t.favicon,
-        pinned: t.pinned,
-        groupId: t.groupId,
-        muted: t.muted,
-        suspended: t.suspended,
-        scrollY: t.scrollY,
-        note: t.note,
-        lastActive: t.lastActive,
-        createdAt: t.createdAt,
-        zoom: t.zoom
-      })),
+    tabs: kept.map(persistedTab),
     groups: ws.groups,
     activeTabId,
     layout
+  }
+}
+
+/** The saved part of a tab (drops live state such as loading, prompts or docked devtools). */
+function persistedTab(t: RuntimeTab): TabState {
+  return {
+    id: t.id,
+    url: t.url,
+    title: t.title,
+    favicon: t.favicon,
+    pinned: t.pinned,
+    groupId: t.groupId,
+    muted: t.muted,
+    suspended: t.suspended,
+    scrollY: t.scrollY,
+    note: t.note,
+    lastActive: t.lastActive,
+    createdAt: t.createdAt,
+    zoom: t.zoom
   }
 }
 
@@ -532,7 +536,9 @@ export function moveTab(tabId: string, toIndex: number, wsId?: string): void {
 export async function moveTabToWorkspace(tabId: string, wsId: string): Promise<void> {
   const f = findTab(tabId)
   if (!f || f.ws.id === wsId) return
-  const tab = { ...f.tab, groupId: undefined }
+  // Only the saved state travels: the page is closed here, so a spinner, permission prompt or
+  // docked devtools flag carried along would be stale in the target workspace.
+  const tab: TabState = { ...persistedTab(f.tab), groupId: undefined }
   closeTabSilently(tabId)
   if (S().open[wsId]) {
     updateWs(wsId, (w) => ({ ...w, tabs: [...w.tabs, { ...tab, suspended: true }] }))
