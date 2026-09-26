@@ -1,7 +1,7 @@
 // Settings schema and defaults. Settings are stored as individual key/value
 // rows in SQLite so partial updates never rewrite unrelated state.
 
-export type ThemeId = 'specter-dark' | 'obsidian' | 'midnight' | 'void' | 'terminal' | 'minimal' | 'light'
+export type ThemeId = 'specter' | 'neon' | 'aurora' | 'terminal' | 'paper' | 'synthwave'
 export type MotionLevel = 'full' | 'reduced' | 'off'
 export type StartupBehavior = 'restore' | 'newtab' | 'workspace' | 'nothing'
 export type SuspendAfter = 'never' | '5m' | '15m' | '30m' | '1h' | 'auto'
@@ -45,7 +45,14 @@ export interface Settings {
 
   // Appearance
   'appearance.theme': ThemeId
+  'appearance.palette': string
   'appearance.accent': string
+  /** Per-user overrides of the theme's layout (tab style, frame, dock side, omnibox). */
+  'appearance.layout': { tabs?: 'chrome' | 'pill' | 'angled' | 'bracket' | 'underline' | 'block'; frame?: 'flush' | 'floating'; rail?: 'left' | 'right'; omnibox?: 'standard' | 'centered' }
+  'appearance.effects': boolean
+  /** Automatic theme switching: off, follow Windows light/dark, or a day/night schedule. */
+  'appearance.auto': { mode: 'off' | 'system' | 'schedule'; dayTheme: ThemeId; nightTheme: ThemeId; dayStart: string; nightStart: string }
+  'appearance.wallpaper': string
   'appearance.motion': MotionLevel
   'appearance.density': Density
   'appearance.uiScale': number
@@ -54,7 +61,13 @@ export interface Settings {
   'appearance.showHud': boolean
   'appearance.showSideRail': boolean
   'appearance.verticalTabs': boolean
+  'appearance.verticalTabsOpen': boolean
   'appearance.fontFamily': string
+
+  // Sidebar (dock)
+  'sidebar.position': 'theme' | 'left' | 'right'
+  'sidebar.hiddenItems': string[]
+  'sidebar.panelWidths': Record<string, number>
 
   // Browser / tabs
   'tabs.suspendAfter': SuspendAfter
@@ -156,8 +169,13 @@ export const DEFAULT_SETTINGS: Settings = {
   'general.confirmQuitWithTabs': false,
   'general.activeProfile': 'default',
 
-  'appearance.theme': 'specter-dark',
+  'appearance.theme': 'specter',
+  'appearance.palette': '',
   'appearance.accent': '',
+  'appearance.layout': {},
+  'appearance.effects': true,
+  'appearance.auto': { mode: 'off', dayTheme: 'paper', nightTheme: 'specter', dayStart: '07:00', nightStart: '19:00' },
+  'appearance.wallpaper': '',
   'appearance.motion': 'full',
   'appearance.density': 'comfortable',
   'appearance.uiScale': 1,
@@ -166,7 +184,12 @@ export const DEFAULT_SETTINGS: Settings = {
   'appearance.showHud': true,
   'appearance.showSideRail': true,
   'appearance.verticalTabs': false,
+  'appearance.verticalTabsOpen': true,
   'appearance.fontFamily': '',
+
+  'sidebar.position': 'theme',
+  'sidebar.hiddenItems': [],
+  'sidebar.panelWidths': {},
 
   'tabs.suspendAfter': '30m',
   'tabs.suspendExcludePinned': true,
