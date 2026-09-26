@@ -156,6 +156,11 @@ export default function NewsPanel() {
   const filter = useMemo(() => ({ feedId: feedId || undefined, unreadOnly, limit: 150 }), [feedId, unreadOnly])
   const { feeds, items, error, reload } = useNews(filter)
   const feedById = useMemo(() => new Map(feeds.map((f) => [f.id, f])), [feeds])
+  // The filtered feed was removed (here or in another window): fall back to all feeds
+  // instead of an empty list under a picker that shows "All feeds".
+  useEffect(() => {
+    if (feedId && items !== null && !feeds.some((f) => f.id === feedId)) setFeedId('')
+  }, [feedId, feeds, items])
 
   useEffect(() => {
     invoke('news:settings')
