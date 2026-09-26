@@ -2,6 +2,7 @@
 // text), claims, evidence quotes, questions and summaries.
 import {
   DEFAULT_MISSION_STEPS,
+  sourceUrlKey,
   type MissionFull,
   type MissionStep,
   type MissionSummary,
@@ -172,7 +173,10 @@ export function upsertItem(item: ResearchItemInput): { id: string } {
   let id = item.id ?? ''
   switch (item.kind) {
     case 'source': {
-      if (!id && item.url) id = get<{ id: string }>('SELECT id FROM rs_sources WHERE mission_id = ? AND url = ?', item.missionId, item.url)?.id ?? ''
+      if (!id && item.url) {
+        const key = sourceUrlKey(item.url)
+        id = all<{ id: string; url: string }>('SELECT id, url FROM rs_sources WHERE mission_id = ?', item.missionId).find((s) => sourceUrlKey(s.url) === key)?.id ?? ''
+      }
       const cur = id ? get<any>('SELECT * FROM rs_sources WHERE id = ?', id) : undefined
       const v = {
         url: item.url ?? cur?.url ?? '',

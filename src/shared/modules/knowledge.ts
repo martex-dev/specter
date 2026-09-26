@@ -475,6 +475,21 @@ export function noteToMarkdown(n: { title: string; body: string; tags: string[];
   return fm.join('\n') + n.body.replace(/\s+$/, '') + '\n'
 }
 
+/**
+ * Identity of a research source URL: the same page reached through an
+ * in-page anchor (#section) is the same source.
+ */
+export function sourceUrlKey(url: string): string {
+  const u = url.trim()
+  try {
+    const p = new URL(u)
+    p.hash = ''
+    return p.href
+  } catch {
+    return u.replace(/#.*$/, '')
+  }
+}
+
 // ----------------------------------------------------------------- citations
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']

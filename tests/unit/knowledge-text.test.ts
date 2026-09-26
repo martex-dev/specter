@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chunkText, excerptOf, ftsMatch, linkContext, normalizeText, parseTags, parseWikiLinks, replaceWikiLinks, safeFileName } from '@shared/modules/knowledge'
+import { chunkText, excerptOf, ftsMatch, linkContext, normalizeText, parseTags, parseWikiLinks, replaceWikiLinks, safeFileName, sourceUrlKey } from '@shared/modules/knowledge'
 
 describe('chunkText', () => {
   it('returns nothing for empty text and one chunk for short text', () => {
@@ -89,6 +89,15 @@ describe('ftsMatch', () => {
   it('strips FTS syntax characters', () => {
     expect(ftsMatch('"a" OR b*')).toBe('"a" "OR" "b"*')
     expect(ftsMatch('  ')).toBe('')
+  })
+})
+
+describe('sourceUrlKey', () => {
+  it('treats in-page anchors as the same source', () => {
+    expect(sourceUrlKey('https://en.wikipedia.org/wiki/Web_browser#History')).toBe(sourceUrlKey('https://en.wikipedia.org/wiki/Web_browser'))
+    expect(sourceUrlKey('HTTPS://Example.com/a?x=1#top')).toBe('https://example.com/a?x=1')
+    expect(sourceUrlKey('https://example.com/a?x=1')).not.toBe(sourceUrlKey('https://example.com/a?x=2'))
+    expect(sourceUrlKey('not a url#frag')).toBe('not a url')
   })
 })
 

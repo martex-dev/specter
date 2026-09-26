@@ -2,7 +2,7 @@
 // shown next to the page being researched.
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, Check, Circle, CircleDot, FlaskConical, Globe, Maximize2, NotebookPen, Plus, Quote } from 'lucide-react'
-import type { StepState } from '@shared/modules/knowledge'
+import { sourceUrlKey, type StepState } from '@shared/modules/knowledge'
 import { isInternal } from '@shared/url'
 import { invoke } from '../../lib/ipc'
 import { wcIdFor } from '../../lib/webviews'
@@ -47,7 +47,8 @@ export default function ResearchPanel({ popout }: { popout?: boolean }) {
   }
   if (!m) return <div className="empty">Loading…</div>
 
-  const saved = pageUrl ? m.sources.find((s) => s.url === pageUrl) : undefined
+  const pageKey = pageUrl ? sourceUrlKey(pageUrl) : ''
+  const saved = pageKey ? m.sources.find((s) => sourceUrlKey(s.url) === pageKey) : undefined
   const done = steps.filter((s) => s.state === 'done').length
 
   const savePage = async (withSelection: boolean) => {
@@ -165,7 +166,7 @@ export default function ResearchPanel({ popout }: { popout?: boolean }) {
           </div>
           {m.sources.length === 0 && <div className="dim" style={{ fontSize: 12 }}>No sources yet.</div>}
           {m.sources.map((s) => (
-            <button key={s.id} className={'kn-link-row' + (s.url === pageUrl ? ' current' : '')} onClick={() => openUrl(s.url)} data-tip={s.url}>
+            <button key={s.id} className={'kn-link-row' + (s.id === saved?.id ? ' current' : '')} onClick={() => openUrl(s.url)} data-tip={s.url}>
               <div className="kn-link-title ellipsis">{s.title || s.url}</div>
               <div className="kn-link-ctx mono">
                 {hostOf(s.url)} · {s.text ? `${s.text.split(/\s+/).length.toLocaleString()} words` : 'link only'} · {timeAgo(s.addedAt)} <ArrowUpRight size={10} />
