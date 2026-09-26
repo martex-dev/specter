@@ -75,6 +75,9 @@ function applyTag(tag: string | undefined, v: unknown, raw: string): unknown {
     case '!!str':
       return v === null && raw === '' ? '' : typeof v === 'string' ? v : raw
     case '!!int': {
+      // Keep hex / octal integers (0x10, 0o17) — parseInt(…, 10) would read "0x10" as 0.
+      const r = resolvePlain(String(raw).trim())
+      if (typeof r === 'number' && Number.isInteger(r)) return r
       const n = parseInt(String(raw), 10)
       return Number.isNaN(n) ? v : n
     }
@@ -292,12 +295,18 @@ class FlowParser {
         this.ws()
         if (this.s[this.i] !== ',' && this.s[this.i] !== '}') v = this.value()
       }
-      out[keyString(k)] = v
+      setKey(out, keyString(k), v)
       this.ws()
       if (this.s[this.i] === ',') this.i++
       else if (this.s[this.i] !== '}') this.err('Expected "," or "}" in flow mapping')
     }
   }
+}
+
+/** Sets an own property; a "__proto__" key must not replace the object's prototype (the key would vanish). */
+function setKey(o: Record<string, unknown>, k: string, v: unknown): void {
+  if (k === '__proto__') Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true })
+  else o[k] = v
 }
 
 function keyString(k: unknown): string {
@@ -436,13 +445,13 @@ class BlockParser {
         }
         continue
       }
-      out[key] = value
+      setKey(out, key, value)
     }
     if (!merges.length) return out
     const merged: Record<string, unknown> = {}
     // Earlier merge sources take precedence over later ones; explicit keys over all.
-    for (const m of [...merges].reverse()) Object.assign(merged, m)
-    return Object.assign(merged, out)
+    for (const m of [...[...merges].reverse(), out]) for (const k of Object.keys(m)) setKey(merged, k, m[k])
+    return merged
   }
 
   /** Value of a key with nothing after the colon: nested block, same-indent sequence, or null. */

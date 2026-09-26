@@ -76,6 +76,13 @@ empty:
     expect(parseYaml(src)).toEqual({ base: { a: 1, b: 2 }, derived: { a: 1, b: 3 }, ref: { a: 1, b: 2 }, num: '123', int: 42 })
   })
 
+  it('keeps hex/octal values under !!int and "__proto__" keys', () => {
+    expect(parseYaml('a: !!int 0x10\nb: !!int 0o17\nc: !!int "42"')).toEqual({ a: 16, b: 15, c: 42 })
+    expect(JSON.stringify(parseYaml('__proto__: 1\nb: 2'))).toBe('{"__proto__":1,"b":2}')
+    expect(JSON.stringify(parseYaml('m: {__proto__: {x: 1}}'))).toBe('{"m":{"__proto__":{"x":1}}}')
+    expect(JSON.stringify(parseYaml('base: &b\n  __proto__: 1\nd:\n  <<: *b\n  k: 2'))).toBe('{"base":{"__proto__":1},"d":{"__proto__":1,"k":2}}')
+  })
+
   it('supports multi-line flow collections', () => {
     expect(parseYaml('arr: [\n  1, 2,\n  3\n]\nobj: {\n  a: 1,\n  b: [x, y]\n}')).toEqual({ arr: [1, 2, 3], obj: { a: 1, b: ['x', 'y'] } })
   })
