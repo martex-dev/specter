@@ -20,6 +20,9 @@ export function WorkspaceSwitcher() {
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      // Keys typed into a dialog on top (the "New workspace" name prompt) are not
+      // switcher shortcuts: digits would switch workspace, Enter would pick one.
+      if ((e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable="true"], .modal')) return
       if (e.key === 'Escape') closeOverlay()
       else if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
         e.preventDefault()
