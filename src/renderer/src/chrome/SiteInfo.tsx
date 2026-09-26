@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Cookie, Lock, LockOpen, Settings2, ShieldCheck, Trash2, X } from 'lucide-react'
 import type { PermissionDecision, SecurityInfo } from '@shared/types'
 import { hostname, isInternal } from '@shared/url'
@@ -6,6 +7,7 @@ import { invoke } from '../lib/ipc'
 import { wcIdFor } from '../lib/webviews'
 import { findTab, newTab, reload } from '../stores/browser'
 import { toast } from '../stores/ui'
+import { ClickShield } from '../components/ui'
 
 const SITE_PERMS: { id: string; label: string }[] = [
   { id: 'javascript', label: 'JavaScript' },
@@ -60,6 +62,12 @@ export function SiteInfoPopover({ tabId, onClose }: { tabId: string; onClose: ()
   }
 
   return (
+    <>
+    {/* Clicks on the web page never reach the window listener above. The shield is
+        portalled to <body> (some themes give the toolbar a backdrop-filter, which
+        would trap a fixed layer inside it) and sits above the page (z 1) but below
+        the toolbar (z 3) that holds this popover. */}
+    {createPortal(<ClickShield onDismiss={onClose} zIndex={2} />, document.body)}
     <div ref={ref} className="pop" style={{ position: 'absolute', top: 38, left: 0, width: 360, zIndex: 60, animation: 'pop-in 140ms var(--ease)' }}>
       <div className="row" style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)' }}>
         {info?.secure ? <Lock size={16} className="ok" /> : <LockOpen size={16} className="warn" />}
@@ -139,5 +147,6 @@ export function SiteInfoPopover({ tabId, onClose }: { tabId: string; onClose: ()
         </button>
       </div>
     </div>
+    </>
   )
 }

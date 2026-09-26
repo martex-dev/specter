@@ -39,15 +39,27 @@ export function Omnibox() {
   const inputRef = useRef<HTMLInputElement>(null)
   const typedRef = useRef('')
   const deletingRef = useRef(false)
+  const composingRef = useRef(false)
   const reqRef = useRef(0)
 
   const url = tab?.url ?? ''
   const engine = SEARCH_ENGINES.find((e) => e.id === engineId)
   const scoped = parseScope(text)
 
-  // Keep the displayed text in sync with the tab when not editing.
+  // Keep the displayed text in sync with the tab when not editing. Switching tabs
+  // (Ctrl+Tab, Ctrl+W) while editing also resets it, or Enter would load the
+  // previous tab's address/typed text into the new one.
+  const shownTabRef = useRef(tab?.id)
   useEffect(() => {
-    if (!focused) setText(url === 'specter://newtab' ? '' : url)
+    const switched = shownTabRef.current !== tab?.id
+    shownTabRef.current = tab?.id
+    if (!focused || switched) setText(url === 'specter://newtab' ? '' : url)
+    if (switched) {
+      reqRef.current++
+      typedRef.current = ''
+      setOpen(false)
+      setSiteInfo(false)
+    }
   }, [url, focused, tab?.id])
 
   useEffect(() => {
@@ -218,6 +230,11 @@ export function Omnibox() {
 
   const loading = !!tab?.loading
   const internal = isInternal(url)
+  // SPECTER pages have no site info; don't leave a hidden popover armed to pop
+  // up on the next web page.
+  useEffect(() => {
+    if (internal) setSiteInfo(false)
+  }, [internal])
   const secure = url.startsWith('https://')
   const isFile = url.startsWith('file:')
   const kind = useMemo(() => (tab && !internal ? detectPageKind(url, tab.title) : 'generic'), [url, tab, internal])
@@ -235,7 +252,7 @@ export function Omnibox() {
           ) : (
             <button
               className={'site-chip' + (internal ? ' internal' : !secure && !isFile && url && url !== 'about:blank' ? ' insecure' : '')}
-              onClick={() => url && setSiteInfo((v) => !v)}
+              onClick={() => url && !internal && setSiteInfo((v) => !v)}
               data-tip={internal ? 'SPECTER page' : secure ? 'Connection is secure — view site info' : url ? 'Not secure — view site info' : 'Search or enter address'}
               aria-label="Site information"
             >
