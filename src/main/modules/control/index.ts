@@ -5,7 +5,7 @@
 // active profile's network session. Nothing here changes the OS or other apps.
 import { app, BrowserWindow, webContents } from 'electron'
 import type { ControlStats, TabUsage } from '@shared/modules/control'
-import { handle, sendTo, windowOf } from '../../ipc'
+import { broadcast, handle, sendTo, windowOf } from '../../ipc'
 import { createLogger } from '../../logger'
 import { registerDiagnostic } from '../../services/diagnostics'
 import { getSetting, onSettingChanged } from '../../services/settings'
@@ -82,18 +82,30 @@ function reschedule(): void {
   statsTimer = setInterval(pushStats, ms)
 }
 
+/** Senders that already have a 'destroyed' hook (one per webContents, not one per subscribe). */
+const hookedSenders = new Set<number>()
+
 function subscribe(senderId: number, on: boolean): void {
+  const before = subscribers.size
   if (on && !subscribers.has(senderId)) {
     subscribers.add(senderId)
-    webContents.fromId(senderId)?.once('destroyed', () => {
-      subscribers.delete(senderId)
-      reschedule()
-    })
+    if (!hookedSenders.has(senderId)) {
+      hookedSenders.add(senderId)
+      webContents.fromId(senderId)?.once('destroyed', () => {
+        hookedSenders.delete(senderId)
+        const had = subscribers.delete(senderId)
+        reschedule()
+        if (had) broadcast('control:watchers', subscribers.size)
+      })
+    }
     setTimeout(pushStats, 50)
   } else if (!on) {
     subscribers.delete(senderId)
   }
   reschedule()
+  // Windows report their tabs while someone watches the stats — including a
+  // popped-out panel, which has no tabs of its own.
+  if (subscribers.size !== before) broadcast('control:watchers', subscribers.size)
 }
 
 function broadcastConfig(): void {
@@ -106,6 +118,7 @@ export function register(): void {
   handle('control:setConfig', (_e, patch) => setConfig(patch))
   handle('control:syncTabs', (e, tabs) => setWindowTabs(e.sender.id, tabs))
   handle('control:subscribe', (e, on) => subscribe(e.sender.id, !!on))
+  handle('control:watchers', () => subscribers.size)
   handle('control:stats', () => buildStats())
   handle('control:log', () => sleepLog())
   handle('control:clearLog', () => clearSleepLog())

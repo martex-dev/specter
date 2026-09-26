@@ -254,6 +254,8 @@ declare module '../ipc' {
     'control:setConfig': (patch: DeepPartial<ControlConfig>) => ControlConfig
     'control:syncTabs': (tabs: TabReport[]) => void
     'control:subscribe': (on: boolean) => void
+    /** Number of renderers (panels, incl. popped-out ones) currently subscribed to stats. */
+    'control:watchers': () => number
     'control:stats': () => ControlStats
     'control:log': () => SleepLogEntry[]
     'control:clearLog': () => void
@@ -267,5 +269,6 @@ declare module '../ipc' {
     'control:stats': ControlStats
     'control:log': SleepLogEntry
     'control:sleepRequest': SleepRequest
+    'control:watchers': number
   }
 }

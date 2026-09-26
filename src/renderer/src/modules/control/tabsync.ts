@@ -1,6 +1,6 @@
 // Reports this window's tabs to the main process (which owns the RAM / CPU
 // limiters and the hot-tabs measurements) and performs sleep requests.
-// Only runs while a limiter is enabled or the Control panel is open.
+// Only runs while a limiter is enabled or a Control panel (any window) is open.
 import type { TabReport } from '@shared/modules/control'
 import { isInternal } from '@shared/url'
 import { invoke, on } from '../../lib/ipc'
@@ -62,8 +62,10 @@ function schedule(): void {
 }
 
 function wanted(): boolean {
-  const { config, panelOpen } = useControl.getState()
-  return panelOpen > 0 || !!(config && (config.ram.enabled || config.cpu.enabled))
+  const { config, panelOpen, watchers } = useControl.getState()
+  // `watchers` covers a Control panel popped out into its own window, which
+  // needs this window's tabs for Hot tabs but can't report them itself.
+  return panelOpen > 0 || watchers > 0 || !!(config && (config.ram.enabled || config.cpu.enabled))
 }
 
 function update(): void {

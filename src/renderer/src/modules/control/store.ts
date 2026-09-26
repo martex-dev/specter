@@ -13,9 +13,11 @@ interface ControlStore {
   log: SleepLogEntry[]
   section: ControlSection
   panelOpen: number
+  /** Stats subscribers in any window (e.g. a popped-out Control panel). */
+  watchers: number
 }
 
-export const useControl = create<ControlStore>(() => ({ config: null, stats: null, log: [], section: 'limiters', panelOpen: 0 }))
+export const useControl = create<ControlStore>(() => ({ config: null, stats: null, log: [], section: 'limiters', panelOpen: 0, watchers: 0 }))
 
 let started = false
 
@@ -27,6 +29,10 @@ export function initControlStore(): void {
     .catch(() => undefined)
   on('control:config', (config) => useControl.setState({ config }))
   on('control:stats', (stats) => useControl.setState({ stats }))
+  invoke('control:watchers')
+    .then((watchers) => useControl.setState({ watchers }))
+    .catch(() => undefined)
+  on('control:watchers', (watchers) => useControl.setState({ watchers }))
   on('control:log', (e) => useControl.setState((s) => ({ log: [e, ...s.log.filter((x) => x.id !== e.id)].slice(0, 60) })))
 }
 
