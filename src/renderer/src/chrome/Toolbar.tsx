@@ -29,6 +29,8 @@ import { mainMenu } from './mainMenu'
 import { promptText } from '../components/prompt'
 import { resolveTheme, THEMES } from '../lib/themes'
 import { setSetting as setSettingValue } from '../stores/settings'
+import { switchTheme } from '../lib/fx'
+import { useUpdates } from '../stores/updates'
 
 function themeMenu(): MenuItem[] {
   const { theme, palette } = resolveTheme(getSetting('appearance.theme'), getSetting('appearance.palette'))
@@ -42,12 +44,16 @@ function themeMenu(): MenuItem[] {
       submenu: t.palettes.map((p) => ({
         label: p.name,
         icon: swatch(p.bg0, p.accent),
-        run: () => {
-          setSettingValue('appearance.theme', t.id)
-          setSettingValue('appearance.palette', p.id)
-          setSettingValue('appearance.accent', '')
-          if (t.id !== theme.id) setSettingValue('appearance.layout', {})
-        }
+        run: () =>
+          switchTheme(
+            () => {
+              setSettingValue('appearance.theme', t.id)
+              setSettingValue('appearance.palette', p.id)
+              setSettingValue('appearance.accent', '')
+              if (t.id !== theme.id) setSettingValue('appearance.layout', {})
+            },
+            { theme: t.id, palette: p.id }
+          )
       }))
     })),
     { separator: true },
@@ -132,18 +138,27 @@ export function Toolbar() {
           <span style={{ width: 20, height: 20, borderRadius: '50%', background: profile?.color ?? 'var(--accent)', color: '#0c0d10', display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 700 }}>{(profile?.name ?? 'P').slice(0, 1).toUpperCase()}</span>
         </button>
       </div>
-      <button
-        className="icon-btn"
-        onClick={(e) => {
-          const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-          openMenu({ x: r.right - 260, y: r.bottom + 6, items: mainMenu(), width: 260 })
-        }}
-        data-tip="Menu"
-        aria-label="Main menu"
-      >
-        <EllipsisVertical size={17} />
-      </button>
+      <MainMenuButton />
     </div>
+  )
+}
+
+/** Main menu; a dot marks a downloaded update waiting for a restart. */
+function MainMenuButton() {
+  const ready = useUpdates((u) => (u.s?.phase === 'ready' ? u.s.latest : null))
+  return (
+    <button
+      className="icon-btn"
+      onClick={(e) => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        openMenu({ x: r.right - 260, y: r.bottom + 6, items: mainMenu(), width: 260 })
+      }}
+      data-tip={ready ? `Menu · SPECTER ${ready} is ready — restart to update` : 'Menu'}
+      aria-label={ready ? `Main menu (update ${ready} ready)` : 'Main menu'}
+    >
+      <EllipsisVertical size={17} />
+      {ready && <span className="dot" aria-hidden />}
+    </button>
   )
 }
 

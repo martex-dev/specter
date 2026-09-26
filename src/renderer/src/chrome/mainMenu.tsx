@@ -28,11 +28,13 @@ import {
   ScrollText,
   Info,
   Moon,
-  Copy
+  Copy,
+  RefreshCw
 } from 'lucide-react'
 import { runCommand, shortcutFor } from '../lib/commands'
 import { newTab, useBrowser } from '../stores/browser'
 import type { MenuItem } from '../stores/ui'
+import { useUpdates } from '../stores/updates'
 
 const cmd = (id: string, label: string, icon: JSX.Element, args?: unknown): MenuItem => ({ label, icon, shortcut: shortcutFor(id), run: () => runCommand(id, args) })
 
@@ -41,7 +43,11 @@ export function mainMenu(): MenuItem[] {
   const ws = st.open[st.activeWsId]
   const tab = ws?.tabs.find((t) => t.id === ws.activeTabId)
   const zoom = Math.round((tab?.zoom ?? 1) * 100)
+  const update = useUpdates.getState().s
+  const updateItems: MenuItem[] =
+    update?.phase === 'ready' ? [{ label: `Restart to update (${update.latest})`, icon: <RefreshCw size={14} className="accent" />, run: () => runCommand('app.update.install') }, { separator: true }] : []
   return [
+    ...updateItems,
     cmd('browser.newTab', 'New tab', <Plus size={14} />),
     cmd('browser.newWindow', 'New window', <AppWindow size={14} />),
     { separator: true },

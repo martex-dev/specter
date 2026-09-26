@@ -36,6 +36,8 @@ import { WORKSPACE_COLORS } from '../lib/icons'
 import { loadUrl, useBrowser } from '../stores/browser'
 import { getSetting, setSetting, useSetting } from '../stores/settings'
 import { toast } from '../stores/ui'
+import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
+import { describeUpdateState } from '@shared/updates'
 import { Kbd, Seg, Switch } from '../components/ui'
 import { confirmAction, promptText } from '../components/prompt'
 import type { PageProps } from './registry'
@@ -848,35 +850,107 @@ function About() {
   )
 }
 
+const RELEASES_URL = 'https://github.com/martex-dev/specter/releases'
+const openUrl = (url: string) => document.dispatchEvent(new CustomEvent('specter:open-url', { detail: url }))
+
 function UpdatesRows() {
-  const [info, setInfo] = useState<Awaited<ReturnType<typeof invoke<'app:checkUpdates'>>> | null>(null)
+  const st = useUpdates((u) => u.s)
   const [busy, setBusy] = useState(false)
+  if (!st) return null
+  const installed = st.mode === 'nsis'
+  const dev = st.mode === 'dev'
+  const statusClass = st.phase === 'error' ? 'bad' : st.phase === 'ready' || st.phase === 'up-to-date' ? 'ok' : undefined
+  const checking = busy || st.phase === 'checking'
+  const last = st.lastCheck ? `Last checked ${new Date(st.lastCheck).toLocaleString()}.` : null
   return (
     <>
-      <TextSetting k="advanced.updateRepo" title="Release repository" desc="GitHub owner/repo that publishes SPECTER releases. Leave empty to never check." placeholder="owner/repo" />
-      <Toggle k="advanced.checkUpdates" title="Check for updates daily" desc="Asks the GitHub Releases API for the latest version. SPECTER never downloads or installs updates by itself." />
-      <Row title="Check now" desc={info ? (info.error ? info.error : info.newer ? `Version ${info.latest} is available (you have ${info.current}).` : `You are up to date (${info.current}).`) : 'Uses the free GitHub Releases API.'}>
+      <Row title="Version">
+        <span className="mono selectable">{st.current}</span>
+      </Row>
+      <Row
+        title="Updates"
+        desc={
+          <>
+            <span className={statusClass} role="status">
+              {describeUpdateState(st)}
+            </span>
+            {st.error && (st.phase === 'error' || st.phase === 'ready') && (
+              <span className="mono selectable" style={{ display: 'block', fontSize: 11, marginTop: 4, wordBreak: 'break-word' }}>
+                {st.error}
+              </span>
+            )}
+            {st.phase === 'downloading' && (
+              <span style={{ display: 'block', height: 4, borderRadius: 2, background: 'var(--bg-3)', marginTop: 6, overflow: 'hidden', maxWidth: 320 }}>
+                <span style={{ display: 'block', height: '100%', width: `${Math.floor(st.progress?.percent ?? 0)}%`, background: 'var(--accent)', transition: 'width .3s' }} />
+              </span>
+            )}
+            {last && st.phase !== 'checking' && <span style={{ display: 'block', marginTop: 2 }} className="dim">{last}</span>}
+          </>
+        }
+      >
         <div className="row">
-          {info?.newer && info.url && (
-            <button className="btn primary" onClick={() => document.dispatchEvent(new CustomEvent('specter:open-url', { detail: info.url }))}>
+          {st.phase === 'ready' && (
+            <button className="btn primary" onClick={() => installUpdate()}>
+              Restart to update
+            </button>
+          )}
+          {!installed && st.phase === 'available' && st.releaseUrl && (
+            <button className="btn primary" onClick={() => openUrl(st.releaseUrl!)}>
               View release
             </button>
           )}
           <button
             className="btn"
-            disabled={busy}
+            disabled={dev || checking || st.phase === 'downloading' || st.phase === 'installing'}
             onClick={async () => {
               setBusy(true)
               try {
-                setInfo(await invoke('app:checkUpdates'))
+                await checkForUpdatesNow()
               } finally {
                 setBusy(false)
               }
             }}
           >
-            {busy ? 'Checking…' : 'Check'}
+            {checking ? 'Checking…' : 'Check now'}
           </button>
         </div>
+      </Row>
+      {installed && (
+        <Toggle
+          k="advanced.autoUpdate"
+          title="Update SPECTER automatically"
+          desc="Checks 30 seconds after start and every 6 hours, downloads new versions in the background and installs them when you restart or quit SPECTER. When off, nothing is checked until you press Check now."
+        />
+      )}
+      {!installed && !dev && (
+        <>
+          <Toggle
+            k="advanced.checkUpdates"
+            title="Check for new releases daily"
+            desc={st.mode === 'portable' ? 'The portable build can’t replace itself: SPECTER tells you when a release is out and you download it yourself.' : 'This copy wasn’t installed with the SPECTER installer, so it can only tell you about new releases.'}
+          />
+          <TextSetting k="advanced.updateRepo" title="Release repository" desc="GitHub owner/repo that publishes SPECTER releases. Leave empty to never check." placeholder="owner/repo" />
+        </>
+      )}
+      {dev && (
+        <Row title="Development build" desc="Automatic updates only run in the installed Windows build. Nothing is checked or downloaded here.">
+          <span className="badge">dev</span>
+        </Row>
+      )}
+      <Row title="Release notes" desc={st.latest && st.releaseUrl && st.latest !== st.current ? `What’s new in SPECTER ${st.latest}.` : 'Changes in every SPECTER release.'}>
+        <button className="btn" onClick={() => openUrl(st.latest && st.releaseUrl && st.latest !== st.current ? st.releaseUrl : RELEASES_URL)}>
+          Open
+        </button>
+      </Row>
+      <Row
+        title="Update privacy"
+        desc={
+          installed || dev
+            ? 'Update checks contact github.com (and GitHub’s download servers when an update is downloaded) in a separate network session without your cookies. Only the latest SPECTER release information is requested — no browsing data, history or identifiers are sent.'
+            : 'Checks contact api.github.com and request only the latest release of the repository above — no browsing data, history or identifiers are sent.'
+        }
+      >
+        <span className="badge">github.com</span>
       </Row>
     </>
   )

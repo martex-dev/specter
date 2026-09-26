@@ -60,12 +60,16 @@ import {
   ClipboardList,
   Activity,
   User,
-  Minimize2
+  Minimize2,
+  RefreshCw,
+  CloudDownload
 } from 'lucide-react'
 import { resolveTheme, THEMES } from '../lib/themes'
+import { switchTheme } from '../lib/fx'
 import type { PerformanceMode } from '@shared/settings'
 import { isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
+import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
 import { registerCommands, runCommand, type Command } from '../lib/commands'
 import { webviewFor, wcIdFor } from '../lib/webviews'
 import {
@@ -535,12 +539,17 @@ export function registerCoreCommands(): void {
       category: 'View' as const,
       icon: Palette,
       keywords: ['theme', 'appearance', ...t.palettes.map((p) => p.name)],
-      run: () => {
-        setSetting('appearance.theme', t.id)
-        setSetting('appearance.palette', '')
-        setSetting('appearance.accent', '')
-        setSetting('appearance.layout', {})
-      }
+      run: () =>
+        switchTheme(
+          () => {
+            setSetting('appearance.theme', t.id)
+            setSetting('appearance.palette', '')
+            setSetting('appearance.accent', '')
+            setSetting('appearance.layout', {})
+          },
+          { theme: t.id },
+          false
+        )
     })),
     { id: 'ui.verticalTabs', title: 'Toggle vertical tabs', category: 'View', icon: PanelRight, keywords: ['sidebar', 'tab list'], run: () => setSetting('appearance.verticalTabs', !getSetting('appearance.verticalTabs')) },
     { id: 'ui.themes', title: 'Theme gallery…', category: 'View', icon: Palette, keywords: ['appearance', 'colors', 'palette'], run: () => newTab('specter://settings/appearance') },
@@ -553,8 +562,7 @@ export function registerCoreCommands(): void {
         const { theme, palette } = resolveTheme(getSetting('appearance.theme'), getSetting('appearance.palette'))
         const i = theme.palettes.findIndex((p) => p.id === palette.id)
         const next = theme.palettes[(i + 1) % theme.palettes.length]
-        setSetting('appearance.palette', next.id)
-        setSetting('appearance.accent', '')
+        switchTheme(() => (setSetting('appearance.palette', next.id), setSetting('appearance.accent', '')), { palette: next.id }, false)
         toast({ kind: 'info', title: `${theme.name} · ${next.name}` })
       }
     },
@@ -638,6 +646,16 @@ export function registerCoreCommands(): void {
     { id: 'help.open', title: 'Help', category: 'Help', icon: HelpCircle, run: () => newTab('specter://help') },
     { id: 'activity.open', title: 'Daily activity', category: 'Browser', icon: Activity, run: () => newTab('specter://activity') },
     { id: 'app.quit', title: 'Exit SPECTER', category: 'Browser', icon: LogOut, run: () => (flushAll(), invoke('app:quit')) },
+    { id: 'app.update.check', title: 'Check for updates', category: 'Help', icon: CloudDownload, keywords: ['update', 'upgrade', 'version', 'release'], run: () => checkForUpdatesNow() },
+    {
+      id: 'app.update.install',
+      title: 'Restart to update',
+      category: 'Help',
+      icon: RefreshCw,
+      keywords: ['update', 'upgrade', 'install', 'relaunch'],
+      when: () => useUpdates.getState().s?.phase === 'ready',
+      run: () => installUpdate()
+    },
     {
       id: 'system.modeMenu',
       title: 'Performance mode…',
