@@ -20,7 +20,7 @@ import { runShutdownCleanup } from './shutdown'
 import { activeSession, ensureDefaultProfile, onProfileSwitch, registerProfilesIpc } from './services/profiles'
 import { ensureDefaultWorkspaces, registerWorkspacesIpc } from './services/workspaces'
 import { attachCertificateCapture, registerPageIpc } from './services/page'
-import { registerVideoIpc } from './services/video'
+import { attachVideoTools, registerVideoIpc } from './services/video'
 import { registerAppIpc, loadStoredExtensions } from './services/app'
 import { registerSearchIpc } from './services/search'
 import { registerImportIpc } from './services/importer'
@@ -107,6 +107,7 @@ function attachSessionHandlers(): void {
   attachPermissions(ses)
   attachPrivacy(ses)
   attachAdblock(ses)
+  attachVideoTools(ses)
   attachDownloads(ses)
   attachCertificateCapture(ses)
   ses.setSpellCheckerLanguages(['en-US'])

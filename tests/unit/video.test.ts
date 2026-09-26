@@ -146,6 +146,11 @@ describe('keeping the speed', () => {
     expect(rateChangeDecision({ desired: 2, actual: 1.25, ours: false, msSinceUserInput: 200 })).toBe('adopt')
     expect(rateChangeDecision({ desired: null, actual: 1.25, ours: false, msSinceUserInput: 200 })).toBe('adopt')
   })
+  it('treats a change right after a new source started loading as the site’s reset', () => {
+    expect(rateChangeDecision({ desired: 2, actual: 1, ours: false, msSinceUserInput: 300, msSinceLoad: 200 })).toBe('restore')
+    expect(rateChangeDecision({ desired: null, actual: 1, ours: false, msSinceUserInput: 300, msSinceLoad: 200 })).toBe('ignore')
+    expect(rateChangeDecision({ desired: 2, actual: 1.5, ours: false, msSinceUserInput: 300, msSinceLoad: 60_000 })).toBe('adopt')
+  })
   it('ignores its own changes, matching rates, and sites adjusting speed when no speed was chosen', () => {
     expect(rateChangeDecision({ desired: 2, actual: 1, ours: true, msSinceUserInput: 60_000 })).toBe('ignore')
     expect(rateChangeDecision({ desired: 2, actual: 2, ours: false, msSinceUserInput: 60_000 })).toBe('ignore')

@@ -128,10 +128,12 @@ export function isTypingTarget(el: { tagName?: string; type?: string; isContentE
  * What to do when a page changes a media element's playback rate on its own:
  * adopt it (the user just used the site's own speed control), restore the
  * speed the user chose (the site reset it on navigation or for an ad), or ignore.
+ * A change right after the element started loading a new source is the site's
+ * reset even if the user just clicked (e.g. on the next video).
  */
-export function rateChangeDecision(o: { desired: number | null; actual: number; ours: boolean; msSinceUserInput: number }): 'adopt' | 'restore' | 'ignore' {
+export function rateChangeDecision(o: { desired: number | null; actual: number; ours: boolean; msSinceUserInput: number; msSinceLoad?: number }): 'adopt' | 'restore' | 'ignore' {
   if (o.ours || !Number.isFinite(o.actual) || o.actual <= 0) return 'ignore'
-  const userDriven = o.msSinceUserInput < 1500
+  const userDriven = o.msSinceUserInput < 1500 && (o.msSinceLoad ?? Infinity) > 1500
   if (o.desired === null) return userDriven ? 'adopt' : 'ignore'
   if (sameSpeed(o.actual, o.desired)) return 'ignore'
   return userDriven ? 'adopt' : 'restore'
