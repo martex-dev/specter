@@ -73,6 +73,11 @@ this PC can decrypt them. If DPAPI isn't available nothing is stored (there is n
   SPECTER doesn't try to. You export from Chrome (Settings → Passwords → Export, confirmed with your
   Windows password) and import the CSV; SPECTER then offers to move that plain-text file to the Recycle
   Bin. Exports from Edge, Brave, Opera, Firefox, Bitwarden, 1Password and LastPass are read the same way.
+- **Suggested passwords** on sign-up and change-password forms are generated in the main process
+  from `crypto.randomInt` (15 characters, four character classes, no look-alike characters) and
+  saved as soon as the form is submitted.
+- **Copying** a password from `specter://passwords` clears the clipboard a minute later if it still
+  holds that password.
 - **Exporting** asks for confirmation and warns that the file is plain text.
 
 ## Reporting

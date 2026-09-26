@@ -31,7 +31,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - **Font inspector** (a built-in WhatFont) — hover any text to see its font, click to pin cards with the full font stack, style, weight, size, line-height, letter-spacing, colour and **Copy CSS**. It names the font Chromium actually rendered (`system-ui` → Segoe UI, the font inside a web font, emoji fallbacks), not just the first family in the stack, and lists every font and web font on the page. Palette: "Identify fonts", or right-click → Identify font
 - Session restore (lazy — only visible tabs load), crash recovery, reopen closed tabs
 - Import bookmarks & history from **Chrome, Edge, Brave, Vivaldi, Opera and Firefox** — each browser profile into the open SPECTER profile or a SPECTER profile of its own (named and coloured like the original), with its passwords from the browser's export
-- **Password manager** — offers to save logins after you sign in, lists them under sign-in fields for one-click filling, and imports Chrome / Google Password Manager exports (plus Edge, Firefox, Bitwarden, 1Password, LastPass). Passwords are encrypted with Windows data protection and never leave your PC
+- **Password manager** — offers to save logins after you sign in, lists them under sign-in fields for one-click filling, suggests strong passwords on sign-up forms, and imports Chrome / Google Password Manager exports (plus Edge, Firefox, Bitwarden, 1Password, LastPass). Passwords are encrypted with Windows data protection and never leave your PC
 - Fully customisable keyboard shortcuts that also work inside web pages
 
 ### SPECTER core (tier 2)
