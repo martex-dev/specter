@@ -709,7 +709,8 @@ select.mk-input-sm {
   gap: 4px;
 }
 .mk-hud-cell .up,
-.mk-hud-cell .down {
+.mk-hud-cell .down,
+.mk-hud-cell .muted {
   font-size: 10px;
 }
 
