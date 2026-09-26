@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, CheckCircle2, ChevronRight, Info, X, XCircle } from 'lucide-react'
 import { prettyAccelerator } from '@shared/keys'
 import { faviconFallback } from '../lib/format'
@@ -200,11 +201,17 @@ function MenuList({ items, x, y, flipX, width, onClose, depth = 0 }: { items: Me
           </div>
         )
       })}
-      {sub && items[sub.index]?.submenu && (
-        <div onMouseEnter={() => clearTimeout(closeTimer.current)} style={{ display: 'contents' }}>
-          <MenuList items={items[sub.index].submenu!} x={sub.x} y={sub.y} flipX={sub.flipX} width={width} onClose={onClose} depth={depth + 1} />
-        </div>
-      )}
+      {/* Portalled: themes that give .pop a backdrop-filter (Aurora, Holo) make the
+          parent menu the containing block of a nested fixed submenu, which would
+          then be offset into the parent and clipped by its overflow. */}
+      {sub &&
+        items[sub.index]?.submenu &&
+        createPortal(
+          <div onMouseEnter={() => clearTimeout(closeTimer.current)} style={{ display: 'contents' }}>
+            <MenuList items={items[sub.index].submenu!} x={sub.x} y={sub.y} flipX={sub.flipX} width={width} onClose={onClose} depth={depth + 1} />
+          </div>,
+          document.body
+        )}
     </div>
   )
 }
