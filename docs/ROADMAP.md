@@ -13,6 +13,7 @@ Status reflects what is implemented and verified in the running app, not intent.
 - Tab lifecycle & sleeping with measured memory
 - Command palette, customisable shortcuts (UI and in-page), help, onboarding
 - Ad blocker: uBlock Origin / EasyList filter lists (network, element hiding, scriptlets incl. YouTube), cookie banners, per-site switch, custom filters
+- Video tools: speed keys (S/D/R/Z/X/G, rebindable), speed badge, per-site speed memory, speed kept across site resets, same-origin frames, media-controls and palette integration
 - Privacy Center, tracker blocking, GPC/DNT, HTTPS-first, per-site cookie/JS controls, third-party cookie blocking (approximate), security dashboard with live probes
 - Reader mode + TTS, find with regex, page tools, screenshots (visible/full page), PDF viewer, docked/detached DevTools, HTML5 fullscreen
 - Theme engine v2: 11 theme packs (layouts, typography, effects) × 6 palettes, custom accent, layout mix-and-match, automatic day/night or system-following themes

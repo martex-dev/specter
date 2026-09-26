@@ -24,6 +24,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - Bookmarks with folders, tags, drag & drop, workspace links, bookmarks bar, HTML import/export
 - Download manager (pause/resume/retry, speed, ETA, open/show in folder)
 - **Built-in ad blocker** — uBlock Origin, EasyList, EasyPrivacy, malware and cookie-banner lists straight from their maintainers: blocks ads and trackers, hides leftover ad slots and cookie pop-ups, and runs uBlock's scriptlets so **YouTube plays without ads**. One-click off switch per site, your own filters, lists refreshed automatically
+- **Video tools** — a built-in Video Speed Controller for any HTML5 video or audio: **S / D** slower / faster (0.07×–16×), **R** reset, **Z / X** back / forward 10 s, **G** your preferred speed; a small speed badge with − / + in the video's corner; the speed is remembered per site and kept when YouTube resets it for the next video or an ad. Keys are rebindable and never fire while you type; also in the media controls and the command palette
 - Per-site permissions (camera, mic, location, notifications, clipboard, screen capture, pop-ups, cookies, JavaScript)
 - **Profiles** with isolated cookies, storage, history, bookmarks and workspaces
 - Docked or detached **Chromium DevTools**, find in page with **regex & whole-word**, reader mode with text-to-speech, built-in PDF viewer, full-page screenshots, print, save page
