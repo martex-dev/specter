@@ -84,6 +84,8 @@ export function TabStrip() {
 
   if (!ws) return <div className="tabstrip" />
   const visible = new Set(visibleTabIds(ws))
+  // Live tab for the preview; a tab closed under the pointer fires no mouseleave.
+  const previewTab = preview ? ws.tabs.find((t) => t.id === preview.tab.id) : undefined
   const groupsById = new Map(ws.groups.map((g) => [g.id, g]))
 
   const items: ({ kind: 'tab'; tab: RuntimeTab; group?: TabGroup } | { kind: 'group'; group: TabGroup; count: number })[] = []
@@ -165,7 +167,7 @@ export function TabStrip() {
           }
         }}
       />
-      {preview && <TabPreview tab={preview.tab} x={preview.x} y={preview.y} />}
+      {previewTab && <TabPreview tab={previewTab} x={preview!.x} y={preview!.y} />}
     </div>
   )
 }
@@ -259,6 +261,7 @@ const TabItem = memo(function TabItem({ tab, active, inSplit, groupColor, dropSt
   const ref = useRef<HTMLDivElement>(null)
   const hoverTimer = useRef<number | undefined>(undefined)
   const [dragging, setDragging] = useState(false)
+  useEffect(() => () => clearTimeout(hoverTimer.current), [])
 
   const cls = ['tab', active && 'active', tab.pinned && 'pinned', tab.suspended && 'suspended', inSplit && 'in-split', dragging && 'dragging', dropState && `drop-${dropState}`, narrow && !active && 'narrow'].filter(Boolean).join(' ')
 
