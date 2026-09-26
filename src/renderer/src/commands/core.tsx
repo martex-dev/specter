@@ -115,16 +115,19 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.
 
 function tabFromArgs(args: any) {
   if (args?.fromGuest) {
-    // Shortcut pressed inside a web page: act on that page's tab.
+    // Shortcut pressed inside a web page: act on that page's tab. A guest that is not a tab
+    // (e.g. a sidebar web app) has no tab to act on — never fall back to the active tab.
     const st = useBrowser.getState()
     for (const ws of Object.values(st.open)) for (const t of ws.tabs) if (wcIdFor(t.id) === args.fromGuest) return t
+    return undefined
   }
   if (args?.tabId) return findTab(args.tabId)?.tab
   return activeTab()
 }
 
-function requireWeb(t = activeTab()): number | null {
-  if (!t || isInternal(t.url)) {
+function requireWeb(t: ReturnType<typeof tabFromArgs>): number | null {
+  if (!t) return null
+  if (isInternal(t.url)) {
     toast({ kind: 'info', title: 'Not available on this page', body: 'This tool works on web pages.' })
     return null
   }
@@ -133,8 +136,8 @@ function requireWeb(t = activeTab()): number | null {
   return id
 }
 
-function zoom(delta: 0 | 1 | -1) {
-  const t = activeTab()
+function zoom(delta: 0 | 1 | -1, args?: unknown) {
+  const t = tabFromArgs(args)
   const wv = t && webviewFor(t.id)
   if (!t || !wv) return
   const cur = wv.getZoomFactor()
@@ -143,8 +146,8 @@ function zoom(delta: 0 | 1 | -1) {
   updateTab(t.id, { zoom: next })
 }
 
-async function screenshot(fullPage: boolean, toClipboard: boolean) {
-  const wcId = requireWeb()
+async function screenshot(fullPage: boolean, toClipboard: boolean, args?: unknown) {
+  const wcId = requireWeb(tabFromArgs(args))
   if (wcId === null) return
   const r = await invoke('guest:screenshot', wcId, { fullPage, toClipboard })
   if (r === 'clipboard') toast({ kind: 'ok', title: 'Screenshot copied to clipboard' })
@@ -238,8 +241,8 @@ export function registerCoreCommands(): void {
     { id: 'browser.back', title: 'Back', category: 'Navigation', icon: ArrowLeft, run: (a) => ((t) => t && goBack(t.id))(tabFromArgs(a)) },
     { id: 'browser.forward', title: 'Forward', category: 'Navigation', icon: ArrowRight, run: (a) => ((t) => t && goForward(t.id))(tabFromArgs(a)) },
     // The home page setting is free text ("example.com"), so interpret it like typed input.
-    { id: 'browser.home', title: 'Home page', category: 'Navigation', icon: Home, run: () => ((t) => t && navigate(t.id, getSetting('general.homepage').trim() || 'specter://newtab'))(activeTab()) },
-    { id: 'browser.stop', title: 'Stop loading', category: 'Navigation', hidden: true, run: () => ((t) => t && stop(t.id))(activeTab()) },
+    { id: 'browser.home', title: 'Home page', category: 'Navigation', icon: Home, run: (a) => ((t) => t && navigate(t.id, getSetting('general.homepage').trim() || 'specter://newtab'))(tabFromArgs(a)) },
+    { id: 'browser.stop', title: 'Stop loading', category: 'Navigation', hidden: true, run: (a) => ((t) => t && stop(t.id))(tabFromArgs(a)) },
     { id: 'browser.focusAddressBar', title: 'Focus address bar', category: 'Navigation', icon: Search, run: () => window.dispatchEvent(new Event('specter:focus-omnibox')) },
     { id: 'browser.focusAddressBarAlt', title: 'Focus address bar', category: 'Navigation', hidden: true, run: () => window.dispatchEvent(new Event('specter:focus-omnibox')) },
     {
@@ -318,17 +321,17 @@ export function registerCoreCommands(): void {
         updateTab(t.id, { devtoolsDocked: !t.devtoolsDocked, suspended: false })
       }
     },
-    { id: 'browser.zoomIn', title: 'Zoom in', category: 'View', icon: ZoomIn, run: () => zoom(1) },
-    { id: 'browser.zoomOut', title: 'Zoom out', category: 'View', icon: ZoomOut, run: () => zoom(-1) },
-    { id: 'browser.zoomReset', title: 'Reset zoom', category: 'View', icon: Search, run: () => zoom(0) },
+    { id: 'browser.zoomIn', title: 'Zoom in', category: 'View', icon: ZoomIn, run: (a) => zoom(1, a) },
+    { id: 'browser.zoomOut', title: 'Zoom out', category: 'View', icon: ZoomOut, run: (a) => zoom(-1, a) },
+    { id: 'browser.zoomReset', title: 'Reset zoom', category: 'View', icon: Search, run: (a) => zoom(0, a) },
     { id: 'browser.fullscreen', title: 'Toggle full screen', category: 'View', icon: Maximize, run: () => invoke('window:toggleFullscreen') },
     {
       id: 'browser.print',
       title: 'Print page',
       category: 'Page',
       icon: Printer,
-      run: () => {
-        const wcId = requireWeb()
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
         if (wcId !== null) invoke('guest:print', wcId)
       }
     },
@@ -337,8 +340,8 @@ export function registerCoreCommands(): void {
       title: 'Save page as…',
       category: 'Page',
       icon: FileDown,
-      run: async () => {
-        const wcId = requireWeb()
+      run: async (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
         if (wcId === null) return
         const p = await invoke('guest:savePage', wcId)
         if (p) toast({ kind: 'ok', title: 'Page saved', body: p })
@@ -349,16 +352,16 @@ export function registerCoreCommands(): void {
       title: 'View page source',
       category: 'Developer',
       icon: Code2,
-      run: () => {
-        const t = activeTab()
+      run: (a) => {
+        const t = tabFromArgs(a)
         if (t && /^https?:/.test(t.url)) newTab('view-source:' + t.url)
       }
     },
     // ---------------- tab utilities
     { id: 'tabs.search', title: 'Search tabs', category: 'Tabs', icon: Search, keywords: ['find tab', 'switch'], run: () => openOverlay('tabSearch') },
-    { id: 'tabs.duplicate', title: 'Duplicate tab', category: 'Tabs', icon: Copy, run: () => ((t) => t && duplicateTab(t.id))(activeTab()) },
-    { id: 'tabs.pin', title: 'Pin / unpin tab', category: 'Tabs', icon: Pin, run: () => ((t) => t && togglePin(t.id))(activeTab()) },
-    { id: 'tabs.mute', title: 'Mute / unmute tab', category: 'Tabs', icon: VolumeX, run: () => ((t) => t && setMuted(t.id, !t.muted))(activeTab()) },
+    { id: 'tabs.duplicate', title: 'Duplicate tab', category: 'Tabs', icon: Copy, run: (a) => ((t) => t && duplicateTab(t.id))(tabFromArgs(a)) },
+    { id: 'tabs.pin', title: 'Pin / unpin tab', category: 'Tabs', icon: Pin, run: (a) => ((t) => t && togglePin(t.id))(tabFromArgs(a)) },
+    { id: 'tabs.mute', title: 'Mute / unmute tab', category: 'Tabs', icon: VolumeX, run: (a) => ((t) => t && setMuted(t.id, !t.muted))(tabFromArgs(a)) },
     { id: 'tabs.muteAll', title: 'Mute all tabs', category: 'Tabs', icon: VolumeX, run: () => muteAll() },
     { id: 'tabs.unmuteAll', title: 'Unmute all tabs', category: 'Tabs', icon: Volume2, run: () => activeWs()?.tabs.forEach((t) => setMuted(t.id, false)) },
     { id: 'tabs.reloadAll', title: 'Reload all tabs', category: 'Tabs', icon: RotateCw, run: () => activeWs()?.tabs.forEach((t) => !t.suspended && reload(t.id)) },
@@ -383,8 +386,8 @@ export function registerCoreCommands(): void {
         toast({ kind: 'info', title: n ? `Closed ${n} duplicate tab${n > 1 ? 's' : ''}` : 'No duplicate tabs' })
       }
     },
-    { id: 'tabs.closeOthers', title: 'Close other tabs', category: 'Tabs', icon: CopyX, run: () => ((t) => t && closeOtherTabs(t.id))(activeTab()) },
-    { id: 'tabs.closeRight', title: 'Close tabs to the right', category: 'Tabs', icon: CopyX, run: () => ((t) => t && closeTabsToRight(t.id))(activeTab()) },
+    { id: 'tabs.closeOthers', title: 'Close other tabs', category: 'Tabs', icon: CopyX, run: (a) => ((t) => t && closeOtherTabs(t.id))(tabFromArgs(a)) },
+    { id: 'tabs.closeRight', title: 'Close tabs to the right', category: 'Tabs', icon: CopyX, run: (a) => ((t) => t && closeTabsToRight(t.id))(tabFromArgs(a)) },
     {
       id: 'tabs.copyAllUrls',
       title: 'Copy all tab URLs',
@@ -456,7 +459,7 @@ export function registerCoreCommands(): void {
         if (name !== null) createGroup([t.id], name.trim())
       }
     },
-    { id: 'tabs.moveToNewWindow', title: 'Move tab to new window', category: 'Tabs', icon: AppWindow, run: () => ((t) => t && moveTabToNewWindow(t.id))(activeTab()) },
+    { id: 'tabs.moveToNewWindow', title: 'Move tab to new window', category: 'Tabs', icon: AppWindow, run: (a) => ((t) => t && moveTabToNewWindow(t.id))(tabFromArgs(a)) },
     {
       id: 'tabs.note',
       title: 'Add note to tab…',
@@ -591,17 +594,17 @@ export function registerCoreCommands(): void {
         updateTab(t.id, { reader: !t.reader })
       }
     },
-    { id: 'page.screenshot', title: 'Screenshot visible page', category: 'Page', icon: Camera, run: () => screenshot(false, false) },
-    { id: 'page.screenshotFull', title: 'Full-page capture', category: 'Page', icon: Camera, run: () => screenshot(true, false) },
-    { id: 'page.screenshotClipboard', title: 'Screenshot to clipboard', category: 'Page', icon: Copy, run: () => screenshot(false, true) },
+    { id: 'page.screenshot', title: 'Screenshot visible page', category: 'Page', icon: Camera, run: (a) => screenshot(false, false, a) },
+    { id: 'page.screenshotFull', title: 'Full-page capture', category: 'Page', icon: Camera, run: (a) => screenshot(true, false, a) },
+    { id: 'page.screenshotClipboard', title: 'Screenshot to clipboard', category: 'Page', icon: Copy, run: (a) => screenshot(false, true, a) },
     { id: 'page.info', title: 'Page information', category: 'Page', icon: Info, run: () => openSidePanel('pagetools') },
     {
       id: 'page.copyText',
       title: 'Copy clean page text',
       category: 'Page',
       icon: Type,
-      run: async () => {
-        const wcId = requireWeb()
+      run: async (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
         if (wcId === null) return
         const text = await invoke('guest:cleanText', wcId)
         await invoke('app:clipboardWrite', text)
@@ -630,8 +633,8 @@ export function registerCoreCommands(): void {
       title: 'Picture-in-picture video',
       category: 'Page',
       icon: PictureInPicture2,
-      run: () => {
-        const wcId = requireWeb()
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
         if (wcId !== null) invoke('guest:mediaControl', wcId, 'pip')
       }
     },
