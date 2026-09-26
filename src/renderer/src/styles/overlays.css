@@ -112,6 +112,12 @@
 
 /* ---------------------------------------------------------------- menus */
 
+.menu-shield {
+  position: fixed;
+  inset: 0;
+  -webkit-app-region: no-drag;
+}
+
 .menu {
   position: fixed;
   z-index: 2000;
@@ -121,6 +127,9 @@
   animation: pop-in 110ms var(--ease);
   max-height: calc(100vh - 20px);
   overflow-y: auto;
+}
+.menu:focus {
+  outline: none;
 }
 .menu-item {
   display: flex;

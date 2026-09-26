@@ -107,6 +107,18 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
   // crosses a sibling on its way into the submenu.
   const closeTimer = useRef<number | undefined>(undefined)
   useEffect(() => () => clearTimeout(closeTimer.current), [])
+  // Take keyboard focus (a page context menu opens while the web page holds it, so
+  // Escape and the arrow keys would otherwise go to the page) and hand it back on close.
+  useEffect(() => {
+    if (depth) return
+    const el = ref.current
+    const prev = document.activeElement as HTMLElement | null
+    el?.focus({ preventScroll: true })
+    return () => {
+      const now = document.activeElement
+      if (prev && prev !== document.body && prev.isConnected && (!now || now === document.body || el?.contains(now))) prev.focus({ preventScroll: true })
+    }
+  }, [depth])
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
@@ -142,7 +154,7 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
   }, [items, sel, onClose, depth])
 
   return (
-    <div ref={ref} className="menu pop" style={{ left: pos.left, top: pos.top, minWidth: width }} role="menu" onContextMenu={(e) => e.preventDefault()}>
+    <div ref={ref} className="menu pop" style={{ left: pos.left, top: pos.top, minWidth: width }} role="menu" tabIndex={-1} onContextMenu={(e) => e.preventDefault()}>
       {items.map((it, i) => {
         if (it.separator) return <div key={i} className="menu-sep" />
         if (it.header)
@@ -187,6 +199,29 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
   )
 }
 
+/**
+ * Transparent full-window layer placed just under a popover. Clicks on a web page
+ * go to its <webview> guest and never reach this document, so document/window
+ * mousedown listeners can't dismiss a popover from there; this layer can.
+ */
+export function ClickShield({ onDismiss, zIndex }: { onDismiss: () => void; zIndex: number }) {
+  return (
+    <div
+      className="menu-shield"
+      style={{ zIndex }}
+      onMouseDown={(e) => {
+        e.preventDefault()
+        onDismiss()
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        onDismiss()
+      }}
+      onWheel={() => onDismiss()}
+    />
+  )
+}
+
 export function MenuLayer() {
   const menu = useUi((s) => s.menu)
   useEffect(() => {
@@ -205,7 +240,14 @@ export function MenuLayer() {
     }
   }, [menu])
   if (!menu) return null
-  return <MenuList items={menu.items} x={menu.x} y={menu.y} width={menu.width} onClose={closeMenu} />
+  // Web pages live in <webview> guests whose input never reaches this document,
+  // so a transparent shield under the menu catches the dismissing click there.
+  return (
+    <>
+      <ClickShield onDismiss={closeMenu} zIndex={1999} />
+      <MenuList items={menu.items} x={menu.x} y={menu.y} width={menu.width} onClose={closeMenu} />
+    </>
+  )
 }
 
 export function Toasts() {
