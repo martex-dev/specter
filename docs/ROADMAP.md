@@ -16,6 +16,7 @@ Status reflects what is implemented and verified in the running app, not intent.
 - Video tools: speed keys (S/D/R/Z/X/G, rebindable), speed badge, per-site speed memory, speed kept across site resets, same-origin frames, media-controls and palette integration
 - Privacy Center, tracker blocking, GPC/DNT, HTTPS-first, per-site cookie/JS controls, third-party cookie blocking (approximate), security dashboard with live probes
 - Reader mode + TTS, find with regex, page tools, screenshots (visible/full page), PDF viewer, docked/detached DevTools, HTML5 fullscreen
+- Font inspector: hover tooltip, pinned detail cards with Copy CSS, the platform font Chromium rendered (DevTools protocol), fonts and web fonts on the page
 - Theme engine v2: 11 theme packs (layouts, typography, effects) × 6 palettes, custom accent, layout mix-and-match, automatic day/night or system-following themes
 - Opera-GX-style dock with app / widget / tool sections, keep-alive panels and badges
 - Vertical tabs layout (collapsible sidebar, groups, pinned grid, drag reorder)

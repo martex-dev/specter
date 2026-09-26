@@ -28,6 +28,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - Per-site permissions (camera, mic, location, notifications, clipboard, screen capture, pop-ups, cookies, JavaScript)
 - **Profiles** with isolated cookies, storage, history, bookmarks and workspaces
 - Docked or detached **Chromium DevTools**, find in page with **regex & whole-word**, reader mode with text-to-speech, built-in PDF viewer, full-page screenshots, print, save page
+- **Font inspector** (a built-in WhatFont) — hover any text to see its font, click to pin cards with the full font stack, style, weight, size, line-height, letter-spacing, colour and **Copy CSS**. It names the font Chromium actually rendered (`system-ui` → Segoe UI, the font inside a web font, emoji fallbacks), not just the first family in the stack, and lists every font and web font on the page. Palette: "Identify fonts", or right-click → Identify font
 - Session restore (lazy — only visible tabs load), crash recovery, reopen closed tabs
 - Import bookmarks & history from **Chrome, Edge, Brave, Vivaldi, Opera and Firefox**
 - Fully customisable keyboard shortcuts that also work inside web pages

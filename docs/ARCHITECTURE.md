@@ -35,8 +35,9 @@ Chromium's.
 | Pop-ups with `window.opener` (OAuth) | untrusted | separate sandboxed BrowserWindow in the same profile partition |
 
 Scripts SPECTER runs inside pages (reader mode, page stats, regex find, media
-controls, AI context) execute in an **isolated world** (`executeJavaScriptInIsolatedWorld`),
-so pages cannot observe or tamper with them.
+controls, AI context, the font inspector) execute in an **isolated world** (`executeJavaScriptInIsolatedWorld`),
+so pages cannot observe or tamper with them. UI drawn inside a page (the font inspector's cards)
+lives in a closed shadow root with its own styles.
 
 ## Source layout
 
@@ -51,9 +52,10 @@ src/
     db.ts            SQLite with per-module migrations
     ipc.ts / bus.ts / logger.ts
     services/        settings, history, bookmarks, downloads, permissions, privacy (+trackers, adblock), profiles,
-                     workspaces, page tools, search, importer, notifications, diagnostics, net (rate-limited fetch)
+                     workspaces, page tools, font inspector, search, importer, notifications, diagnostics, net (rate-limited fetch)
     modules/         ai, markets, system, knowledge, developer, automation, toolkit
   preload/           the only bridge from the UI to the main process; isolated-world preloads for web pages (ad blocker, video tools)
+  inject/            overlays the main process evaluates inside web pages (font inspector), bundled as standalone files
   renderer/src/
     stores/          browser (tabs/workspaces/layout/lifecycle), ui, settings   — separate zustand stores
     chrome/          tab strip, toolbar, omnibox (+providers), bookmarks bar, HUD/status/rail, site info

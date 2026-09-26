@@ -11,6 +11,10 @@
   The live Security dashboard (`specter://security`) *probes* each open page to confirm that Node.js
   and SPECTER's bridge are unreachable from it.
 - **Page helpers** run in an isolated JavaScript world, invisible to page scripts.
+- **Font inspector**: its overlay runs in its own isolated world and draws in a closed shadow root; it
+  has no IPC and only answers the main process. To name the font Chromium rendered, the main process
+  attaches the debugger to that tab for a few read-only DOM/CSS protocol calls when you pin a card or
+  open the page summary, then detaches.
 - **Ad blocker**: web pages get exactly two session preloads, both in the isolated world and exposing
   nothing to the page: SPECTER's scriptlet loader (`src/preload/adblock.ts`) and Ghostery's cosmetic
   filter script. They can reach only three ad-blocker channels, which the main process answers only for
