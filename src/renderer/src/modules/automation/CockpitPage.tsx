@@ -84,8 +84,10 @@ function Cockpit({ query }: PageProps) {
     setLayouts(layouts.map((l) => (l.id === layout.id ? { ...l, ...patch, updatedAt: Date.now() } : l)))
   }
   const select = (id: string) => {
-    setActiveId(id)
-    if (wanted) openPage('specter://cockpit')
+    // A window opened on a specific layout (?layout=, "New window") keeps its own
+    // choice; the shared active layout would switch every other cockpit window too.
+    if (wanted) openPage('specter://cockpit?layout=' + id)
+    else setActiveId(id)
   }
   const addLayout = (l: CockpitLayout) => {
     setLayouts([...layouts, l])
