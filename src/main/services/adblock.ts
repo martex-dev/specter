@@ -2,15 +2,19 @@
 //
 // - Network filtering runs inside privacy.ts's webRequest hooks (Electron allows
 //   one listener per event), through adblockBeforeRequest / adblockCSP.
+// - Element hiding uses Ghostery's frame preload, registered on each profile
+//   session. It runs in the page's isolated world, reports DOM classes/ids, and
+//   only talks to the two channels handled below.
 // - Lists are downloaded to <userData>/adblock, refreshed as often as each list
 //   asks, and compiled in a worker thread; the compiled engine is cached so
 //   startup costs ~10 ms.
-import { app, session as electronSession, type Session } from 'electron'
+import { app, ipcMain, session as electronSession, type IpcMainInvokeEvent, type Session } from 'electron'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FiltersEngine, Request } from '@ghostery/adblocker'
 import { FILTER_LISTS, LIST_MAX_AGE_MS, RESOURCES_URL, countRules, isAllowlisted, listMaxAge, listMirrors, type AdblockStatus } from '@shared/adblock'
+import { registrableDomain } from '@shared/domains'
 import { hostname } from '@shared/url'
 import { broadcast, handle } from '../ipc'
 import { createLogger } from '../logger'
@@ -34,6 +38,7 @@ let blockedByFilters = 0
 let building: Promise<void> | null = null
 let queued: Refresh | null = null
 let initialised = false
+const attached = new WeakSet<Session>()
 
 const dir = () => join(app.getPath('userData'), 'adblock')
 const listFile = (url: string) => join(dir(), 'lists', createHash('sha1').update(url).digest('hex').slice(0, 16) + '.txt')
@@ -195,6 +200,7 @@ let settingsTimer: ReturnType<typeof setTimeout> | undefined
 export function initAdblock(): void {
   if (initialised) return
   initialised = true
+  registerCosmeticIpc()
   if (getSetting('privacy.adblock')) {
     if (loadCachedEngine()) setTimeout(() => void rebuild('stale'), 60_000)
     else void rebuild('stale')
@@ -215,6 +221,17 @@ export function initAdblock(): void {
       broadcastStatus()
     } else if (key === 'privacy.adblockAllowlist') broadcastStatus()
   })
+}
+
+/** Registers the cosmetic-filter preload on a profile session. */
+export function attachAdblock(ses: Session): void {
+  if (attached.has(ses)) return
+  attached.add(ses)
+  try {
+    ses.registerPreloadScript({ type: 'frame', id: 'specter-adblock-cosmetics', filePath: require.resolve('@ghostery/adblocker-electron-preload') })
+  } catch (err) {
+    log.warn('could not register cosmetic filtering preload', err)
+  }
 }
 
 function active(topUrl: string): boolean {
@@ -268,6 +285,61 @@ export function adblockCSP(details: Electron.OnHeadersReceivedListenerDetails, t
   const top = details.resourceType === 'mainFrame' ? details.url : topUrl
   if (!active(top) || !engine) return undefined
   return engine.getCSPDirectives(toRequest(details, top))
+}
+
+// ------------------------------------------------------------ cosmetic filters
+
+/** The URL's real host name (the shared hostname() drops "www.", but filters like www.youtube.com##… need it). */
+function exactHost(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return ''
+  }
+}
+
+const strings = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 20_000) : undefined)
+
+/** Only tab guests and their pop-ups (profile sessions) run the cosmetic preload. */
+function fromGuest(e: IpcMainInvokeEvent): boolean {
+  const s = e.sender
+  if (s.isDestroyed() || s.session === electronSession.defaultSession) return false
+  const t = s.getType()
+  return t === 'webview' || t === 'window'
+}
+
+function registerCosmeticIpc(): void {
+  ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (e) => fromGuest(e) && !!engine?.config.enableMutationObserver)
+  ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url: unknown, msg?: { classes?: unknown; hrefs?: unknown; ids?: unknown; lifecycle?: unknown }) => {
+    if (!fromGuest(e) || typeof url !== 'string' || !/^https?:/.test(url) || !engine) return
+    if (!active(e.sender.getURL())) return
+    const host = exactHost(url)
+    const first = msg === undefined
+    const { active: on, styles } = engine.getCosmeticsFilters({
+      url,
+      hostname: host,
+      domain: registrableDomain(host),
+      classes: strings(msg?.classes),
+      hrefs: strings(msg?.hrefs),
+      ids: strings(msg?.ids),
+      getBaseRules: first,
+      // Scriptlets are left out: they must run before the page's own scripts.
+      getInjectionRules: false,
+      getExtendedRules: false,
+      getRulesFromHostname: first,
+      getRulesFromDOM: !first,
+      callerContext: { frameId: e.frameId, processId: e.processId, lifecycle: typeof msg?.lifecycle === 'string' ? msg.lifecycle : undefined }
+    })
+    if (on === false || !styles.length) return
+    const frame = e.senderFrame
+    try {
+      // insertCSS reaches the main frame only; sub-frames get a <style> element.
+      if (!frame || !frame.parent) void e.sender.insertCSS(styles, { cssOrigin: 'user' }).catch(() => {})
+      else void frame.executeJavaScript(`(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(styles)};(document.head||document.documentElement).appendChild(s)})()`).catch(() => {})
+    } catch (err) {
+      log.debug('cosmetic injection failed', err)
+    }
+  })
 }
 
 // ------------------------------------------------------------------ status

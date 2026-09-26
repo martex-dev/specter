@@ -6,7 +6,8 @@
 //     interface IpcContract { 'market:quotes': (symbols: string[]) => Quote[] }
 //   }
 //
-// Web pages (tab guests) never get a preload and cannot reach any of this.
+// Web pages (tab guests) cannot reach any of this: their only preload is the ad
+// blocker's cosmetic-filter script, which talks to its own two channels.
 
 import type {
   Bookmark,
