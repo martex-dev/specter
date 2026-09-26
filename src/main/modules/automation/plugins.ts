@@ -49,7 +49,8 @@ export function loadPlugins(): PluginInfo[] {
       try {
         if (!existsSync(file)) throw new Error('manifest.json not found')
         if (statSync(file).size > 256 * 1024) throw new Error('manifest.json is larger than 256 KB')
-        const raw = JSON.parse(readFileSync(file, 'utf8'))
+        // Notepad and PowerShell 5 save UTF-8 with a byte order mark, which JSON.parse rejects.
+        const raw = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''))
         const res = validateManifest(raw, folder, BUS_EVENT_NAMES)
         if (!res.ok) info.errors = res.errors
         else {
