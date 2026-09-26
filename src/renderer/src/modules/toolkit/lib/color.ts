@@ -51,16 +51,19 @@ function num(p: string, percentScale: number): number {
   return parseFloat(p)
 }
 
+/** Alpha 0..1, or NaN when the component isn't a number. */
 function alpha(p: string | undefined): number {
   if (p === undefined) return 1
-  return clamp(p.endsWith('%') ? parseFloat(p) / 100 : parseFloat(p), 0, 1)
+  const v = p.endsWith('%') ? parseFloat(p) / 100 : parseFloat(p)
+  return Number.isNaN(v) ? NaN : clamp(v, 0, 1)
 }
 
 function hue(p: string): number {
   const v = parseFloat(p)
+  // "grad" must be checked before "rad" (it ends with "rad" too).
+  if (p.endsWith('grad')) return v * 0.9
   if (p.endsWith('rad')) return (v * 180) / Math.PI
   if (p.endsWith('turn')) return v * 360
-  if (p.endsWith('grad')) return v * 0.9
   return v
 }
 
@@ -76,24 +79,27 @@ export function parseColor(input: string): RGBA | null {
   let a = fnArgs(s, /rgba?/)
   if (a && (a.length === 3 || a.length === 4)) {
     const [r, g, b] = a.slice(0, 3).map((p) => num(p, 255))
-    if ([r, g, b].some((v) => Number.isNaN(v))) return null
-    return { r: clamp(r, 0, 255), g: clamp(g, 0, 255), b: clamp(b, 0, 255), a: alpha(a[3]) }
+    const al = alpha(a[3])
+    if ([r, g, b, al].some((v) => Number.isNaN(v))) return null
+    return { r: clamp(r, 0, 255), g: clamp(g, 0, 255), b: clamp(b, 0, 255), a: al }
   }
   a = fnArgs(s, /hsla?/)
   if (a && (a.length === 3 || a.length === 4)) {
     const h = hue(a[0])
     const sat = parseFloat(a[1])
     const l = parseFloat(a[2])
-    if ([h, sat, l].some((v) => Number.isNaN(v))) return null
-    return { ...hslToRgb({ h, s: clamp(sat, 0, 100), l: clamp(l, 0, 100) }), a: alpha(a[3]) }
+    const al = alpha(a[3])
+    if ([h, sat, l, al].some((v) => Number.isNaN(v))) return null
+    return { ...hslToRgb({ h, s: clamp(sat, 0, 100), l: clamp(l, 0, 100) }), a: al }
   }
   a = fnArgs(s, /oklch/)
   if (a && (a.length === 3 || a.length === 4)) {
     const l = a[0].endsWith('%') ? parseFloat(a[0]) / 100 : parseFloat(a[0])
     const c = a[1].endsWith('%') ? (parseFloat(a[1]) / 100) * 0.4 : parseFloat(a[1])
     const h = a[2] === 'none' ? 0 : hue(a[2])
-    if ([l, c, h].some((v) => Number.isNaN(v))) return null
-    return { ...oklchToRgb({ l, c, h }).rgb, a: alpha(a[3]) }
+    const al = alpha(a[3])
+    if ([l, c, h, al].some((v) => Number.isNaN(v))) return null
+    return { ...oklchToRgb({ l, c, h }).rgb, a: al }
   }
   return null
 }

@@ -16,6 +16,16 @@ describe('toolkit color conversions', () => {
     expect(parseColor('#12')).toBeNull()
   })
 
+  it('handles hue units and rejects invalid alpha', () => {
+    // 200grad = 180deg (cyan), not 200 radians.
+    expect(toHex(parseColor('hsl(200grad 100% 50%)')!)).toBe('#00ffff')
+    expect(toHex(parseColor('hsl(0.5turn 100% 50%)')!)).toBe('#00ffff')
+    expect(toHex(parseColor(`hsl(${Math.PI}rad 100% 50%)`)!)).toBe('#00ffff')
+    expect(parseColor('rgb(1 2 3 / x)')).toBeNull()
+    expect(parseColor('hsl(0 100% 50% / nope)')).toBeNull()
+    expect(parseColor('rgb(1 2 3 / 20%)')!.a).toBeCloseTo(0.2, 5)
+  })
+
   it('round-trips RGB ↔ HSL', () => {
     for (const hex of ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#336699', '#a3b1ff', '#7f7f7f', '#c0ffee']) {
       const c = parseColor(hex)!
