@@ -23,6 +23,7 @@ import {
   runtimeOf,
   saveApp,
   setRuntime,
+  unloadApp,
   unregisterView,
   useRuntime,
   userAgentFor,
@@ -135,8 +136,9 @@ function WebAppView({ app, partition }: { app: WebApp; partition: string }) {
     })
     on('media-paused', () => setTimeout(() => setRuntime(id, { audible: audibleNow() }), 300))
     on('close', () => {
-      // window.close() from the page: treat as "unload".
-      window.dispatchEvent(new CustomEvent('specter:panel-unload', { detail: panelIdOf(id) }))
+      // window.close() from the page: treat as "unload". This also closes the panel
+      // if it is shown; otherwise the host would re-mount it at once (reloading the page).
+      unloadApp(id)
     })
     on('enter-html-full-screen', () => document.documentElement.classList.add('html-fullscreen'))
     on('leave-html-full-screen', () => document.documentElement.classList.remove('html-fullscreen'))
