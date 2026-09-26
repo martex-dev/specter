@@ -97,6 +97,8 @@ async function pump(): Promise<void> {
       }
       current = null
       const row = getRow(projectId)
+      // Removed while indexing: its last batches were written after the removal cleared the index.
+      if (!row) await clearIndex(projectId).catch((err) => log.warn('index cleanup failed', err))
       progress({ projectId, state, files: row?.file_count ?? 0, dirs: row?.dir_count ?? 0, contentFiles: row?.content_count ?? 0, phase: 'done' }, true)
       for (const l of onDoneListeners) l(projectId, state)
     }
