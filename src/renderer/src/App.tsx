@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { ThemeId } from '@shared/settings'
 import { RotateCcw, X } from 'lucide-react'
 import { bindingIndex, eventToAccelerator, isChord, resolveBindings } from '@shared/keys'
 import { isInternal } from '@shared/url'
 import { invoke, invokeRaw, on } from './lib/ipc'
 import { runCommand } from './lib/commands'
-import { applyTheme } from './lib/themes'
+import { applyTheme, overlayColor } from './lib/themes'
 import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, updateTab } from './stores/browser'
 import { useSetting, useSettingsStore } from './stores/settings'
 import { closeOverlay, toast, useUi } from './stores/ui'
@@ -12,7 +13,9 @@ import { tabIdForWcId } from './lib/webviews'
 import { TabStrip, WorkspacePill } from './chrome/TabStrip'
 import { Toolbar } from './chrome/Toolbar'
 import { BookmarkBar } from './chrome/BookmarkBar'
-import { Hud, SidePanelHost, SideRail, StatusBar } from './chrome/Frame'
+import { Hud, StatusBar } from './chrome/Frame'
+import { Dock, SidePanelHost, useDockSide } from './chrome/Dock'
+import { VerticalTabs } from './chrome/VerticalTabs'
 import { ContentArea } from './content/ContentArea'
 import { handleGuestCrash, handleGuestUnresponsive } from './content/PaneBars'
 import { CommandPalette } from './overlays/CommandPalette'
@@ -34,8 +37,14 @@ export function App() {
   const showStatus = useSetting('appearance.showStatusBar')
   const showHud = useSetting('appearance.showHud')
   const showRail = useSetting('appearance.showSideRail')
-  const theme = useSetting('appearance.theme')
+  const verticalTabs = useSetting('appearance.verticalTabs')
+  const dockSide = useDockSide()
+  const chosenTheme = useSetting('appearance.theme')
+  const theme = useAutoTheme(chosenTheme)
+  const palette = useSetting('appearance.palette')
   const accent = useSetting('appearance.accent')
+  const layoutOverride = useSetting('appearance.layout')
+  const effects = useSetting('appearance.effects')
   const font = useSetting('appearance.fontFamily')
   const motion = useSetting('appearance.motion')
   const density = useSetting('appearance.density')
@@ -47,15 +56,16 @@ export function App() {
 
   // Theme, motion and density → document + native title bar.
   useEffect(() => {
-    const t = applyTheme(theme, accent, font)
-    invoke('window:setTitleBarOverlay', { color: t.bg0, symbolColor: t.fg1, height: density === 'compact' ? 36 : 40 }).catch(() => undefined)
-  }, [theme, accent, font, density])
+    const t = applyTheme(theme, palette, accent, font, layoutOverride)
+    invoke('window:setTitleBarOverlay', { color: overlayColor(t.palette.bg0), symbolColor: t.palette.fg1, height: density === 'compact' ? 36 : 40 }).catch(() => undefined)
+  }, [theme, palette, accent, font, layoutOverride, density])
   useEffect(() => {
     // ML / battery modes reduce animation cost automatically.
     const effective = motion === 'full' && (perfMode === 'ml' || perfMode === 'battery' || perfMode === 'gaming') ? 'reduced' : motion
     document.documentElement.dataset.motion = effective
     document.documentElement.dataset.density = density
-  }, [motion, density, perfMode])
+    document.documentElement.dataset.effects = effects && effective === 'full' ? 'on' : 'off'
+  }, [motion, density, perfMode, effects])
 
   // Window title follows the active tab.
   useEffect(() => {
@@ -154,17 +164,21 @@ export function App() {
   const classes = ['app', focusMode && 'focus', fullscreen && 'fullscreen'].filter(Boolean).join(' ')
   return (
     <div className={classes}>
+      <div className="app-backdrop" aria-hidden="true" />
       <header className="titlebar">
         <button className="brand" onClick={() => runCommand('palette.open')} data-tip="SPECTER — command palette" data-kbd="Ctrl+K" aria-label="SPECTER menu">
           <SpecterMark size={18} />
         </button>
         <WorkspacePill />
-        <TabStrip />
+        {verticalTabs ? <div className="drag" style={{ flex: 1, alignSelf: 'stretch' }} /> : <TabStrip />}
         {showHud && !focusMode && <Hud />}
       </header>
       <Toolbar />
       {showBookmarks && !focusMode ? <BookmarkBar /> : <div className="toolbar-bottom-line" />}
-      <main className="main">
+      <main className={'main dock-' + dockSide}>
+        {dockSide === 'left' && showRail && !focusMode && <Dock />}
+        {dockSide === 'left' && <SidePanelHost />}
+        {verticalTabs && !focusMode && <VerticalTabs />}
         <section className="content">
           {restorePrompt && !restorePrompt.crashed && (
             <div className="infobar" style={{ background: 'var(--bg-2)' }}>
@@ -206,8 +220,8 @@ export function App() {
           <ContentArea />
           {hoverUrl && !isInternal(hoverUrl) && <div className="hover-url">{hoverUrl}</div>}
         </section>
-        <SidePanelHost />
-        {showRail && !focusMode && <SideRail />}
+        {dockSide === 'right' && <SidePanelHost />}
+        {dockSide === 'right' && showRail && !focusMode && <Dock />}
       </main>
       {showStatus && !focusMode && <StatusBar />}
 
@@ -232,6 +246,37 @@ const bridgeEvents: Record<string, string> = {
   TAB_CLOSED: 'specter:tab-closed',
   WORKSPACE_CHANGED: 'specter:workspace-changed',
   PAGE_LOADED: 'specter:page-navigated'
+}
+
+/** Applies automatic theme switching (system light/dark or a daily schedule). */
+function useAutoTheme(chosen: ThemeId): ThemeId {
+  const auto = useSetting('appearance.auto')
+  const [now, setNow] = useState(() => new Date())
+  const [systemDark, setSystemDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  useEffect(() => {
+    if (auto.mode === 'off') return
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    const mq = matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => setSystemDark(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => {
+      clearInterval(t)
+      mq.removeEventListener('change', onChange)
+    }
+  }, [auto.mode])
+  if (auto.mode === 'system') return systemDark ? auto.nightTheme : auto.dayTheme
+  if (auto.mode === 'schedule') {
+    const mins = now.getHours() * 60 + now.getMinutes()
+    const parse = (s: string) => {
+      const [h, m] = s.split(':').map(Number)
+      return (h || 0) * 60 + (m || 0)
+    }
+    const day = parse(auto.dayStart)
+    const night = parse(auto.nightStart)
+    const isDay = day <= night ? mins >= day && mins < night : mins >= day || mins < night
+    return isDay ? auto.dayTheme : auto.nightTheme
+  }
+  return chosen
 }
 
 export function useSettingsLoaded(): boolean {
