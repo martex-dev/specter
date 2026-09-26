@@ -515,23 +515,33 @@ function FilesTab({ project, initialFile }: { project: ProjectInfo; initialFile:
 
   useEffect(() => {
     if (!q.trim()) return setHits(null)
+    let alive = true
     const t = window.setTimeout(() => {
       invoke('projects:searchFiles', q, { projectId: project.id, limit: 80 })
-        .then(setHits)
-        .catch(() => setHits([]))
+        .then((h) => alive && setHits(h))
+        .catch(() => alive && setHits([]))
     }, 90)
-    return () => window.clearTimeout(t)
+    return () => {
+      alive = false
+      window.clearTimeout(t)
+    }
   }, [q, project.id])
 
   useEffect(() => {
     setContent(null)
     if (!file) return
+    // A slow read of a previously clicked file must not replace the one selected now.
+    let alive = true
     invoke('projects:readFile', project.id, file)
-      .then(setContent)
+      .then((c) => alive && setContent(c))
       .catch((e) => {
+        if (!alive) return
         setContent(null)
         toast({ kind: 'error', title: 'Cannot open file', body: errMsg(e) })
       })
+    return () => {
+      alive = false
+    }
   }, [file, project.id])
 
   const lines = useMemo(() => {
@@ -638,12 +648,16 @@ function SearchTab({ project }: { project: ProjectInfo }) {
   useEffect(() => inputRef.current?.focus(), [])
   useEffect(() => {
     if (!q.trim()) return setHits(null)
+    let alive = true
     const t = window.setTimeout(() => {
       invoke('projects:searchContent', q, { projectId: project.id, limit: 100 })
-        .then(setHits)
-        .catch(() => setHits([]))
+        .then((h) => alive && setHits(h))
+        .catch(() => alive && setHits([]))
     }, 150)
-    return () => window.clearTimeout(t)
+    return () => {
+      alive = false
+      window.clearTimeout(t)
+    }
   }, [q, project.id])
 
   if (!project.contentIndex)
