@@ -196,7 +196,8 @@ export function addTx(input: PortfolioTxInput): PortfolioTx {
 
 export function updateTx(id: string, input: PortfolioTxInput): void {
   const t = validateTx(input)
-  run('UPDATE portfolio_tx SET asset = ?, type = ?, quantity = ?, price = ?, fee = ?, date = ?, note = ? WHERE id = ?', t.asset, t.type, t.quantity, t.price, t.fee, t.date, t.note ?? null, id)
+  const r = run('UPDATE portfolio_tx SET asset = ?, type = ?, quantity = ?, price = ?, fee = ?, date = ?, note = ? WHERE id = ?', t.asset, t.type, t.quantity, t.price, t.fee, t.date, t.note ?? null, id)
+  if (!r.changes) throw new Error('This transaction no longer exists (it was deleted)')
 }
 
 export function deleteTx(id: string): void {

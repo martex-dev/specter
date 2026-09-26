@@ -229,7 +229,10 @@ function Portfolio(_: PageProps) {
                       <button
                         className="icon-btn sm"
                         onClick={async () => {
-                          if (await confirmAction('Delete transaction?', `${TX_LABEL[t.type]} ${t.quantity} ${t.asset} @ ${t.price}`, 'Delete', true)) invoke('portfolio:delete', t.id)
+                          if (!(await confirmAction('Delete transaction?', `${TX_LABEL[t.type]} ${t.quantity} ${t.asset} @ ${t.price}`, 'Delete', true))) return
+                          await invoke('portfolio:delete', t.id)
+                          // The edit form must not keep "saving" a transaction that no longer exists.
+                          setEditing((e) => (e?.id === t.id ? null : e))
                         }}
                         data-tip="Delete"
                         aria-label="Delete"
