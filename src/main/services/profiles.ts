@@ -64,6 +64,14 @@ export function registerProfilesIpc(): void {
     } catch {
       /* webapps module not initialised */
     }
+    // Saved passwords and "never save" sites (tables owned by the password manager).
+    for (const table of ['logins', 'login_never']) {
+      try {
+        run(`DELETE FROM ${table} WHERE profile_id = ?`, id)
+      } catch {
+        /* password manager not initialised */
+      }
+    }
     run('DELETE FROM profiles WHERE id = ?', id)
   })
   handle('profiles:openWindow', (_e, id) => {

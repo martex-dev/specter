@@ -950,7 +950,7 @@ function ProfilesSection() {
               <button
                 className="btn sm danger"
                 onClick={async () => {
-                  if (await confirmAction(`Delete profile “${p.name}”?`, 'All its cookies, history, bookmarks and workspaces are deleted.', 'Delete', true)) {
+                  if (await confirmAction(`Delete profile “${p.name}”?`, 'All its cookies, history, bookmarks, workspaces and saved passwords are deleted.', 'Delete', true)) {
                     await invoke('profiles:delete', p.id)
                     load()
                   }
