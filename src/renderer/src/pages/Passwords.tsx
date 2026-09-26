@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Ban, Copy, Download, Eye, EyeOff, KeyRound, Pencil, Plus, Search, ShieldCheck, Trash2, Upload, X } from 'lucide-react'
-import type { SavedLogin } from '@shared/passwords'
+import { AlertTriangle, Ban, Copy, Download, ExternalLink, Eye, EyeOff, KeyRound, Pencil, Plus, Search, ShieldCheck, Trash2, Upload, X } from 'lucide-react'
+import type { PasswordHealth, SavedLogin, WeakReason } from '@shared/passwords'
 import { invoke, ipcErrorText, on } from '../lib/ipc'
 import { Favicon, Modal, Switch } from '../components/ui'
 import { confirmAction } from '../components/prompt'
 import { PasswordImport } from '../components/PasswordImport'
 import { setSetting, useSetting } from '../stores/settings'
+import { newTab } from '../stores/browser'
 import { toast } from '../stores/ui'
 import type { PageProps } from './registry'
 
@@ -118,6 +119,8 @@ export default function Passwords(_: PageProps) {
         </div>
       </div>
 
+      {count > 0 && <PasswordCheck logins={list ?? []} onEdit={setEditing} />}
+
       {count > 0 && (
         <div className="section">
           <div className="row" style={{ position: 'relative', marginBottom: 10 }}>
@@ -163,6 +166,80 @@ export default function Passwords(_: PageProps) {
       )}
 
       {editing && <EditLogin login={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+    </div>
+  )
+}
+
+const WEAK_LABEL: Record<WeakReason, string> = {
+  common: 'one of the most common passwords',
+  short: 'shorter than 8 characters',
+  simple: 'easy to guess (one kind of character or a simple pattern)',
+  username: 'contains your username'
+}
+
+/** Weak and reused passwords, checked on this PC (nothing is sent anywhere). */
+function PasswordCheck({ logins, onEdit }: { logins: SavedLogin[]; onEdit: (l: SavedLogin) => void }) {
+  const [health, setHealth] = useState<PasswordHealth | null>(null)
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    invoke('passwords:check').then(setHealth).catch(() => setHealth(null))
+  }, [logins])
+  if (!health) return null
+  const byId = new Map(logins.map((l) => [l.id, l]))
+  const reusedIds = new Set(health.reused.flat())
+  const issues = health.weak.length + reusedIds.size
+  const Item = ({ id, why }: { id: string; why: string }) => {
+    const l = byId.get(id)
+    if (!l) return null
+    return (
+      <div className="pw-row">
+        <span className="pw-user ellipsis">
+          <b>{siteLabel(l.origin)}</b> · {l.username || <span className="muted">(no username)</span>}
+        </span>
+        <span className="muted ellipsis" style={{ gridColumn: 'span 2', fontSize: 12 }}>
+          {why}
+        </span>
+        <div className="row pw-actions" style={{ opacity: 1 }}>
+          <button className="btn sm ghost" onClick={() => newTab(l.url || l.origin)} data-tip="Open the site to change the password there">
+            <ExternalLink size={12} /> Change on site
+          </button>
+          <button className="icon-btn sm" onClick={() => onEdit(l)} data-tip="Edit the saved password" aria-label="Edit">
+            <Pencil size={13} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="section">
+      <div className="card pw-check">
+        <div className="row" style={{ gap: 10, padding: '12px 14px' }}>
+          {issues ? <AlertTriangle size={16} className="warn" /> : <ShieldCheck size={16} className="ok" />}
+          <div className="grow">
+            <div style={{ fontWeight: 600 }}>Password check</div>
+            <div className="muted" style={{ fontSize: 12 }}>
+              {issues
+                ? `${health.weak.length} weak · ${reusedIds.size} reused on more than one site — checked on this PC, nothing is sent anywhere`
+                : `All ${health.checked} passwords look strong and unique — checked on this PC`}
+            </div>
+          </div>
+          {issues > 0 && (
+            <button className="btn sm" onClick={() => setOpen((v) => !v)}>
+              {open ? 'Hide' : 'Review'}
+            </button>
+          )}
+        </div>
+        {open && (
+          <div style={{ borderTop: '1px solid var(--line)', padding: '4px 0 8px' }}>
+            {health.weak.map((w) => (
+              <Item key={'w' + w.id} id={w.id} why={`Weak: ${WEAK_LABEL[w.reason]}`} />
+            ))}
+            {health.reused.map((group) =>
+              group.map((id) => <Item key={'r' + id} id={id} why={`Reused on ${group.length - 1} other site${group.length > 2 ? 's' : ''}`} />)
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
