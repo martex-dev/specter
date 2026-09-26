@@ -10,6 +10,7 @@ import {
   CrosshairMode,
   HistogramSeries,
   LineSeries,
+  TickMarkType,
   type IChartApi,
   type ISeriesApi,
   type MouseEventParams,
@@ -49,6 +50,33 @@ function baseOptions() {
   }
 }
 
+/**
+ * Intraday bars are labelled in local time; daily / weekly bars open at 00:00
+ * UTC and stand for a UTC calendar day, so they keep their UTC date (in a
+ * negative-offset timezone local time would show the previous day).
+ */
+function timeLabel(sec: number, utcDates: boolean): string {
+  const d = new Date(sec * 1000)
+  return utcDates ? d.toLocaleDateString([], { timeZone: 'UTC', year: 'numeric', month: 'short', day: '2-digit' }) : d.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+function localTickMark(time: Time, type: TickMarkType): string | null {
+  if (typeof time !== 'number') return null
+  const d = new Date(time * 1000)
+  switch (type) {
+    case TickMarkType.Year:
+      return String(d.getFullYear())
+    case TickMarkType.Month:
+      return d.toLocaleDateString([], { month: 'short' })
+    case TickMarkType.DayOfMonth:
+      return String(d.getDate())
+    case TickMarkType.Time:
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    default:
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  }
+}
+
 interface Legend {
   time: number
   o: number
@@ -59,7 +87,7 @@ interface Legend {
 }
 
 /** Price chart: candlesticks / line / area + optional volume histogram, zoom, pan and crosshair. */
-export function PriceChart({ candles, kind, showVolume, height = 420, resetKey }: { candles: Candle[]; kind: ChartKind; showVolume: boolean; height?: number; resetKey: string }) {
+export function PriceChart({ candles, kind, showVolume, height = 420, resetKey, utcDates = false }: { candles: Candle[]; kind: ChartKind; showVolume: boolean; height?: number; resetKey: string; utcDates?: boolean }) {
   const el = useRef<HTMLDivElement>(null)
   const chart = useRef<IChartApi | null>(null)
   const main = useRef<ISeriesApi<SeriesType> | null>(null)
@@ -87,6 +115,14 @@ export function PriceChart({ candles, kind, showVolume, height = 420, resetKey }
       vol.current = null
     }
   }, [])
+
+  // Axis and crosshair labels use the same clock as the OHLC legend (the library defaults to UTC).
+  useEffect(() => {
+    chart.current?.applyOptions({
+      localization: { timeFormatter: (t: Time) => (typeof t === 'number' ? timeLabel(t, utcDates) : String(t)) },
+      timeScale: { tickMarkFormatter: (t: Time, type: TickMarkType) => (utcDates ? null : localTickMark(t, type)) }
+    })
+  }, [utcDates])
 
   // (Re)build series when the kind or volume toggle changes.
   useEffect(() => {
@@ -137,7 +173,7 @@ export function PriceChart({ candles, kind, showVolume, height = 420, resetKey }
       <div ref={el} className="mk-chart-canvas" />
       {lg && (
         <div className="mk-legend mono num">
-          <span className="dim">{new Date(lg.time * 1000).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="dim">{timeLabel(lg.time, utcDates)}</span>
           <span>
             O <b>{px(lg.o)}</b>
           </span>

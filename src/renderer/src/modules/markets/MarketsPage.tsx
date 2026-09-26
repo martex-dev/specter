@@ -252,7 +252,7 @@ function ChartCard({ symbol, q, err, onAlert }: { symbol: string; q: Quote | und
         </button>
       </div>
       <div className="mk-chart-wrap">
-        <PriceChart candles={candles} kind={kind} showVolume={showVol && (current?.hasVolume ?? true)} resetKey={symbol + tf} height={430} />
+        <PriceChart candles={candles} kind={kind} showVolume={showVol && (current?.hasVolume ?? true)} resetKey={symbol + tf} height={430} utcDates={TIMEFRAME_SECONDS[tf] >= 86400} />
         {!candles.length && (
           <div className="mk-chart-empty">
             {loading && !current ? (
