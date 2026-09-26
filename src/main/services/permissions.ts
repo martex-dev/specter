@@ -62,11 +62,24 @@ function ask(wc: WebContents, origin: string, perms: string[], details?: string)
   if (!host) return Promise.resolve(false)
   return new Promise((resolve) => {
     const requestId = uid('perm_')
+    // Only a real page change cancels the prompt: iframes loading and SPA
+    // pushState/hash navigations must not auto-deny it.
+    const onNavigate = (details: Electron.Event<Electron.WebContentsDidStartNavigationEventParams>) => {
+      if (details.isMainFrame && !details.isSameDocument) finish(requestId, false)
+    }
+    const onDestroyed = () => finish(requestId, false)
+    const done = (ok: boolean) => {
+      if (!wc.isDestroyed()) {
+        wc.off('did-start-navigation', onNavigate)
+        wc.off('destroyed', onDestroyed)
+      }
+      resolve(ok)
+    }
     const timer = setTimeout(() => finish(requestId, false), 120_000)
-    pending.set(requestId, { resolve, origin, permissions: perms, timer, wcId: wc.id })
+    pending.set(requestId, { resolve: done, origin, permissions: perms, timer, wcId: wc.id })
     sendTo(host.id, 'permissions:request', { requestId, webContentsId: wc.id, origin, permission: perms.join('+'), details })
-    wc.once('did-start-navigation', () => finish(requestId, false))
-    wc.once('destroyed', () => finish(requestId, false))
+    wc.on('did-start-navigation', onNavigate)
+    wc.once('destroyed', onDestroyed)
   })
 }
 
