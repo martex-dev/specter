@@ -14,13 +14,13 @@ Status reflects what is implemented and verified in the running app, not intent.
 - Command palette, customisable shortcuts (UI and in-page), help, onboarding
 - Privacy Center, tracker blocking, GPC/DNT, HTTPS-first, per-site cookie/JS controls, third-party cookie blocking (approximate), security dashboard with live probes
 - Reader mode + TTS, find with regex, page tools, screenshots (visible/full page), PDF viewer, docked/detached DevTools, HTML5 fullscreen
-- Theme engine v2: 6 theme packs (layouts, typography, effects) × 6 palettes, custom accent, layout mix-and-match, automatic day/night or system-following themes
+- Theme engine v2: 11 theme packs (layouts, typography, effects) × 6 palettes, custom accent, layout mix-and-match, automatic day/night or system-following themes
 - Opera-GX-style dock with app / widget / tool sections, keep-alive panels and badges
 - Vertical tabs layout (collapsible sidebar, groups, pinned grid, drag reorder)
 - Sidebar web apps (20-app catalog + custom), unread badges, mobile/desktop layouts
 - Widgets: weather, RSS news, world clocks, calendar (.ics import, reminders), speed test, currency, sticky notes, countdowns
 - GX Control: RAM / network / CPU limiters, hot tabs, browser sounds, new-tab wallpapers
-- Diagnostics, log viewer, measured performance metrics, opt-in update checker (GitHub Releases)
+- Diagnostics, log viewer, measured performance metrics, auto-updates for the installed Windows build (electron-updater + GitHub Releases), notify-only release check for portable builds
 - Modules: local AI (Ollama), notes/research/knowledge (+ semantic search), markets/crypto/finance, system monitor, developer (projects, Git, terminal), toolkit, automation/plugins/media/widgets/cockpit
 - Windows installer + portable build
 

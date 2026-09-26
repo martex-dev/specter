@@ -35,13 +35,19 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - **Workspaces** (`Ctrl+Shift+W`) with snapshots, compare, export (JSON / Markdown / HTML)
 - **Split view**: 50/50, 33/67, 67/33, 25/75, rows, three-column, quadrant, four-panel, draggable splitters, saved layouts
 - **Tab sleeping** with a lifecycle (active → background → idle → sleeping) and a dashboard showing memory actually released
-- **6 complete theme packs**, each with its own layout, tab shape, typography and effects, plus 6 palettes each and a custom accent:
+- **11 complete theme packs**, each with its own layout, tab shape, typography and effects, plus 6 palettes each and a custom accent:
   - **Specter** — refined graphite, connected tabs
   - **Neon** — GX-style gamer HUD: angled tabs, glowing edges, left dock, Bahnschrift
   - **Aurora** — frosted glass over a living gradient, floating pill tabs, floating page card
   - **Terminal** — phosphor CRT: monospace, `[1:tab]` bracket tabs, scanlines, blinking prompt
   - **Paper** — editorial light theme: serif headlines, underlined tabs, hairline rules
   - **Synthwave** — outrun sunset, neon grid floor, retro sun, chunky gradient tabs
+  - **Blueprint** — technical drawing: grid paper, drafting-sheet tabs with dimension lines, a plotter sweeping the sheet
+  - **Brutal** — neo-brutalist: thick black borders, hard offset shadows, sticker tabs, a marquee strip
+  - **Retro** — classic desktop: bevelled buttons, gradient title bars, checkered pressed tabs, teal wallpaper
+  - **Holo** — iridescent chrome: pearl surfaces, prism borders that rotate, shimmering chrome type
+  - **Glitch** — corrupted signal: RGB-split type, notched panels, tearing scanlines, a clock that glitches
+- Micro-interactions throughout: circular reveal when switching themes, click ripples, cursor spotlight and 3D tilt on cards, a magnifying dock, animated new-tab entrance and a launch splash (all off with reduced motion)
 - Mix-and-match layout (tab style, floating frame, centered address bar, dock side), automatic theme switching (follow Windows or a day/night schedule), density, reduced motion
 - **Vertical tabs** (optional): collapsible tab sidebar with groups, a pinned-tab grid, drag reorder and hover expansion
 - Focus mode, pop-out tool panels, quick capture, "Save to SPECTER", notification center
@@ -69,6 +75,11 @@ An Opera-GX-style dock on the left or right, split into **apps / widgets / tools
   <img src="docs/screenshots/theme-terminal.png" alt="Terminal theme with the calendar widget" width="440" />
   <img src="docs/screenshots/theme-paper-control.png" alt="Paper theme with GX Control" width="440" />
   <img src="docs/screenshots/web-apps.png" alt="Sidebar web apps" width="440" />
+  <img src="docs/screenshots/theme-blueprint.png" alt="Blueprint theme" width="440" />
+  <img src="docs/screenshots/theme-brutal.png" alt="Brutal theme" width="440" />
+  <img src="docs/screenshots/theme-retro.png" alt="Retro theme with the calendar widget" width="440" />
+  <img src="docs/screenshots/theme-holo.png" alt="Holo theme with the weather widget" width="440" />
+  <img src="docs/screenshots/theme-glitch.png" alt="Glitch theme with GX Control" width="440" />
   <img src="docs/screenshots/markets.png" alt="Markets page" width="440" />
   <img src="docs/screenshots/ai-sidebar.png" alt="Local AI sidebar" width="440" />
   <img src="docs/screenshots/system-monitor.png" alt="System monitor" width="440" />
