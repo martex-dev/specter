@@ -23,6 +23,11 @@ export function webviewFor(tabId: string | undefined): WebviewTag | null {
   return views.get(tabId) ?? null
 }
 
+/** The mounted webview element even before its first dom-ready (only its src may be set). */
+export function webviewElementFor(tabId: string): WebviewTag | null {
+  return views.get(tabId) ?? null
+}
+
 export function wcIdFor(tabId: string | undefined): number | null {
   const wv = webviewFor(tabId)
   if (!wv) return null

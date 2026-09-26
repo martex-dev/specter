@@ -6,7 +6,7 @@ import type { GroupColor, PermissionRequest, Profile, SplitLayout, SplitPreset, 
 import { detectPageKind, interpretInput, isInternal } from '@shared/url'
 import { searchUrl, SUSPEND_MS } from '@shared/settings'
 import { invoke } from '../lib/ipc'
-import { webviewFor, wcIdFor } from '../lib/webviews'
+import { webviewElementFor, webviewFor, wcIdFor } from '../lib/webviews'
 import { getSetting } from './settings'
 import { record } from '../lib/perf'
 import { getPage } from '../pages/registry'
@@ -436,11 +436,15 @@ export function loadUrl(tabId: string, url: string): void {
   const goingInternal = isInternal(url)
   const wv = webviewFor(tabId)
   if (goingInternal) {
-    updateTab(tabId, { url, title: internalTitle(url), favicon: undefined, error: undefined, crashed: undefined, reader: false, loading: false })
+    // The page's webview (and its history) goes away, so its back/forward state is stale.
+    updateTab(tabId, { url, title: internalTitle(url), favicon: undefined, error: undefined, crashed: undefined, reader: false, loading: false, canGoBack: false, canGoForward: false })
     return
   }
   if (wasInternal || !wv || f.tab.suspended || f.tab.crashed) {
-    // The webview mounts with this URL as its initial src.
+    // A webview that is still attaching ignores loadURL: retarget its src instead.
+    const pending = !wasInternal && !f.tab.suspended && !f.tab.crashed ? webviewElementFor(tabId) : null
+    if (pending) pending.src = url
+    // Otherwise the webview mounts with this URL as its initial src.
     updateTab(tabId, { url, suspended: false, crashed: undefined, error: undefined, internalBack: wasInternal ? f.tab.url : f.tab.internalBack, loading: true, reader: false })
     return
   }
