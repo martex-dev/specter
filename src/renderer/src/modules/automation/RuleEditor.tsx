@@ -51,6 +51,11 @@ function defaultAction(type: ActionType, workspaceName: string): AutomationActio
   }
 }
 
+// Stable React keys for action rows: ActionFields keeps local state (the args
+// text), so index keys would show one action's args on another after a move/remove.
+let actionKeySeq = 0
+const actionKey = () => 'a' + ++actionKeySeq
+
 function Field({ label, children, grow }: { label: string; children: React.ReactNode; grow?: boolean }) {
   return (
     <label className={'ae-field' + (grow ? ' grow' : '')}>
@@ -220,6 +225,7 @@ function ActionFields({ a, onChange }: { a: AutomationAction; onChange: (a: Auto
 
 export function RuleEditor({ initial, onClose, onSaved }: { initial: AutomationRuleInput; onClose: () => void; onSaved: () => void }) {
   const [rule, setRule] = useState<AutomationRuleInput>(() => structuredClone(initial))
+  const [keys, setKeys] = useState<string[]>(() => initial.actions.map(actionKey))
   const [events, setEvents] = useState<string[]>(Object.keys(EVENT_CATALOG))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -234,12 +240,18 @@ export function RuleEditor({ initial, onClose, onSaved }: { initial: AutomationR
   const fields = t.type === 'event' ? EVENT_CATALOG[t.event]?.fields ?? [] : []
   const setTrigger = (trigger: AutomationTrigger) => setRule({ ...rule, trigger })
   const setCond = (i: number, c: AutomationCondition | null) => setRule({ ...rule, conditions: c ? rule.conditions.map((x, j) => (j === i ? c : x)) : rule.conditions.filter((_, j) => j !== i) })
-  const setAction = (i: number, a: AutomationAction | null) => setRule({ ...rule, actions: a ? rule.actions.map((x, j) => (j === i ? a : x)) : rule.actions.filter((_, j) => j !== i) })
+  const setAction = (i: number, a: AutomationAction | null) => {
+    if (!a) setKeys(keys.filter((_, j) => j !== i))
+    setRule({ ...rule, actions: a ? rule.actions.map((x, j) => (j === i ? a : x)) : rule.actions.filter((_, j) => j !== i) })
+  }
   const move = (i: number, d: -1 | 1) => {
     const next = [...rule.actions]
+    const nextKeys = [...keys]
     const j = i + d
     if (j < 0 || j >= next.length) return
     ;[next[i], next[j]] = [next[j], next[i]]
+    ;[nextKeys[i], nextKeys[j]] = [nextKeys[j], nextKeys[i]]
+    setKeys(nextKeys)
     setRule({ ...rule, actions: next })
   }
 
@@ -402,12 +414,19 @@ export function RuleEditor({ initial, onClose, onSaved }: { initial: AutomationR
           <div className="ae-section-h">
             <span className="ae-step">3</span> Do
             <span className="spacer" />
-            <button className="btn sm ghost" disabled={rule.actions.length >= 20} onClick={() => setRule({ ...rule, actions: [...rule.actions, defaultAction('notify', workspaces[0]?.name ?? '')] })}>
+            <button
+              className="btn sm ghost"
+              disabled={rule.actions.length >= 20}
+              onClick={() => {
+                setKeys([...keys, actionKey()])
+                setRule({ ...rule, actions: [...rule.actions, defaultAction('notify', workspaces[0]?.name ?? '')] })
+              }}
+            >
               <Plus size={12} /> Action
             </button>
           </div>
           {rule.actions.map((a, i) => (
-            <div key={i} className="ae-action">
+            <div key={keys[i] ?? i} className="ae-action">
               <span className="ae-index mono">{i + 1}</span>
               <div className="grow col" style={{ gap: 8 }}>
                 <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
