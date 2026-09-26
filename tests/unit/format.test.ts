@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+// @ts-ignore -- pure renderer lib; tsconfig.node.json does not include src/renderer (TS6307)
 import { pct } from '../../src/renderer/src/lib/format'
 
 describe('pct', () => {
