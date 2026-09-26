@@ -6,6 +6,7 @@ import { THEMES, resolveTheme, type Palette, type TabStyle, type ThemeDef } from
 import { setSetting, useSetting } from '../stores/settings'
 import { Seg, Switch } from './ui'
 import { getCommand } from '../lib/commands'
+import { switchTheme } from '../lib/fx'
 
 function MiniTabs({ style, p }: { style: TabStyle; p: Palette }) {
   const tab = (active: boolean, i: number) => {
@@ -24,6 +25,16 @@ function MiniTabs({ style, p }: { style: TabStyle; p: Palette }) {
         )
       case 'underline':
         return <i key={i} style={{ ...base, height: 10, borderBottom: `2px solid ${active ? p.accent : 'transparent'}`, background: 'transparent', boxShadow: `inset 0 -5px 0 -4px ${p.fg3}` }} />
+      case 'sheet':
+        return <i key={i} style={{ ...base, height: 11, border: `1px ${active ? 'solid' : 'dashed'} ${active ? p.accent : p.lineStrong}`, borderBottom: 'none', background: active ? p.bg1 : 'transparent', boxShadow: active ? `0 -3px 0 -2px ${p.accent}` : undefined }} />
+      case 'sticker':
+        return <i key={i} style={{ ...base, height: 10, border: `1.5px solid ${p.fg0}`, background: active ? p.accent : p.bg2, boxShadow: `2px 2px 0 ${p.fg0}`, transform: active ? 'rotate(-3deg)' : undefined, marginRight: 2 }} />
+      case 'bevel':
+        return <i key={i} style={{ ...base, height: 10, background: active ? `repeating-conic-gradient(#fff 0 25%, ${p.bg1} 0 50%) 0 0 / 2px 2px` : p.bg1, boxShadow: active ? `inset 1px 1px ${p.lineStrong}, inset -1px -1px #fff` : `inset -1px -1px ${p.lineStrong}, inset 1px 1px #fff` }} />
+      case 'holo':
+        return <i key={i} style={{ ...base, height: 10, borderRadius: 6, border: '1.5px solid transparent', background: `linear-gradient(${p.bg2}, ${p.bg2}) padding-box, ${active ? `linear-gradient(115deg, ${p.accent}, ${p.accent3 ?? p.accent2}, ${p.accent2})` : p.lineStrong} border-box`, marginTop: 1 }} />
+      case 'notch':
+        return <i key={i} style={{ ...base, clipPath: 'polygon(0 0, 78% 0, 100% 35%, 100% 100%, 0 100%)', background: active ? p.bg1 : p.bg2, borderLeft: active ? `2px solid ${p.accent}` : undefined, boxShadow: active ? `2px 0 0 ${p.accent2} inset` : undefined }} />
       case 'block':
         return <i key={i} style={{ ...base, height: 11, borderRadius: 5, background: active ? `linear-gradient(90deg, ${p.accent}, ${p.accent2})` : p.bg3, boxShadow: active ? `0 0 10px ${hexGlow(p.accent)}` : undefined }} />
       default:
@@ -44,6 +55,11 @@ function backdrop(t: ThemeDef, p: Palette): string {
   if (t.id === 'aurora') return `radial-gradient(120% 90% at 10% 0%, ${p.accent}55, transparent 60%), radial-gradient(90% 90% at 100% 20%, ${p.accent2}66, transparent 60%), radial-gradient(90% 70% at 50% 110%, ${p.accent3 ?? p.accent}55, transparent 60%), ${p.bg0}`
   if (t.id === 'synthwave') return `linear-gradient(180deg, ${p.bg0} 0%, ${p.bg2} 55%, ${p.accent}44 100%)`
   if (t.id === 'terminal') return `repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px), ${p.bg0}`
+  if (t.id === 'blueprint') return `linear-gradient(${p.line} 1px, transparent 1px) 0 0 / 12px 12px, linear-gradient(90deg, ${p.line} 1px, transparent 1px) 0 0 / 12px 12px, ${p.bg0}`
+  if (t.id === 'brutal') return `radial-gradient(${p.fg0}33 1px, transparent 1.5px) 0 0 / 8px 8px, ${p.bg0}`
+  if (t.id === 'retro') return `linear-gradient(90deg, ${p.accent}, ${p.accent2}) top / 100% 22px no-repeat, ${p.bg0}`
+  if (t.id === 'holo') return `conic-gradient(from 200deg at 60% 40%, ${p.accent}55, ${p.accent3 ?? p.accent}55, ${p.accent2}55, ${p.accent}55), ${p.bg0}`
+  if (t.id === 'glitch') return `repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 3px), linear-gradient(90deg, ${p.accent}22, transparent 40%, ${p.accent2}22), ${p.bg0}`
   return p.bg0
 }
 
@@ -97,12 +113,16 @@ export function ThemeGallery({ compact = false }: { compact?: boolean }) {
   const verticalTabs = useSetting('appearance.verticalTabs')
   const { theme, palette } = resolveTheme(themeId, paletteId)
 
-  const pickTheme = (id: ThemeId) => {
-    setSetting('appearance.theme', id)
-    setSetting('appearance.palette', '')
-    setSetting('appearance.accent', '')
-    setSetting('appearance.layout', {})
-  }
+  const pickTheme = (id: ThemeId) =>
+    switchTheme(
+      () => {
+        setSetting('appearance.theme', id)
+        setSetting('appearance.palette', '')
+        setSetting('appearance.accent', '')
+        setSetting('appearance.layout', {})
+      },
+      { theme: id }
+    )
 
   return (
     <div className="col" style={{ gap: 18 }}>
@@ -118,7 +138,7 @@ export function ThemeGallery({ compact = false }: { compact?: boolean }) {
         </div>
         <div className="palette-row">
           {theme.palettes.map((p) => (
-            <button key={p.id} className={'palette-chip' + (p.id === palette.id ? ' on' : '')} onClick={() => (setSetting('appearance.palette', p.id), setSetting('appearance.accent', ''))} aria-pressed={p.id === palette.id}>
+            <button key={p.id} className={'palette-chip' + (p.id === palette.id ? ' on' : '')} onClick={() => switchTheme(() => (setSetting('appearance.palette', p.id), setSetting('appearance.accent', '')), { palette: p.id })} aria-pressed={p.id === palette.id}>
               <span className="palette-sw" style={{ background: `linear-gradient(135deg, ${p.bg0} 0 45%, ${p.accent} 45% 72%, ${p.accent2} 72%)` }} />
               {p.name}
             </button>
@@ -153,6 +173,11 @@ export function ThemeGallery({ compact = false }: { compact?: boolean }) {
               <option value="block">Chunky blocks</option>
               <option value="bracket">[ Brackets ]</option>
               <option value="underline">Underlined text</option>
+              <option value="sheet">Drafting sheets</option>
+              <option value="sticker">Stickers</option>
+              <option value="bevel">Bevelled buttons</option>
+              <option value="holo">Prism capsules</option>
+              <option value="notch">Notched panels</option>
             </select>
           </div>
           <div className="setting">
