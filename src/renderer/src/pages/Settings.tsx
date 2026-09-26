@@ -22,7 +22,8 @@ import {
   RotateCcw,
   Trash2,
   Plus,
-  Film
+  Film,
+  KeyRound
 } from 'lucide-react'
 import { SEARCH_ENGINES, type SettingKey, type Settings as SettingsT } from '@shared/settings'
 import { DEFAULT_KEYBINDINGS, eventToAccelerator, normalizeAccelerator, resolveBindings } from '@shared/keys'
@@ -42,6 +43,7 @@ import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates
 import { describeUpdateState } from '@shared/updates'
 import { Kbd, Seg, Switch } from '../components/ui'
 import { confirmAction, promptText } from '../components/prompt'
+import { PasswordImport } from '../components/PasswordImport'
 import type { PageProps } from './registry'
 
 // ---------------------------------------------------------------- primitives
@@ -543,10 +545,28 @@ function SecuritySection() {
           Open
         </button>
       </Row>
-      <Row title="Passwords" desc="SPECTER does not store passwords in v1. Use a dedicated password manager (desktop app) — it will work with SPECTER’s pages normally.">
-        <span className="badge">Not stored</span>
-      </Row>
     </Group>
+  )
+}
+
+function PasswordsSection() {
+  return (
+    <>
+      <Group title="Passwords">
+        <Row title="Saved passwords" desc="View, edit, import and export your saved logins. They are encrypted with Windows data protection and never leave this PC.">
+          <button className="btn" onClick={() => document.dispatchEvent(new CustomEvent('specter:open-url', { detail: 'specter://passwords' }))}>
+            Manage passwords
+          </button>
+        </Row>
+        <Toggle k="passwords.offerToSave" title="Offer to save passwords" desc="After you sign in, SPECTER asks whether to save the login." />
+        <Toggle k="passwords.autofill" title="Suggest saved logins" desc="Sign-in fields list your saved logins; pick one to fill it in." />
+      </Group>
+      <Group title="Import from Chrome">
+        <div style={{ padding: '12px 0' }}>
+          <PasswordImport />
+        </div>
+      </Group>
+    </>
   )
 }
 
@@ -1166,6 +1186,7 @@ const CORE_SECTIONS: { id: string; title: string; icon: typeof Settings2; C: () 
   { id: 'search', title: 'Search', icon: Search, C: SearchSection },
   { id: 'privacy', title: 'Privacy', icon: Shield, C: PrivacySection },
   { id: 'security', title: 'Security', icon: Lock, C: SecuritySection },
+  { id: 'passwords', title: 'Passwords', icon: KeyRound, C: PasswordsSection },
   { id: 'profiles', title: 'Profiles', icon: Users, C: ProfilesSection },
   { id: 'ai', title: 'AI', icon: Bot, C: AISection },
   { id: 'workspaces', title: 'Workspaces', icon: Layers, C: WorkspacesSection },
