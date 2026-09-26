@@ -213,4 +213,4 @@ export interface FontInspectorRequest {
 }
 
 /** What the overlay reports to the main process; its `next()` resolves with one of these. */
-export type InspectorEvent = { type: 'exit' }
+export type InspectorEvent = { type: 'copy'; text: string } | { type: 'exit' }

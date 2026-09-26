@@ -612,7 +612,7 @@ export function registerCoreCommands(): void {
       category: 'Page',
       icon: CaseSensitive,
       keywords: ['whatfont', 'font', 'typography', 'typeface', 'inspect'],
-      description: 'Hover text to see which font renders it. Esc exits.',
+      description: 'Hover text to see its font; click to pin details. Esc exits.',
       run: (a) => {
         const wcId = requireWeb(tabFromArgs(a))
         if (wcId !== null) void toggleFontInspector(wcId)

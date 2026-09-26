@@ -4,7 +4,7 @@
 // the overlay's next event — no timers, and nothing a page script can reach.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { WebContents } from 'electron'
+import { clipboard, type WebContents } from 'electron'
 import type { InspectorEvent } from '@shared/fontInspector'
 import { handle, sendTo } from '../ipc'
 import { guestById } from '../guest'
@@ -49,6 +49,8 @@ function serve(wc: WebContents): void {
       for (;;) {
         const ev = await Promise.race([run<InspectorEvent | null>(wc, 'window.__specterFonts ? window.__specterFonts.next() : null'), ended])
         if (!ev || ev.type === 'exit') break
+        // The page's clipboard would need a permission and a user gesture in the right world.
+        if (ev.type === 'copy') clipboard.writeText(String(ev.text))
       }
     } catch (err) {
       log.info('font inspector ended', err instanceof Error ? err.message : String(err))

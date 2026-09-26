@@ -5,7 +5,7 @@
 //
 // The main process drives it through `window.__specterFonts` (the isolated world's global):
 // start() / stop(), and next(), a promise that resolves with the overlay's next event.
-import { formatFamily, parseFontStack, weightName, type FontFamily, type InspectorEvent } from '@shared/fontInspector'
+import { clipText, cssSnippet, formatFamily, lineHeightRatio, parseCssColor, parseFontStack, tidyLength, toHex, weightName, type FontFamily, type InspectorEvent } from '@shared/fontInspector'
 
 export interface InspectorApi {
   start(): void
@@ -37,6 +37,27 @@ const CSS = `
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 5px; border: 1px solid rgba(255, 255, 255, 0.12); background: #191c22; color: #e9ebf0; font: 500 11.5px/1 ${UI_FONT}; cursor: pointer; white-space: nowrap; }
 .btn:hover { background: #20242c; }
 .btn.icon { width: 22px; padding: 0; font-size: 14px; }
+.btn.primary { background: #a3b1ff; border-color: #a3b1ff; color: #0c0d10; }
+.btn.primary:hover { background: #b8c3ff; }
+.card { position: fixed; width: 296px; pointer-events: auto; background: #14161b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35); overflow: hidden; user-select: text; cursor: default; }
+.card-h { display: flex; align-items: flex-start; gap: 8px; padding: 9px 8px 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.065); }
+.card-titles { flex: 1; min-width: 0; }
+.card-name { display: flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 15px; font-weight: 600; line-height: 1.2; }
+.card-name > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { flex: none; display: inline-flex; align-items: center; height: 16px; padding: 0 5px; border-radius: 4px; font: 400 9.5px/1 ${MONO_FONT}; letter-spacing: 0.05em; text-transform: uppercase; background: #20242c; color: #b3b8c3; }
+.badge.ok { background: rgba(95, 211, 154, 0.12); color: #5fd39a; }
+.note { margin-top: 5px; font-size: 11px; line-height: 1.35; color: #7d8391; }
+.sample { padding: 10px 12px; background: #0c0d10; color: #e9ebf0; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid rgba(255, 255, 255, 0.065); }
+.rows { display: grid; grid-template-columns: 86px 1fr; gap: 6px 10px; padding: 10px 12px; }
+.rows .label { line-height: 17px; }
+.v { font-size: 12px; line-height: 17px; color: #b3b8c3; overflow-wrap: anywhere; }
+.mono { font: 400 11.5px/17px ${MONO_FONT}; }
+.stack .used { color: #a3b1ff; font-weight: 600; }
+.stack .missing { color: #545a67; text-decoration: line-through; }
+.stack .rest { color: #7d8391; }
+.swatch { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.25); }
+.card-f { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 12px; border-top: 1px solid rgba(255, 255, 255, 0.065); }
+.tag { flex: 1; min-width: 0; font: 400 10.5px/1.2 ${MONO_FONT}; color: #545a67; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) { .hint { display: none; } }
 `
 
@@ -48,7 +69,9 @@ function createInspector(): InspectorApi {
   let tipFam: HTMLElement
   let tipMeta: HTMLElement
   let box: HTMLElement
+  let layer: HTMLElement
   let frame = 0
+  let placing = 0
   let pointer = { x: -1, y: -1 }
 
   // ------------------------------------------------------------ events for the main process
@@ -115,6 +138,17 @@ function createInspector(): InspectorApi {
     }
     return { name: 'Browser default', index: -1 }
   }
+  // Computed colours are usually rgb(); for others (oklch(), color()) let the canvas convert to sRGB.
+  const colorHex = (value: string): string => {
+    const c = parseCssColor(value)
+    if (c) return toHex(c)
+    if (!canvas) return value
+    canvas.clearRect(0, 0, 1, 1)
+    canvas.fillStyle = value
+    canvas.fillRect(0, 0, 1, 1)
+    const [r, g, b, a] = canvas.getImageData(0, 0, 1, 1).data
+    return toHex({ r, g, b, a: a / 255 })
+  }
 
   // ------------------------------------------------------------ element under the cursor
   const ownsEvent = (e: Event) => !!host && e.composedPath().includes(host)
@@ -137,6 +171,112 @@ function createInspector(): InspectorApi {
     const cs = getComputedStyle(el)
     const stack = parseFontStack(cs.fontFamily)
     return { cs, stack, rendered: renderedFamily(stack, cs.fontWeight, cs.fontStyle) }
+  }
+
+  // ------------------------------------------------------------ pinned cards
+  interface Card {
+    root: HTMLElement
+    target: Element
+    dx: number
+    dy: number
+  }
+  const cards = new Set<Card>()
+  let zTop = 1
+  const tagOf = (e: Element) => clipText(e.localName + (e.id ? '#' + e.id : '') + [...e.classList].slice(0, 2).map((c) => '.' + c).join(''), 48)
+  const row = (parent: HTMLElement, label: string, value: string | Node, cls = 'v') => {
+    const v = el('div', cls)
+    v.append(value)
+    parent.append(el('div', 'label', label), v)
+    return v
+  }
+  // Cards follow their element when the page (or any scroller) moves.
+  const place = (c: Card) => {
+    if (!c.target.isConnected) return
+    const r = c.target.getBoundingClientRect()
+    c.root.style.left = r.left + c.dx + 'px'
+    c.root.style.top = r.top + c.dy + 'px'
+  }
+  const placeAll = () => {
+    placing = 0
+    cards.forEach(place)
+  }
+
+  const pin = (x: number, y: number) => {
+    const target = textElementAt(x, y)
+    if (!target) return
+    const { cs, stack, rendered } = describe(target)
+    const info = { family: cs.fontFamily, size: cs.fontSize, weight: cs.fontWeight, style: cs.fontStyle, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, color: colorHex(cs.color) }
+    const root = el('div', 'card')
+    const card: Card = { root, target, dx: 0, dy: 0 }
+
+    const head = el('div', 'card-h')
+    const titles = el('div', 'card-titles')
+    const name = el('div', 'card-name')
+    const badge = el('span', 'badge', 'Estimate')
+    badge.title = 'The first family in the stack this page can render'
+    name.append(el('span', '', rendered.name), badge)
+    titles.append(el('div', 'label', 'Rendered with'), name)
+    const close = el('button', 'btn icon', '×')
+    close.title = 'Unpin'
+    close.addEventListener('click', () => {
+      root.remove()
+      cards.delete(card)
+      box.style.display = 'none'
+    })
+    head.append(titles, close)
+
+    const sample = el('div', 'sample', clipText(target.textContent || (target as HTMLInputElement).value || 'Aa Bb Cc 0123', 60))
+    sample.style.fontFamily = info.family
+    sample.style.fontWeight = info.weight
+    sample.style.fontStyle = info.style
+    sample.style.fontSize = Math.min(30, Math.max(14, parseFloat(info.size) || 16)) + 'px'
+
+    const rows = el('div', 'rows')
+    const stackEl = el('span', 'stack')
+    stack.forEach((f, i) => {
+      if (i) stackEl.append(', ')
+      const s = el('span', i === rendered.index ? 'used' : i < rendered.index || rendered.index < 0 ? 'missing' : 'rest', formatFamily(f))
+      if (s.className === 'missing') s.title = 'Not available on this page'
+      stackEl.append(s)
+    })
+    row(rows, 'Family', stackEl)
+    row(rows, 'Style', info.style)
+    row(rows, 'Weight', `${info.weight} · ${weightName(info.weight)}`)
+    row(rows, 'Size', tidyLength(info.size))
+    const ratio = lineHeightRatio(info.lineHeight, info.size)
+    row(rows, 'Line height', tidyLength(info.lineHeight) + (ratio ? ` · ${ratio}` : ''))
+    row(rows, 'Letter sp.', tidyLength(info.letterSpacing))
+    const swatch = el('span', 'swatch')
+    swatch.style.background = info.color
+    const colour = row(rows, 'Colour', swatch, 'v mono')
+    colour.append(info.color)
+
+    const foot = el('div', 'card-f')
+    const copy = el('button', 'btn primary', 'Copy CSS')
+    copy.addEventListener('click', () => {
+      emit({ type: 'copy', text: cssSnippet(info) })
+      copy.textContent = 'Copied'
+      setTimeout(() => (copy.textContent = 'Copy CSS'), 1200)
+    })
+    foot.append(el('span', 'tag', tagOf(target)), copy)
+
+    root.append(head, sample, rows, foot)
+    root.style.zIndex = String(++zTop)
+    root.addEventListener('pointerdown', () => (root.style.zIndex = String(++zTop)))
+    root.addEventListener('mouseenter', () => outline(target))
+    root.addEventListener('mouseleave', () => (box.style.display = 'none'))
+    layer.append(root)
+    cards.add(card)
+
+    const w = root.offsetWidth
+    const h = root.offsetHeight
+    const left = x + 14 + w > innerWidth - 8 ? Math.max(8, x - 14 - w) : x + 14
+    const top = Math.max(8, Math.min(y + 14, innerHeight - 8 - h))
+    const r = target.getBoundingClientRect()
+    card.dx = left - r.left
+    card.dy = top - r.top
+    place(card)
+    hideHover()
   }
 
   // ------------------------------------------------------------ hover
@@ -170,11 +310,19 @@ function createInspector(): InspectorApi {
     if (ownsEvent(e)) return hideHover()
     if (!frame) frame = requestAnimationFrame(updateHover)
   }
-  const onScroll = () => hideHover()
+  const onScroll = () => {
+    hideHover()
+    if (cards.size && !placing) placing = requestAnimationFrame(placeAll)
+  }
   const swallow = (e: MouseEvent) => {
     if (ownsEvent(e) || e.button !== 0) return
     e.preventDefault()
     e.stopImmediatePropagation()
+  }
+  const onClick = (e: MouseEvent) => {
+    if (ownsEvent(e) || e.button !== 0) return
+    swallow(e)
+    pin(e.clientX, e.clientY)
   }
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') return
@@ -188,11 +336,12 @@ function createInspector(): InspectorApi {
     ['mousedown', swallow],
     ['pointerup', swallow],
     ['mouseup', swallow],
-    ['click', swallow],
+    ['click', onClick],
     ['dblclick', swallow],
     ['keydown', onKey],
     ['scroll', onScroll],
-    ['blur', onScroll]
+    ['resize', onScroll],
+    ['blur', hideHover]
   ]
 
   // ------------------------------------------------------------ mount / unmount
@@ -205,7 +354,7 @@ function createInspector(): InspectorApi {
     const sheet = new CSSStyleSheet()
     sheet.replaceSync(CSS) // constructed sheets aren't subject to the page's style-src CSP
     shadow.adoptedStyleSheets = [sheet]
-    const layer = el('div', 'layer')
+    layer = el('div', 'layer')
     box = el('div', 'box')
     tip = el('div', 'tip')
     tipFam = el('div', 'tip-fam')
@@ -217,7 +366,7 @@ function createInspector(): InspectorApi {
     const exit = el('button', 'btn icon', '×')
     exit.title = 'Exit (Esc)'
     exit.addEventListener('click', () => api.stop())
-    bar.append(title, el('span', 'hint', 'Hover text · Esc to exit'), exit)
+    bar.append(title, el('span', 'hint', 'Hover text · click to pin · Esc to exit'), exit)
     layer.append(box, tip, bar)
     shadow.append(layer)
     document.documentElement.append(host)
@@ -234,8 +383,10 @@ function createInspector(): InspectorApi {
     stop() {
       if (!host) return
       for (const [type, fn] of listeners) window.removeEventListener(type, fn, true)
-      if (frame) cancelAnimationFrame(frame)
-      frame = 0
+      cancelAnimationFrame(frame)
+      cancelAnimationFrame(placing)
+      frame = placing = 0
+      cards.clear()
       host.remove()
       host = null
       emit({ type: 'exit' })
