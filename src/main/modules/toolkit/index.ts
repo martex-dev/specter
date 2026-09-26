@@ -38,6 +38,19 @@ function looksBinary(bytes: Uint8Array, contentType: string): boolean {
   return n > 0 && ctrl / n > 0.1
 }
 
+/** Decodes a text body using the Content-Type charset (UTF-8 when absent or unknown). */
+function decodeText(bytes: Uint8Array, contentType: string): string {
+  const charset = /;\s*charset\s*=\s*"?([^";\s]+)/i.exec(contentType)?.[1]
+  if (charset) {
+    try {
+      return new TextDecoder(charset, { fatal: false }).decode(bytes)
+    } catch {
+      /* unknown label — fall back to UTF-8 */
+    }
+  }
+  return new TextDecoder('utf-8', { fatal: false }).decode(bytes)
+}
+
 async function perform(req: HttpToolRequest): Promise<HttpToolResponse> {
   const started = performance.now()
   const empty: HttpToolResponse = {
@@ -119,7 +132,7 @@ async function perform(req: HttpToolRequest): Promise<HttpToolResponse> {
       off += c.byteLength
     }
     const binary = looksBinary(bytes, contentType)
-    const body = binary ? '' : new TextDecoder('utf-8', { fatal: false }).decode(bytes)
+    const body = binary ? '' : decodeText(bytes, contentType)
     return {
       ok: res.ok,
       status: res.status,
