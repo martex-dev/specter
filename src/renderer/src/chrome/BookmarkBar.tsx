@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AppWindow, ExternalLink, Folder, FolderPlus, Pencil, Trash2, Plus, Layers } from 'lucide-react'
 import type { Bookmark } from '@shared/types'
+import { prettyAccelerator } from '@shared/keys'
 import { invoke, on } from '../lib/ipc'
+import { shortcutFor } from '../lib/commands'
 import { activeTab, loadUrl, newTab } from '../stores/browser'
 import { openMenu, type MenuItem } from '../stores/ui'
 import { Favicon } from '../components/ui'
@@ -126,7 +128,11 @@ export function BookmarkBar() {
         openMenu({ x: e.clientX, y: e.clientY, items: bookmarkMenu(bar, all) })
       }}
     >
-      {items.length === 0 && <span className="muted" style={{ fontSize: 11.5, padding: '0 6px' }}>Drag tabs here or press Ctrl+D to bookmark pages</span>}
+      {items.length === 0 && (
+        <span className="muted" style={{ fontSize: 11.5, padding: '0 6px' }}>
+          Drag tabs here{shortcutFor('browser.bookmarkPage') ? ` or press ${prettyAccelerator(shortcutFor('browser.bookmarkPage')!)}` : ''} to bookmark pages
+        </span>
+      )}
       {items.map((b, i) => (
         <button
           key={b.id}

@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { Bookmark, Brain, ClipboardCopy, FlaskConical, Library, NotebookPen, Pin } from 'lucide-react'
 import { isInternal } from '@shared/url'
+import { prettyAccelerator } from '@shared/keys'
 import { invoke } from '../lib/ipc'
-import { getCommand, runCommand } from '../lib/commands'
+import { getCommand, runCommand, shortcutFor } from '../lib/commands'
 import { wcIdFor } from '../lib/webviews'
 import { activeTab, activeWs } from '../stores/browser'
 import { closeOverlay, toast } from '../stores/ui'
@@ -139,7 +140,7 @@ export function QuickCaptureDialog() {
         </div>
       ) : (
         <div className="muted" style={{ marginBottom: 12 }}>
-          Select text on a page first, then press Ctrl+Shift+C.
+          Select text on a page first{shortcutFor('capture.quick') ? `, then press ${prettyAccelerator(shortcutFor('capture.quick')!)}` : ''}.
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
