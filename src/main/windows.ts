@@ -4,11 +4,11 @@ import { app, BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { join } from 'node:path'
 import type { InitialSession } from '@shared/ipc'
 import { all, get, json, metaGet, metaSet, run } from './db'
-import { handle, sendTo, trustWebContents, untrustWebContents } from './ipc'
+import { broadcast, handle, sendTo, trustWebContents, untrustWebContents } from './ipc'
 import { createLogger } from './logger'
 import { getSetting } from './services/settings'
 import { activeProfile, activeProfileId } from './services/profiles'
-import { emptyState, getWorkspace, listWorkspaces, saveWorkspaceState, snapshotWorkspace } from './services/workspaces'
+import { createWorkspace, emptyState, getWorkspace, listWorkspaces, saveWorkspaceState, snapshotWorkspace } from './services/workspaces'
 
 const log = createLogger('windows')
 
@@ -104,7 +104,14 @@ export function createBrowserWindow(opts: {
   const alreadyOpen = new Set(chromeContexts().flatMap((c) => c.openWorkspaceIds))
   let wsIds = (opts.workspaceIds ?? []).filter((id) => workspaces.some((w) => w.id === id))
   if (!wsIds.length) {
-    const free = workspaces.find((w) => !alreadyOpen.has(w.id)) ?? workspaces[0]
+    // A workspace belongs to one window. When every workspace is already shown (e.g. only one
+    // exists), give the new window its own instead of sharing: two windows saving the same
+    // workspace overwrite each other's tabs.
+    let free = workspaces.find((w) => !alreadyOpen.has(w.id))
+    if (!free) {
+      free = createWorkspace({ name: `Workspace ${workspaces.length + 1}` })
+      broadcast('workspaces:changed', { id: free.id })
+    }
     wsIds = [free.id]
   }
   const active = opts.activeWorkspaceId && wsIds.includes(opts.activeWorkspaceId) ? opts.activeWorkspaceId : wsIds[0]
