@@ -9,6 +9,7 @@ import { Favicon } from '../components/ui'
 import { promptText } from '../components/prompt'
 import { bookmarkMenu, openBookmark, useBookmarks } from '../chrome/BookmarkBar'
 import type { PageProps } from './registry'
+import { bookmarkDropIndex } from './pageLogic'
 
 export default function Bookmarks(_: PageProps) {
   const all = useBookmarks()
@@ -20,7 +21,8 @@ export default function Bookmarks(_: PageProps) {
   const workspaces = useBrowser((s) => s.workspaces)
 
   const roots = all.filter((b) => b.parentId === null)
-  const current = folder ?? roots[0]?.id ?? null
+  // Fall back to the first root if the open folder was deleted (from here or the bookmarks bar).
+  const current = (folder && all.some((b) => b.id === folder) ? folder : null) ?? roots[0]?.id ?? null
   const folders = all.filter((b) => b.kind === 'folder')
   const tags = useMemo(() => [...new Set(all.flatMap((b) => b.tags))].filter((t) => !t.startsWith('workspace:')).sort(), [all])
 
@@ -159,8 +161,8 @@ export default function Bookmarks(_: PageProps) {
             </div>
           )}
           <div className="card">
-            {items.length === 0 && <div className="empty">{q || tag ? 'No bookmarks match.' : 'This folder is empty.'}</div>}
-            {items.map((b, i) => (
+            {items.length === 0 && <div className="empty">{q || tag || wsFilter ? 'No bookmarks match.' : 'This folder is empty.'}</div>}
+            {items.map((b) => (
               <div
                 key={b.id}
                 className="history-item"
@@ -169,7 +171,7 @@ export default function Bookmarks(_: PageProps) {
                 onDragStart={() => setDragId(b.id)}
                 onDragEnd={() => setDragId(null)}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={() => dragId && dragId !== b.id && invoke('bookmarks:move', dragId, b.kind === 'folder' ? b.id : b.parentId, b.kind === 'folder' ? 9999 : i)}
+                onDrop={() => dragId && dragId !== b.id && invoke('bookmarks:move', dragId, b.kind === 'folder' ? b.id : b.parentId, b.kind === 'folder' ? 9999 : bookmarkDropIndex(all, b.id))}
                 onDoubleClick={() => (b.kind === 'folder' ? setFolder(b.id) : openBookmark(b))}
                 onContextMenu={(e) => {
                   e.preventDefault()
