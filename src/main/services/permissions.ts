@@ -101,7 +101,10 @@ export function attachPermissions(ses: Session): void {
     if (AUTO_DENY.has(permission)) return callback(false)
     if (permission === 'openExternal') {
       const ext = (details as any)?.externalURL as string | undefined
-      if (getDecision(origin, 'openExternal') === 'allow') return callback(true)
+      const decision = getDecision(origin, 'openExternal')
+      if (decision === 'allow') return callback(true)
+      // A remembered "block" must stick too (it used to prompt again on every attempt).
+      if (decision === 'deny') return callback(false)
       ask(wc, origin, ['openExternal'], ext).then(callback)
       return
     }
