@@ -114,16 +114,21 @@ interface Draft {
   location: string
   notes: string
   source?: 'local' | 'ics'
+  /** Timed events: whole days from the start date to the end date (multi-day events). */
+  span: number
 }
 
 function draftFor(day: number, e?: CalEvent): Draft {
   if (e) {
     const lastDay = e.allDay ? addDays(e.end, -1) : e.end
-    return { id: e.id, title: e.title, date: dateInput(e.start), endDate: dateInput(Math.max(e.start, lastDay)), start: timeInput(e.start), end: timeInput(e.end), allDay: e.allDay, color: e.color as WidgetColor, remindMin: e.remindMin, location: e.location, notes: e.notes, source: e.source }
+    let span = e.allDay ? 0 : Math.max(0, Math.round((startOfDay(e.end) - startOfDay(e.start)) / DAY))
+    // An overnight event (23:00 → 01:00) is handled by the "end before start" rule in save().
+    if (span === 1 && timeInput(e.end) <= timeInput(e.start)) span = 0
+    return { id: e.id, title: e.title, date: dateInput(e.start), endDate: dateInput(Math.max(e.start, lastDay)), start: timeInput(e.start), end: timeInput(e.end), allDay: e.allDay, color: e.color as WidgetColor, remindMin: e.remindMin, location: e.location, notes: e.notes, source: e.source, span }
   }
   const now = new Date()
   const h = Math.min(22, now.getHours() + 1)
-  return { title: '', date: dateInput(day), endDate: dateInput(day), start: `${pad(h)}:00`, end: `${pad(h + 1)}:00`, allDay: false, color: 'accent', remindMin: 15, location: '', notes: '' }
+  return { title: '', date: dateInput(day), endDate: dateInput(day), start: `${pad(h)}:00`, end: `${pad(h + 1)}:00`, allDay: false, color: 'accent', remindMin: 15, location: '', notes: '', span: 0 }
 }
 
 function Editor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
@@ -131,8 +136,10 @@ function Editor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const set = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }))
   const save = async () => {
+    if (busy) return // Enter held down / pressed twice would save duplicates
     const start = d.allDay ? fromInputs(d.date, '00:00') : fromInputs(d.date, d.start)
-    let end = d.allDay ? addDays(fromInputs(d.endDate || d.date, '00:00'), 1) : fromInputs(d.date, d.end)
+    // Timed events keep their day span, so saving a multi-day event doesn't cut it to one day.
+    let end = d.allDay ? addDays(fromInputs(d.endDate || d.date, '00:00'), 1) : fromInputs(dateInput(addDays(fromInputs(d.date, '00:00'), d.span)), d.end)
     if (!d.allDay && end < start) end = addDays(end, 1) // e.g. 23:00 → 01:00
     if (d.allDay && end <= start) end = addDays(start, 1)
     const input: CalEventInput = { id: d.id, title: d.title.trim() || '(untitled event)', start, end, allDay: d.allDay, color: d.color, remindMin: d.remindMin, location: d.location, notes: d.notes }
