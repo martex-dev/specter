@@ -148,7 +148,8 @@ export function viewOf(id: string): WebviewTag | null {
 export function appIdForWcId(wcId: number): string | null {
   for (const [id, wv] of views) {
     try {
-      if (runtimeOf(id).ready && wv.getWebContentsId() === wcId) return id
+      // Not gated on dom-ready: a permission request from a head script arrives before it.
+      if (wv.getWebContentsId() === wcId) return id
     } catch {
       /* not attached */
     }
