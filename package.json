@@ -1,8 +1,8 @@
 {
   "name": "specter",
   "productName": "SPECTER",
-  "version": "0.2.1",
-  "description": "SPECTER \u2014 The Power Browser. A Chromium-based desktop browser with local-first power tools.",
+  "version": "0.2.2",
+  "description": "SPECTER — The Power Browser. A Chromium-based desktop browser with local-first power tools.",
   "main": "out/main/index.js",
   "author": "SPECTER Contributors",
   "license": "MIT",
