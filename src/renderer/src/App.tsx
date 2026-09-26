@@ -5,7 +5,7 @@ import { bindingIndex, eventToAccelerator, isChord, resolveBindings } from '@sha
 import { isInternal } from '@shared/url'
 import { invoke, invokeRaw, on } from './lib/ipc'
 import { runCommand } from './lib/commands'
-import { applyTheme, overlayColor } from './lib/themes'
+import { applyTheme, titleBarColors } from './lib/themes'
 import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, updateTab } from './stores/browser'
 import { useSetting, useSettingsStore } from './stores/settings'
 import { closeOverlay, toast, useUi } from './stores/ui'
@@ -57,7 +57,7 @@ export function App() {
   // Theme, motion and density → document + native title bar.
   useEffect(() => {
     const t = applyTheme(theme, palette, accent, font, layoutOverride)
-    invoke('window:setTitleBarOverlay', { color: overlayColor(t.palette.bg0), symbolColor: t.palette.fg1, height: density === 'compact' ? 36 : 40 }).catch(() => undefined)
+    invoke('window:setTitleBarOverlay', { ...titleBarColors(t), height: density === 'compact' ? 36 : 40 }).catch(() => undefined)
   }, [theme, palette, accent, font, layoutOverride, density])
   useEffect(() => {
     // ML / battery modes reduce animation cost automatically.
