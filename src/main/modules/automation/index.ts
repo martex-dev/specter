@@ -143,7 +143,10 @@ function refreshSchedule(): void {
   for (const id of [...nextAt.keys()]) if (!ids.has(id)) nextAt.delete(id)
   for (const r of scheduled) {
     const sig = JSON.stringify(r.trigger)
-    if (nextAt.get(r.id)?.sig !== sig) nextAt.set(r.id, { sig, at: nextRunAt(r.trigger, r.lastRunAt, now, startedAt) })
+    // A schedule that is new, edited or re-enabled counts from now (like one present at
+    // startup) — anchoring it at app start made it fire at once if SPECTER had been open
+    // longer than the interval.
+    if (nextAt.get(r.id)?.sig !== sig) nextAt.set(r.id, { sig, at: nextRunAt(r.trigger, r.lastRunAt, now, now) })
   }
   if (scheduled.length && !scheduleTimer) {
     scheduleTimer = setInterval(tickSchedule, 15_000)
