@@ -247,7 +247,8 @@ export default function CalendarPanel() {
   const byDay = useMemo(() => {
     const map = new Map<number, CalEvent[]>()
     for (const e of events) {
-      let d = startOfDay(e.start)
+      // Start at the grid: a long event that began months ago still covers these days.
+      let d = Math.max(startOfDay(e.start), gridStart)
       const last = e.allDay ? addDays(e.end, -1) : Math.max(e.start, e.end - 1)
       let guard = 0
       while (d <= last && guard++ < 62) {

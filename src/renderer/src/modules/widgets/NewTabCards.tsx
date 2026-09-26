@@ -141,8 +141,10 @@ function ClocksCardInner() {
 function CalendarCardInner() {
   const now = useNow(60_000)
   const today = startOfDay(now)
-  const { events } = useEvents(today, today + 86_400_000)
-  const upcoming = useUpcoming(4).filter((e) => e.start >= today + 86_400_000)
+  // Next local midnight (a DST day is 23 or 25 hours long).
+  const tomorrow = startOfDay(today + 36 * 3600_000)
+  const { events } = useEvents(today, tomorrow)
+  const upcoming = useUpcoming(4).filter((e) => e.start >= tomorrow)
   return (
     <Card id="calendar">
       <div className="wg-ntp-sub">{new Date(now).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>

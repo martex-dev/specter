@@ -45,7 +45,14 @@ const toEvent = (r: EventRow): CalEvent => ({
 const COLS = 'id, title, start_at, end_at, all_day, color, notes, location, remind_min, source, uid'
 
 export function listEvents(from: number, to: number): CalEvent[] {
-  return all<EventRow>(`SELECT ${COLS} FROM wg_events WHERE start_at < ? AND end_at >= ? ORDER BY all_day DESC, start_at LIMIT 2000`, Number(to), Number(from)).map(toEvent)
+  // Ends are exclusive: yesterday's all-day event (ending at today's midnight) is not
+  // part of today. Zero-length events count when they start inside the range.
+  return all<EventRow>(
+    `SELECT ${COLS} FROM wg_events WHERE start_at < ? AND (end_at > ? OR start_at >= ?) ORDER BY all_day DESC, start_at LIMIT 2000`,
+    Number(to),
+    Number(from),
+    Number(from)
+  ).map(toEvent)
 }
 
 export function upcomingEvents(limit: number): CalEvent[] {
