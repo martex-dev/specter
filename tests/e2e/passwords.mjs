@@ -46,6 +46,8 @@ const server = createServer((req, res) => {
   // Wrong password: the form stays.
   if (url.pathname === '/stay')
     return res.end(page('Stay', '<div><input id="u" autocomplete="username"><input id="p" type="password"><button id="go" type="button">Log in</button><p id="err"></p></div><script>go.onclick=()=>err.textContent="Wrong password"</script>'))
+  if (url.pathname === '/signup')
+    return res.end(page('Sign up', '<form action="/welcome" method="post"><input id="u" type="email" name="email" autocomplete="username"><input id="p" type="password" name="pw" autocomplete="new-password"><input id="p2" type="password" name="pw2" autocomplete="new-password"><button id="go">Create account</button></form>'))
   if (url.pathname === '/step1') return res.end(page('Step 1', '<form action="/step2" method="post"><input id="u" type="email" name="identifier" placeholder="Email"><button id="go">Next</button></form>'))
   if (url.pathname === '/step2') return res.end(page('Step 2', '<form action="/welcome" method="post"><input id="p" type="password" name="pw"><button id="go">Sign in</button></form>'))
   res.end(page('Welcome', '<h1>Signed in</h1>'))
@@ -258,6 +260,40 @@ await step('Logins stay on their own site', async () => {
   assert.deepEqual(await invoke('passwords:forUrl', `${other}/login`), [])
 })
 
+await step('Sign-up forms suggest a strong password and it is saved without asking', async () => {
+  await open(`${base}/signup`)
+  await typeInto('#u', 'new@example.test')
+  await clickEl('#p')
+  await until(() => inPage('!!document.querySelector("specter-password-menu")'), 5000, 'password suggestion')
+  await shot('generator')
+  const [x, y] = await inPage('(() => { const r = document.querySelector("specter-password-menu").getBoundingClientRect(); return [r.left + 40, r.top + 20] })()')
+  await click(x, y)
+  const pw = await until(async () => {
+    const v = await value('#p')
+    return v && v.length === 15 && v
+  }, 4000, 'generated password filled')
+  assert.equal(await value('#p2'), pw, 'confirmation filled too')
+  assert.match(pw, /[a-z]/)
+  assert.match(pw, /[A-Z]/)
+  assert.match(pw, /[0-9]/)
+  await clickEl('#go')
+  const o = await until(offer, 6000, 'saved confirmation')
+  assert.equal(o.saved, true)
+  await win.waitForSelector('.infobar[aria-label="Password saved"]', { timeout: 3000 })
+  const saved = (await invoke('passwords:list')).find((l) => l.username === 'new@example.test')
+  assert.ok(saved, 'saved')
+  assert.equal(await invoke('passwords:reveal', saved.id), pw)
+  await win.click('.infobar[aria-label="Password saved"] button[aria-label="Close"]')
+  return 'suggested password saved'
+})
+
+await step('Copying a password puts it on the clipboard', async () => {
+  const l = (await invoke('passwords:list')).find((x) => x.username === USER)
+  await invoke('passwords:copy', l.id)
+  assert.equal(await app.evaluate(({ clipboard }) => clipboard.readText()), PW2)
+  await app.evaluate(({ clipboard }) => clipboard.clear())
+})
+
 await step('The address-bar key fills the login', async () => {
   await open(`${base}/login`)
   await win.waitForSelector('button[aria-label="Saved logins for this site"]', { timeout: 4000 })
@@ -300,7 +336,7 @@ await step('Passwords page lists everything', async () => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('evt:command:run', { id: 'browser.openUrl', args: { url: 'specter://passwords' } }))
   await win.waitForSelector('.pw-row', { timeout: 5000 })
   const rows = await win.locator('.pw-row').count()
-  assert.equal(rows, 3)
+  assert.equal(rows, 4)
   await win.locator('.pw-row', { hasText: 'alice' }).locator('button[aria-label="Show password"]').click()
   await win.waitForSelector('.pw-pass:has-text("alice-pw")', { timeout: 3000 })
   await shot('manager')
