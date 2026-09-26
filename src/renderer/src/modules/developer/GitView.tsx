@@ -307,7 +307,8 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.ctrlKey) {
               e.preventDefault()
-              void commit()
+              // Same rules as the Commit button (disabled while busy or with conflicts).
+              if (!busy && !conflicts.length) void commit()
             }
           }}
         />
