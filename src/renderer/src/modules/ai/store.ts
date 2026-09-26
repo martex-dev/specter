@@ -396,7 +396,7 @@ export function actionPrompt(id: string): string | null {
 }
 
 /** ai.ask: attach text as the selection and run the action (or just focus for "ask"). */
-export async function askAbout(action: string | undefined, text: string): Promise<void> {
+export async function askAbout(action: string | undefined, text: string, customPrompt?: string): Promise<void> {
   openPanel()
   const t = activeTab()
   const src = t && !isInternal(t.url) ? { url: t.url, title: t.title } : {}
@@ -404,7 +404,7 @@ export async function askAbout(action: string | undefined, text: string): Promis
   if (clean) {
     set({ selection: { text: clean, ...src }, ctx: { page: false, selection: true, tabs: [], workspace: false, notes: false }, view: 'chat' })
   }
-  const prompt = action && action !== 'ask' ? actionPrompt(action) : null
+  const prompt = customPrompt?.trim() || (action && action !== 'ask' ? actionPrompt(action) : null)
   if (prompt && clean) {
     if (S().activeRequestId || S().sending) {
       toast({ kind: 'info', title: 'AI is still answering', body: 'Stop the current answer first.' })

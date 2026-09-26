@@ -49,7 +49,7 @@ export function register(): void {
       icon: Brain,
       hidden: true,
       when: enabled,
-      run: (args?: { action?: string; text?: string }) => askAbout(args?.action, args?.text ?? '')
+      run: (args?: { action?: string; text?: string; prompt?: string }) => askAbout(args?.action, args?.text ?? '', args?.prompt)
     },
     {
       id: 'ai.askPage',

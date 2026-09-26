@@ -28,6 +28,7 @@ import { invoke } from '../../lib/ipc'
 import { getCommand, runCommand } from '../../lib/commands'
 import { timeAgo } from '../../lib/format'
 import { activeTab } from '../../stores/browser'
+import { useSetting } from '../../stores/settings'
 import { toast } from '../../stores/ui'
 import { confirmAction, promptText } from '../../components/prompt'
 import type { PageProps } from '../../pages/registry'
@@ -248,7 +249,8 @@ function Overview({ m, steps, updateSteps, upsert }: { m: MissionFull; steps: Mi
   const [newQ, setNewQ] = useState('')
   const [summary, setSummary] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
-  const aiAvailable = !!getCommand('ai.ask')
+  const aiEnabled = useSetting('ai.enabled')
+  const aiAvailable = !!getCommand('ai.ask') && aiEnabled
 
   const addStep = () => {
     const t = newStep.trim()
@@ -361,7 +363,7 @@ function Overview({ m, steps, updateSteps, upsert }: { m: MissionFull; steps: Mi
         <div className="kn-sec-h">
           <span className="label">Summaries</span>
           <span className="spacer" />
-          <button className="btn sm" onClick={aiSummary} disabled={!aiAvailable || aiBusy} data-tip={aiAvailable ? 'Ask the local AI module to summarize the saved sources' : 'AI module not available'}>
+          <button className="btn sm" onClick={aiSummary} disabled={!aiAvailable || aiBusy} data-tip={aiAvailable ? 'Ask the local AI module to summarize the saved sources' : aiEnabled ? 'AI module not available' : 'Local AI is turned off in Settings → AI'}>
             <Sparkles size={12} /> {aiBusy ? 'Asking AI…' : 'AI summary'}
           </button>
         </div>
