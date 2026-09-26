@@ -1,6 +1,6 @@
 // specter://crypto[/QUERY] — token research (CoinGecko + DexScreener + GoPlus)
 // with risk *research indicators*. Never a safety verdict.
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, Copy, ExternalLink, HelpCircle, MinusCircle, Search, ShieldQuestion } from 'lucide-react'
 import type { ResearchResult, RiskStatus } from '@shared/modules/markets'
 import { CHAIN_EXPLORERS, humanAge } from '@shared/modules/markets'
@@ -34,18 +34,31 @@ function recent(): string[] {
   }
 }
 
+/** A malformed %-escape in the URL must not crash the page. */
+function decodeSub(sub: string | undefined): string {
+  try {
+    return decodeURIComponent(sub || '')
+  } catch {
+    return sub || ''
+  }
+}
+
 function Crypto({ sub }: PageProps) {
-  const [input, setInput] = useState(decodeURIComponent(sub || ''))
+  const [input, setInput] = useState(() => decodeSub(sub))
   const [res, setRes] = useState<ResearchResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [history, setHistory] = useState<string[]>(recent)
+  const seq = useRef(0)
 
   const run = async (q: string) => {
     const query = q.trim()
     if (!query) return
+    // Only the latest search may show its result (an older, slower one must not overwrite it).
+    const my = ++seq.current
     setBusy(true)
     try {
       const r = await invoke('crypto:research', query)
+      if (my !== seq.current) return
       setRes(r)
       const next = [query, ...history.filter((h) => h.toLowerCase() !== query.toLowerCase())].slice(0, 8)
       setHistory(next)
@@ -55,14 +68,17 @@ function Crypto({ sub }: PageProps) {
         /* ignore */
       }
     } catch (e: any) {
-      toast({ kind: 'error', title: 'Research failed', body: String(e?.message ?? e) })
+      if (my === seq.current) toast({ kind: 'error', title: 'Research failed', body: String(e?.message ?? e) })
     } finally {
-      setBusy(false)
+      if (my === seq.current) setBusy(false)
     }
   }
 
   useEffect(() => {
-    if (sub) run(decodeURIComponent(sub))
+    if (!sub) return
+    const q = decodeSub(sub)
+    setInput(q)
+    run(q)
   }, [sub])
 
   const coin = res?.coin
