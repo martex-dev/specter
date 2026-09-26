@@ -496,7 +496,7 @@ export function togglePin(tabId: string): void {
     const tab = { ...f.tab, pinned: !f.tab.pinned, groupId: undefined }
     const pinnedCount = tabs.filter((t) => t.pinned).length
     tabs.splice(tab.pinned ? pinnedCount : pinnedCount, 0, tab)
-    return { ...w, tabs }
+    return pruneGroups({ ...w, tabs })
   })
 }
 
@@ -552,12 +552,14 @@ function closeTabSilently(tabId: string): void {
   if (!f) return
   const remaining = f.ws.tabs.filter((t) => t.id !== tabId)
   if (!remaining.length) remaining.push(newTabState('specter://newtab'))
-  updateWs(f.ws.id, (w) => ({
-    ...w,
-    tabs: remaining,
-    activeTabId: w.activeTabId === tabId ? (remaining[Math.min(f.index, remaining.length - 1)]?.id ?? remaining[0].id) : w.activeTabId,
-    layout: w.layout.panes.includes(tabId) ? { preset: 'single', panes: [] } : w.layout
-  }))
+  updateWs(f.ws.id, (w) =>
+    pruneGroups({
+      ...w,
+      tabs: remaining,
+      activeTabId: w.activeTabId === tabId ? (remaining[Math.min(f.index, remaining.length - 1)]?.id ?? remaining[0].id) : w.activeTabId,
+      layout: w.layout.panes.includes(tabId) ? { preset: 'single', panes: [] } : w.layout
+    })
+  )
 }
 
 export async function moveTabToNewWindow(tabId: string): Promise<void> {
@@ -632,9 +634,10 @@ export function createGroup(tabIds: string[], name = '', color?: GroupColor): st
     const members = w.tabs.filter((t) => tabIds.includes(t.id)).map((t) => ({ ...t, groupId: id, pinned: false }))
     const firstIdx = w.tabs.findIndex((t) => tabIds.includes(t.id))
     const rest = w.tabs.filter((t) => !tabIds.includes(t.id))
-    const insertAt = rest.filter((t, i) => i < firstIdx).length
+    // Grouped tabs are unpinned, so the group must start after the pinned tabs.
+    const insertAt = Math.max(rest.filter((t, i) => i < firstIdx).length, rest.filter((t) => t.pinned).length)
     rest.splice(Math.min(insertAt, rest.length), 0, ...members)
-    return { ...w, tabs: rest, groups: [...w.groups, { id, name, color: col, collapsed: false }] }
+    return pruneGroups({ ...w, tabs: rest, groups: [...w.groups, { id, name, color: col, collapsed: false }] })
   })
   return id
 }
@@ -661,15 +664,32 @@ export function addTabToGroup(tabId: string, groupId: string | undefined): void 
   const f = findTab(tabId)
   if (!f) return
   if (!groupId) {
-    updateTab(tabId, { groupId: undefined })
+    const old = f.tab.groupId
+    updateWs(f.ws.id, (w) => {
+      const tabs = w.tabs.filter((t) => t.id !== tabId)
+      let idx = w.tabs.findIndex((t) => t.id === tabId)
+      // Still between two members of its old group: move it out after the group
+      // (leaving it in place would split the group into two chips).
+      if (old && tabs[idx - 1]?.groupId === old && tabs[idx]?.groupId === old) idx = tabs.map((t) => t.groupId).lastIndexOf(old) + 1
+      tabs.splice(idx, 0, { ...f.tab, groupId: undefined })
+      return pruneGroups({ ...w, tabs })
+    })
     return
   }
   updateWs(f.ws.id, (w) => {
     const tabs = w.tabs.filter((t) => t.id !== tabId)
     const lastIdx = tabs.map((t) => t.groupId).lastIndexOf(groupId)
-    tabs.splice(lastIdx + 1, 0, { ...f.tab, groupId, pinned: false })
-    return { ...w, tabs }
+    // An empty group has no position: keep the tab where it is (but never among pinned tabs).
+    const at = lastIdx >= 0 ? lastIdx + 1 : Math.max(w.tabs.findIndex((t) => t.id === tabId), tabs.filter((t) => t.pinned).length)
+    tabs.splice(at, 0, { ...f.tab, groupId, pinned: false })
+    return pruneGroups({ ...w, tabs })
   })
+}
+
+/** Drops groups that no longer contain any tab (they would linger in "Add to group" menus). */
+function pruneGroups(w: RuntimeWorkspace): RuntimeWorkspace {
+  const groups = w.groups.filter((g) => w.tabs.some((t) => t.groupId === g.id))
+  return groups.length === w.groups.length ? w : { ...w, groups }
 }
 
 // ---------------------------------------------------------------- split layouts
