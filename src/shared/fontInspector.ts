@@ -210,6 +210,13 @@ export function tallyFamilies(uses: FamilyUse[]): FamilyTally[] {
 /** `guest:fontInspector` request from the UI. Without `enable` it toggles. */
 export interface FontInspectorRequest {
   enable?: boolean
+  /** Also pin a card for the text at this point, relative to the page's view (zoomed pixels). */
+  at?: { x: number; y: number }
+}
+
+/** Options for the overlay's start(); `at` is in CSS pixels of the viewport. */
+export interface StartOptions {
+  at?: { x: number; y: number }
 }
 
 /** What the overlay reports to the main process; its `next()` resolves with one of these. */

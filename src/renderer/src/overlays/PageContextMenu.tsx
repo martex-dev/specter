@@ -5,6 +5,7 @@ import {
   Bookmark,
   Brain,
   Bug,
+  CaseSensitive,
   ClipboardPaste,
   Code2,
   Copy,
@@ -29,7 +30,8 @@ import {
   Redo2,
   TextSelect,
   Layers,
-  Sigma
+  Sigma,
+  X
 } from 'lucide-react'
 import type { ContextMenuParams } from '@shared/types'
 import { SEARCH_ENGINES, searchUrl } from '@shared/settings'
@@ -41,6 +43,7 @@ import { goBack, goForward, moveTabToWorkspace, newTab, reload, useBrowser } fro
 import { getSetting } from '../stores/settings'
 import { openMenu, toast, type MenuItem } from '../stores/ui'
 import { workspaceIcon } from '../lib/icons'
+import { fontInspectorOn, toggleFontInspector } from '../lib/fontInspector'
 
 function looksLikeCode(s: string): boolean {
   if (s.length < 12) return false
@@ -193,6 +196,12 @@ export function showPageContextMenu(p: ContextMenuParams): void {
       { label: 'View page source', icon: <Code2 size={14} />, run: () => newTab('view-source:' + p.pageURL, { openerId: tabId }) }
     )
     sep()
+  }
+  if (p.mediaType === 'none') {
+    const rect = wv.getBoundingClientRect()
+    const at = { x: p.x - rect.left, y: p.y - rect.top }
+    push({ label: 'Identify font', icon: <CaseSensitive size={14} />, run: () => toggleFontInspector(p.webContentsId, { enable: true, at }) })
+    if (fontInspectorOn(p.webContentsId)) push({ label: 'Exit font inspector', icon: <X size={14} />, shortcut: 'Esc', run: () => toggleFontInspector(p.webContentsId, { enable: false }) })
   }
   push({ label: 'Inspect', icon: <Code2 size={14} />, shortcut: 'Ctrl+Shift+I', run: () => wv.inspectElement(p.x, p.y) })
   while (items.length && items[items.length - 1].separator) items.pop()

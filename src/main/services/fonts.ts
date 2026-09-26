@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { clipboard, type WebContents } from 'electron'
-import type { InspectorEvent } from '@shared/fontInspector'
+import type { InspectorEvent, StartOptions } from '@shared/fontInspector'
 import { handle, sendTo } from '../ipc'
 import { guestById } from '../guest'
 import { createLogger } from '../logger'
@@ -25,8 +25,11 @@ function run<T>(wc: WebContents, code: string): Promise<T> {
   return wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code }]) as Promise<T>
 }
 
-async function enable(wc: WebContents): Promise<void> {
-  await run(wc, `if (!window.__specterFonts) { (() => { ${overlay()} })() } window.__specterFonts.start(); true`)
+async function enable(wc: WebContents, at?: { x: number; y: number }): Promise<void> {
+  // The UI measures in the zoomed view; the overlay works in CSS pixels.
+  const zoom = wc.getZoomFactor() || 1
+  const opts: StartOptions = at ? { at: { x: at.x / zoom, y: at.y / zoom } } : {}
+  await run(wc, `if (!window.__specterFonts) { (() => { ${overlay()} })() } window.__specterFonts.start(${JSON.stringify(opts)}); true`)
   if (!sessions.has(wc.id)) serve(wc)
 }
 
@@ -70,11 +73,11 @@ function serve(wc: WebContents): void {
 export function registerFontInspectorIpc(): void {
   handle('guest:fontInspector', async (_e, wcId, req) => {
     const wc = guestById(wcId)
-    if (!(req?.enable ?? !sessions.has(wcId))) {
+    if (!(req?.enable ?? (req?.at ? true : !sessions.has(wcId)))) {
       await disable(wc)
       return false
     }
-    await enable(wc)
+    await enable(wc, req?.at)
     return true
   })
 }

@@ -5,10 +5,10 @@
 //
 // The main process drives it through `window.__specterFonts` (the isolated world's global):
 // start() / stop(), and next(), a promise that resolves with the overlay's next event.
-import { clipText, cssSnippet, formatFamily, lineHeightRatio, parseCssColor, parseFontStack, tidyLength, toHex, weightName, type FontFamily, type InspectorEvent } from '@shared/fontInspector'
+import { clipText, cssSnippet, formatFamily, lineHeightRatio, parseCssColor, parseFontStack, tidyLength, toHex, weightName, type FontFamily, type InspectorEvent, type StartOptions } from '@shared/fontInspector'
 
 export interface InspectorApi {
-  start(): void
+  start(opts?: StartOptions): void
   stop(): void
   next(): Promise<InspectorEvent>
 }
@@ -374,11 +374,12 @@ function createInspector(): InspectorApi {
   }
 
   const api: InspectorApi = {
-    start() {
+    start(opts) {
       if (!host || !host.isConnected) {
         host?.remove()
         mount()
       }
+      if (opts?.at) pin(opts.at.x, opts.at.y)
     },
     stop() {
       if (!host) return
