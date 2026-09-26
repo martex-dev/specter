@@ -110,6 +110,15 @@ export interface PrivacySummary {
   blocklistSize: number
 }
 
+export interface BlockedRequest {
+  url: string
+  host: string
+  ts: number
+  tabUrl: string
+  /** 'filters' = ad-blocker filter lists, 'builtin' = SPECTER's built-in tracker list. */
+  by: 'filters' | 'builtin'
+}
+
 export interface ClearDataOptions {
   history?: boolean
   cookies?: boolean
@@ -297,7 +306,7 @@ export interface IpcContract {
   'privacy:clear': (o: ClearDataOptions) => void
   'privacy:clearOrigin': (origin: string) => void
   'privacy:cookies': (origin?: string) => { domain: string; name: string; secure: boolean; httpOnly: boolean; expires?: number }[]
-  'privacy:blockedLog': () => { url: string; host: string; ts: number; tabUrl: string }[]
+  'privacy:blockedLog': () => BlockedRequest[]
   // Ad blocker (filter lists)
   'adblock:status': () => AdblockStatus
   'adblock:update': () => AdblockStatus

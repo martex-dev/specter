@@ -1,5 +1,5 @@
-// Network-level privacy: tracker blocking (built-in list, third-party requests
-// only), HTTPS upgrade for top-level navigations, GPC/DNT headers, per-site
+// Network-level privacy: ad blocking (filter lists, see adblock.ts), tracker
+// blocking (built-in list, third-party requests only), HTTPS upgrade for top-level navigations, GPC/DNT headers, per-site
 // cookie and JavaScript blocking, approximate third-party cookie blocking.
 //
 // Electron allows only one listener per webRequest event per session, so all
@@ -15,6 +15,8 @@ import { historyCount } from './history'
 import { TRACKER_DOMAINS } from './trackers'
 import { makeTrackerMatcher, registrableDomain } from '@shared/domains'
 import { createLogger } from '../logger'
+import { adblockBeforeRequest, adblockCSP } from './adblock'
+import type { BlockedRequest } from '@shared/ipc'
 
 const log = createLogger('privacy')
 const trackerSet = new Set(TRACKER_DOMAINS)
@@ -22,7 +24,7 @@ const isTracker = makeTrackerMatcher(TRACKER_DOMAINS)
 export { registrableDomain, isTracker }
 const attached = new WeakSet<Session>()
 const httpOnlyHosts = new Set<string>()
-const blockedLog: { url: string; host: string; ts: number; tabUrl: string }[] = []
+const blockedLog: BlockedRequest[] = []
 let blockedSession = 0
 const blockedPerTab = new Map<number, number>()
 let lastBroadcast = 0
@@ -52,6 +54,19 @@ export function wasUpgraded(host: string): boolean {
   return ts !== undefined && Date.now() - ts < 30_000
 }
 
+function recordBlocked(details: Electron.OnBeforeRequestListenerDetails, host: string, top: string, by: BlockedRequest['by']): void {
+  blockedSession++
+  const wcId = details.webContentsId
+  if (wcId !== undefined) blockedPerTab.set(wcId, (blockedPerTab.get(wcId) ?? 0) + 1)
+  blockedLog.push({ url: details.url.slice(0, 300), host, ts: Date.now(), tabUrl: top.slice(0, 300), by })
+  if (blockedLog.length > 500) blockedLog.shift()
+  const now = Date.now()
+  if (now - lastBroadcast > 1000) {
+    lastBroadcast = now
+    broadcast('privacy:blocked', { count: blockedSession, total: blockedSession, perTab: Object.fromEntries(blockedPerTab) })
+  }
+}
+
 export function attachPrivacy(ses: Session): void {
   if (attached.has(ses)) return
   attached.add(ses)
@@ -75,21 +90,19 @@ export function attachPrivacy(ses: Session): void {
         return callback({ redirectURL: 'https://' + url.slice(7) })
       }
 
-      if (details.resourceType !== 'mainFrame' && getSetting('privacy.blockTrackers')) {
+      if (details.resourceType !== 'mainFrame') {
         const top = topLevelUrl(details)
-        const topHost = hostname(top)
-        if (isTracker(host) && registrableDomain(host) !== registrableDomain(topHost || host)) {
-          blockedSession++
-          const wcId = details.webContentsId
-          if (wcId !== undefined) blockedPerTab.set(wcId, (blockedPerTab.get(wcId) ?? 0) + 1)
-          blockedLog.push({ url: url.slice(0, 300), host, ts: Date.now(), tabUrl: top.slice(0, 300) })
-          if (blockedLog.length > 500) blockedLog.shift()
-          const now = Date.now()
-          if (now - lastBroadcast > 1000) {
-            lastBroadcast = now
-            broadcast('privacy:blocked', { count: blockedSession, total: blockedSession, perTab: Object.fromEntries(blockedPerTab) })
+        const filtered = adblockBeforeRequest(details, top)
+        if (filtered) {
+          recordBlocked(details, host, top, 'filters')
+          return callback(filtered)
+        }
+        if (getSetting('privacy.blockTrackers')) {
+          const topHost = hostname(top)
+          if (isTracker(host) && registrableDomain(host) !== registrableDomain(topHost || host)) {
+            recordBlocked(details, host, top, 'builtin')
+            return callback({ cancel: true })
           }
-          return callback({ cancel: true })
         }
       }
     } catch (err) {
@@ -134,6 +147,9 @@ export function attachPrivacy(ses: Session): void {
         if ((details.resourceType === 'mainFrame' || details.resourceType === 'subFrame') && getDecision(reqOrigin, 'javascript') === 'deny') {
           headers['Content-Security-Policy'] = [...(headers['Content-Security-Policy'] ?? []), "script-src 'none'"]
         }
+        // $csp filters from the ad blocker (an extra policy header: browsers enforce every one).
+        const csp = adblockCSP(details, top)
+        if (csp) headers['Content-Security-Policy'] = [...(headers['Content-Security-Policy'] ?? []), csp]
       }
     } catch (err) {
       log.error('onHeadersReceived failed', err)
