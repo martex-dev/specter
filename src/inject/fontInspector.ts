@@ -59,7 +59,8 @@ const CSS = `
 .btn.primary { background: #a3b1ff; border-color: #a3b1ff; color: #0c0d10; }
 .btn.primary:hover { background: #b8c3ff; }
 .card { position: fixed; width: 296px; pointer-events: auto; background: #14161b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35); overflow: hidden; user-select: text; cursor: default; }
-.card-h { display: flex; align-items: flex-start; gap: 8px; padding: 9px 8px 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.065); }
+.card-h { display: flex; align-items: flex-start; gap: 8px; padding: 9px 8px 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.065); cursor: grab; user-select: none; }
+.card-h.dragging { cursor: grabbing; }
 .card-titles { flex: 1; min-width: 0; }
 .card-name { display: flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 15px; font-weight: 600; line-height: 1.2; }
 .card-name > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -203,8 +204,11 @@ function createInspector(): InspectorApi {
   interface Card {
     root: HTMLElement
     target: Element
+    /** Offset from the element's box, and that box's last known position (kept if the element goes away). */
     dx: number
     dy: number
+    ax: number
+    ay: number
     stack: FontFamily[]
     stackSpans: HTMLElement[]
     estimate: { name: string; index: number }
@@ -224,11 +228,37 @@ function createInspector(): InspectorApi {
   }
   // Cards follow their element when the page (or any scroller) moves.
   const place = (c: Card) => {
-    if (!c.target.isConnected) return
-    const r = c.target.getBoundingClientRect()
-    c.root.style.left = r.left + c.dx + 'px'
-    c.root.style.top = r.top + c.dy + 'px'
+    if (c.target.isConnected) {
+      const r = c.target.getBoundingClientRect()
+      c.ax = r.left
+      c.ay = r.top
+    }
+    c.root.style.left = c.ax + c.dx + 'px'
+    c.root.style.top = c.ay + c.dy + 'px'
   }
+  const draggable = (c: Card, handle: HTMLElement) =>
+    handle.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || (e.target as Element).closest('button')) return
+      e.preventDefault()
+      handle.setPointerCapture(e.pointerId)
+      handle.classList.add('dragging')
+      let last = { x: e.clientX, y: e.clientY }
+      const move = (m: PointerEvent) => {
+        c.dx += m.clientX - last.x
+        c.dy += m.clientY - last.y
+        last = { x: m.clientX, y: m.clientY }
+        place(c)
+      }
+      const up = () => {
+        handle.classList.remove('dragging')
+        handle.removeEventListener('pointermove', move)
+        handle.removeEventListener('pointerup', up)
+        handle.removeEventListener('pointercancel', up)
+      }
+      handle.addEventListener('pointermove', move)
+      handle.addEventListener('pointerup', up)
+      handle.addEventListener('pointercancel', up)
+    })
   const placeAll = () => {
     placing = 0
     cards.forEach(place)
@@ -313,7 +343,8 @@ function createInspector(): InspectorApi {
       return stackEl.appendChild(el('span', '', formatFamily(f)))
     })
     row(rows, 'Family', stackEl)
-    const card: Card = { root, target, dx: 0, dy: 0, stack, stackSpans, estimate: rendered, name, badge, note }
+    const card: Card = { root, target, dx: 0, dy: 0, ax: 0, ay: 0, stack, stackSpans, estimate: rendered, name, badge, note }
+    draggable(card, head)
     markStack(card, rendered.index)
     row(rows, 'Style', info.style)
     row(rows, 'Weight', `${info.weight} · ${weightName(info.weight)}`)
