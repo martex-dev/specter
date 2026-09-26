@@ -138,7 +138,8 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
     setOutput({ title, text: '', ok: null })
     setBusy(op)
     const off = on('git:output', (e) => {
-      if (e.opId === id) setOutput((o) => (o ? { ...o, text: o.text + e.chunk } : o))
+      // Bounded: long fetches/pulls stream a lot of progress output.
+      if (e.opId === id) setOutput((o) => (o ? { ...o, text: (o.text + e.chunk).slice(-200_000) } : o))
     })
     try {
       const r = await invoke('git:remote', projectId, op, id)
