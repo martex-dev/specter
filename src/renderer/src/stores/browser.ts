@@ -844,7 +844,19 @@ export async function restoreSnapshotIntoWorkspace(snapshotId: string): Promise<
   const cur = S().open[snap.workspaceId]
   if (cur) await invoke('workspaces:snapshot', snap.workspaceId, 'Before restoring snapshot')
   const w: Workspace = { ...(S().workspaces.find((x) => x.id === snap.workspaceId) as Workspace), state: snap.state }
-  if (cur) set((st) => ({ open: { ...st.open, [w.id]: toRuntime(w, st.activeWsId === w.id) } }))
+  if (cur) {
+    set((st) => ({ open: { ...st.open, [w.id]: toRuntime(w, st.activeWsId === w.id) } }))
+    // Tabs that exist in both states keep their live webview, which only reads its URL on
+    // mount: send them to the snapshot's URL or the page and address bar disagree.
+    for (const t of S().open[w.id]?.tabs ?? []) {
+      const wv = !t.suspended && !isInternal(t.url) ? webviewFor(t.id) : null
+      try {
+        if (wv && wv.getURL() !== t.url) wv.loadURL(t.url).catch(() => undefined)
+      } catch {
+        /* not attached */
+      }
+    }
+  }
   await invoke('workspaces:saveState', snap.workspaceId, snap.state)
 }
 
