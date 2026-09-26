@@ -1,5 +1,5 @@
 // Timer, stopwatch and pomodoro views (state lives in clocks.ts).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Flag, Pause, Play, RotateCcw, SkipForward } from 'lucide-react'
 import {
   formatClock,
@@ -112,22 +112,36 @@ export function StopwatchView() {
   const best = splits.length > 1 ? Math.min(...splits) : -1
   const worst = splits.length > 1 ? Math.max(...splits) : -1
 
+  const display = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    // Only react while the user is working in the Tools panel: the listener is
+    // on the whole window, and Space must keep scrolling internal pages.
+    const panel = () => display.current?.closest('.tkp') ?? null
+    let lastDownInPanel = !!panel()?.contains(document.activeElement)
+    const onDown = (e: PointerEvent) => {
+      lastDownInPanel = !!panel()?.contains(e.target as Node)
+    }
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(t.tagName) || t.isContentEditable || e.ctrlKey || e.altKey || e.metaKey) return
+      const p = panel()
+      if (!p || !(p.contains(t) || (t === document.body && lastDownInPanel))) return
       if (e.code === 'Space') {
         e.preventDefault()
         stopwatchToggle()
       } else if (e.key.toLowerCase() === 'l') stopwatchLap()
     }
+    window.addEventListener('pointerdown', onDown, true)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('pointerdown', onDown, true)
+      window.removeEventListener('keydown', onKey)
+    }
   }, [])
 
   return (
     <>
-      <div className="tkp-display">
+      <div className="tkp-display" ref={display}>
         {formatClock(el)}
         <span className="ms">.{String(Math.floor((el % 1000) / 10)).padStart(2, '0')}</span>
       </div>
