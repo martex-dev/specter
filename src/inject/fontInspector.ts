@@ -4,12 +4,31 @@
 // read it — the page only ever sees one empty host element.
 //
 // The main process drives it through `window.__specterFonts` (the isolated world's global):
-// start() / stop(), and next(), a promise that resolves with the overlay's next event.
-import { clipText, cssSnippet, formatFamily, lineHeightRatio, parseCssColor, parseFontStack, tidyLength, toHex, weightName, type FontFamily, type InspectorEvent, type StartOptions } from '@shared/fontInspector'
+// start() / stop(), next() — a promise that resolves with the overlay's next event — and
+// platform(), which delivers the fonts Chromium reports for a pinned element.
+import {
+  clipText,
+  cssSnippet,
+  formatFamily,
+  lineHeightRatio,
+  matchStackEntry,
+  parseCssColor,
+  parseFontStack,
+  rankPlatformFonts,
+  tidyLength,
+  toHex,
+  weightName,
+  type FontFamily,
+  type InspectorEvent,
+  type PlatformResult,
+  type StartOptions
+} from '@shared/fontInspector'
 
 export interface InspectorApi {
   start(opts?: StartOptions): void
   stop(): void
+  /** The main process's answer to a `pin` event: the fonts Chromium used for that card's text. */
+  platform(card: number, result: PlatformResult): void
   next(): Promise<InspectorEvent>
 }
 
@@ -179,9 +198,16 @@ function createInspector(): InspectorApi {
     target: Element
     dx: number
     dy: number
+    stack: FontFamily[]
+    stackSpans: HTMLElement[]
+    estimate: { name: string; index: number }
+    name: HTMLElement
+    badge: HTMLElement
+    note: HTMLElement
   }
-  const cards = new Set<Card>()
+  const cards = new Map<number, Card>()
   let zTop = 1
+  let lastCard = 0
   const tagOf = (e: Element) => clipText(e.localName + (e.id ? '#' + e.id : '') + [...e.classList].slice(0, 2).map((c) => '.' + c).join(''), 48)
   const row = (parent: HTMLElement, label: string, value: string | Node, cls = 'v') => {
     const v = el('div', cls)
@@ -200,6 +226,47 @@ function createInspector(): InspectorApi {
     placing = 0
     cards.forEach(place)
   }
+  const markStack = (c: Card, used: number) =>
+    c.stackSpans.forEach((s, i) => {
+      s.className = i === used ? 'used' : i < used || used < 0 ? 'missing' : 'rest'
+      s.title = s.className === 'missing' ? 'Not available on this page' : ''
+    })
+  // A structural path the main process can resolve with DOM.querySelector; null inside shadow trees.
+  const selectorFor = (e: Element): string | null => {
+    if (e.getRootNode() !== document) return null
+    const parts: string[] = []
+    for (let n: Element = e; n !== document.documentElement; n = n.parentElement!) parts.unshift(`:nth-child(${[...n.parentElement!.children].indexOf(n) + 1})`)
+    return [':root', ...parts].join(' > ')
+  }
+
+  const showPlatform = (c: Card, result: PlatformResult) => {
+    const fonts = 'fonts' in result ? rankPlatformFonts(result.fonts) : []
+    if (!fonts.length) {
+      c.note.textContent =
+        'error' in result && result.error === 'unavailable'
+          ? 'Platform font unavailable — another tool is using the DevTools protocol on this tab. Estimated from the fonts this page can load.'
+          : 'No text of its own to measure. Estimated from the fonts this page can load.'
+      return
+    }
+    const [main, ...others] = fonts
+    c.name.firstChild!.textContent = main.family
+    c.badge.textContent = 'Platform'
+    c.badge.className = 'badge ok'
+    c.badge.title = 'Reported by Chromium: the font file that drew these glyphs'
+    const used = matchStackEntry(c.stack, main.family)
+    // Web fonts carry the family name from their font file, which needn't match the CSS name.
+    if (used >= 0 || !main.custom) markStack(c, used >= 0 ? used : c.estimate.index)
+    const via = used < 0 && !main.custom && c.stack[c.estimate.index]?.generic ? ` · via ${c.stack[c.estimate.index].name}` : ''
+    const parts = [`${main.postScriptName || main.family} · ${main.custom ? 'web font' : 'installed'}${via} · ${main.glyphs} glyph${main.glyphs === 1 ? '' : 's'}`]
+    if (others.length) parts.push('Also ' + others.map((f) => `${f.family} (${f.glyphs})`).join(', '))
+    c.note.textContent = parts.join('. ')
+    // The note can make the card taller; keep it on screen.
+    const r = c.root.getBoundingClientRect()
+    if (r.bottom > innerHeight - 8) {
+      c.dy -= Math.min(r.bottom - (innerHeight - 8), r.top - 8)
+      place(c)
+    }
+  }
 
   const pin = (x: number, y: number) => {
     const target = textElementAt(x, y)
@@ -207,20 +274,21 @@ function createInspector(): InspectorApi {
     const { cs, stack, rendered } = describe(target)
     const info = { family: cs.fontFamily, size: cs.fontSize, weight: cs.fontWeight, style: cs.fontStyle, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, color: colorHex(cs.color) }
     const root = el('div', 'card')
-    const card: Card = { root, target, dx: 0, dy: 0 }
 
     const head = el('div', 'card-h')
     const titles = el('div', 'card-titles')
     const name = el('div', 'card-name')
     const badge = el('span', 'badge', 'Estimate')
     badge.title = 'The first family in the stack this page can render'
+    const note = el('div', 'note', 'Asking Chromium which font it used…')
     name.append(el('span', '', rendered.name), badge)
-    titles.append(el('div', 'label', 'Rendered with'), name)
+    titles.append(el('div', 'label', 'Rendered with'), name, note)
+    const id = ++lastCard
     const close = el('button', 'btn icon', '×')
     close.title = 'Unpin'
     close.addEventListener('click', () => {
       root.remove()
-      cards.delete(card)
+      cards.delete(id)
       box.style.display = 'none'
     })
     head.append(titles, close)
@@ -233,13 +301,13 @@ function createInspector(): InspectorApi {
 
     const rows = el('div', 'rows')
     const stackEl = el('span', 'stack')
-    stack.forEach((f, i) => {
+    const stackSpans = stack.map((f, i) => {
       if (i) stackEl.append(', ')
-      const s = el('span', i === rendered.index ? 'used' : i < rendered.index || rendered.index < 0 ? 'missing' : 'rest', formatFamily(f))
-      if (s.className === 'missing') s.title = 'Not available on this page'
-      stackEl.append(s)
+      return stackEl.appendChild(el('span', '', formatFamily(f)))
     })
     row(rows, 'Family', stackEl)
+    const card: Card = { root, target, dx: 0, dy: 0, stack, stackSpans, estimate: rendered, name, badge, note }
+    markStack(card, rendered.index)
     row(rows, 'Style', info.style)
     row(rows, 'Weight', `${info.weight} · ${weightName(info.weight)}`)
     row(rows, 'Size', tidyLength(info.size))
@@ -266,7 +334,7 @@ function createInspector(): InspectorApi {
     root.addEventListener('mouseenter', () => outline(target))
     root.addEventListener('mouseleave', () => (box.style.display = 'none'))
     layer.append(root)
-    cards.add(card)
+    cards.set(id, card)
 
     const w = root.offsetWidth
     const h = root.offsetHeight
@@ -277,6 +345,7 @@ function createInspector(): InspectorApi {
     card.dy = top - r.top
     place(card)
     hideHover()
+    emit({ type: 'pin', card: id, target: { selector: selectorFor(target), x: Math.round(x), y: Math.round(y), localName: target.localName } })
   }
 
   // ------------------------------------------------------------ hover
@@ -391,6 +460,10 @@ function createInspector(): InspectorApi {
       host.remove()
       host = null
       emit({ type: 'exit' })
+    },
+    platform(id, result) {
+      const c = cards.get(id)
+      if (c) showPlatform(c, result)
     },
     next() {
       const ev = queue.shift()

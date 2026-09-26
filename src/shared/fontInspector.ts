@@ -205,6 +205,20 @@ export function tallyFamilies(uses: FamilyUse[]): FamilyTally[] {
   return [...map.values()].sort((a, b) => b.count - a.count || a.family.localeCompare(b.family))
 }
 
+/** A font Chromium actually used to draw an element's text (CSS.getPlatformFontsForNode). */
+export interface PlatformFont {
+  family: string
+  postScriptName: string
+  /** Loaded from the web (@font-face) rather than installed on this machine. */
+  custom: boolean
+  glyphs: number
+}
+
+/** Most-used font first. */
+export function rankPlatformFonts(fonts: PlatformFont[]): PlatformFont[] {
+  return [...fonts].sort((a, b) => b.glyphs - a.glyphs)
+}
+
 // ---------------------------------------------------------------- UI ↔ main ↔ overlay
 
 /** `guest:fontInspector` request from the UI. Without `enable` it toggles. */
@@ -219,5 +233,15 @@ export interface StartOptions {
   at?: { x: number; y: number }
 }
 
+/** How the main process finds an element for the DevTools protocol: a structural selector, or (inside shadow trees) the point that was clicked. */
+export interface NodeTarget {
+  selector: string | null
+  x: number
+  y: number
+  localName: string
+}
+
+export type PlatformResult = { fonts: PlatformFont[] } | { error: 'unavailable' | 'not-found' }
+
 /** What the overlay reports to the main process; its `next()` resolves with one of these. */
-export type InspectorEvent = { type: 'copy'; text: string } | { type: 'exit' }
+export type InspectorEvent = { type: 'pin'; card: number; target: NodeTarget } | { type: 'copy'; text: string } | { type: 'exit' }
