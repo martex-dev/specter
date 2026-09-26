@@ -5,14 +5,12 @@
 //
 // The main process drives it through `window.__specterFonts` (the isolated world's global):
 // start() / stop(), and next(), a promise that resolves with the overlay's next event.
-import { formatFamily, parseFontStack, weightName, type FontFamily } from '@shared/fontInspector'
-
-export interface StartOptions {}
+import { formatFamily, parseFontStack, weightName, type FontFamily, type InspectorEvent } from '@shared/fontInspector'
 
 export interface InspectorApi {
-  start(opts: StartOptions): void
+  start(): void
   stop(): void
-  next(): Promise<{ type: 'exit' }>
+  next(): Promise<InspectorEvent>
 }
 
 declare global {
@@ -54,9 +52,9 @@ function createInspector(): InspectorApi {
   let pointer = { x: -1, y: -1 }
 
   // ------------------------------------------------------------ events for the main process
-  const queue: { type: 'exit' }[] = []
-  let waiter: ((ev: { type: 'exit' }) => void) | null = null
-  const emit = (ev: { type: 'exit' }) => {
+  const queue: InspectorEvent[] = []
+  let waiter: ((ev: InspectorEvent) => void) | null = null
+  const emit = (ev: InspectorEvent) => {
     if (waiter) {
       const w = waiter
       waiter = null

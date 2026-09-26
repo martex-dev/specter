@@ -9,6 +9,7 @@
 // Web pages (tab guests) cannot reach any of this: their only preloads are the ad
 // blocker's two isolated-world scripts, which talk to their own three channels.
 
+import type { FontInspectorRequest } from './fontInspector'
 import type {
   Bookmark,
   ClosedTab,
@@ -305,6 +306,7 @@ export interface IpcContract {
   'guest:copyImageAt': (wcId: number, x: number, y: number) => void
   'guest:setZoom': (wcId: number, factor: number) => void
   'guest:pageMemory': (wcId: number) => number | null
+  'guest:fontInspector': (wcId: number, req?: FontInspectorRequest) => boolean
 
   // Search / omnibox
   'search:suggest': (text: string) => Suggestion[]
@@ -359,6 +361,7 @@ export interface IpcEvents {
   'guest:unresponsive': { wcId: number; responsive: boolean }
   'guest:certificateError': { wcId: number; url: string; error: string }
   'guest:mediaChanged': MediaState
+  'guest:fontInspector': { wcId: number; active: boolean }
   'command:run': { id: string; args?: unknown }
   'settings:changed': { key: SettingKey; value: unknown }
   'notifications:new': NotificationItem

@@ -204,3 +204,13 @@ export function tallyFamilies(uses: FamilyUse[]): FamilyTally[] {
   for (const t of map.values()) t.weights.sort((a, b) => parseFloat(a) - parseFloat(b))
   return [...map.values()].sort((a, b) => b.count - a.count || a.family.localeCompare(b.family))
 }
+
+// ---------------------------------------------------------------- UI ↔ main ↔ overlay
+
+/** `guest:fontInspector` request from the UI. Without `enable` it toggles. */
+export interface FontInspectorRequest {
+  enable?: boolean
+}
+
+/** What the overlay reports to the main process; its `next()` resolves with one of these. */
+export type InspectorEvent = { type: 'exit' }

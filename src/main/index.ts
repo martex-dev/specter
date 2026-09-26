@@ -21,6 +21,7 @@ import { activeSession, ensureDefaultProfile, onProfileSwitch, registerProfilesI
 import { ensureDefaultWorkspaces, registerWorkspacesIpc } from './services/workspaces'
 import { attachCertificateCapture, registerPageIpc } from './services/page'
 import { attachVideoTools, registerVideoIpc } from './services/video'
+import { registerFontInspectorIpc } from './services/fonts'
 import { registerAppIpc, loadStoredExtensions } from './services/app'
 import { registerSearchIpc } from './services/search'
 import { registerImportIpc } from './services/importer'
@@ -127,6 +128,7 @@ function registerIpc(): void {
   registerProfilesIpc()
   registerWorkspacesIpc()
   registerPageIpc()
+  registerFontInspectorIpc()
   registerSearchIpc()
   registerImportIpc()
   registerNotificationsIpc()
