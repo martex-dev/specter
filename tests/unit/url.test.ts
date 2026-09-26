@@ -28,9 +28,20 @@ describe('toUrl', () => {
   })
   it('handles Windows paths', () => {
     expect(toUrl('C:\\Users\\me\\a.html')).toBe('file:///C:/Users/me/a.html')
+    expect(toUrl('C:\\Program Files\\x\\a.html')).toBe('file:///C:/Program Files/x/a.html')
+    expect(toUrl('C:/Program Files/x/a.html')).toBe('file:///C:/Program Files/x/a.html')
+    expect(toUrl('\\\\nas\\share\\a.html')).toBe('file://nas/share/a.html')
+    expect(toUrl('\\\\nas\\my docs\\a.html')).toBe('file://nas/my docs/a.html')
+  })
+  it('handles IPv6 literals', () => {
+    expect(toUrl('[::1]')).toBe('http://[::1]')
+    expect(toUrl('[::1]:8080/api')).toBe('http://[::1]:8080/api')
+    expect(toUrl('[fe80::1]')).toBe('http://[fe80::1]')
   })
   it('keeps internal pages', () => {
     expect(toUrl('specter://settings')).toBe('specter://settings')
+    expect(toUrl('SPECTER://settings')).toBe('specter://settings')
+    expect(interpretInput('Specter://history')).toEqual({ kind: 'url', url: 'specter://history' })
   })
 })
 
@@ -63,6 +74,9 @@ describe('helpers', () => {
     expect(r.sub).toBe('privacy')
     expect(r.query.get('x')).toBe('1')
     expect(internalRoute('specter://').page).toBe('newtab')
+    expect(internalRoute('specter://webapps#app_1').page).toBe('webapps')
+    expect(internalRoute('specter://settings/keyboard?q=1#top').sub).toBe('keyboard')
+    expect(internalRoute('specter://settings/keyboard?q=1#top').query.get('q')).toBe('1')
   })
   it('formats display URLs', () => {
     expect(displayUrl('https://www.example.com/')).toBe('example.com')

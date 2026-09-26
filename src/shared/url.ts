@@ -63,23 +63,28 @@ export function toUrl(input: string): string | null {
   const text = input.trim()
   if (!text || /\s/.test(text)) {
     // A URL cannot contain whitespace (unless it's a file path with spaces).
-    if (/^[a-zA-Z]:\\/.test(text)) return 'file:///' + text.replace(/\\/g, '/')
+    if (/^[a-zA-Z]:[\\/]/.test(text)) return 'file:///' + text.replace(/\\/g, '/')
+    if (/^\\\\[^\\\s]+\\/.test(text)) return 'file:' + text.replace(/\\/g, '/')
     return null
   }
-  if (/^specter:\/\//i.test(text)) return text.toLowerCase().startsWith('specter://') ? text : 'specter://' + text.slice(10)
+  // Normalise the scheme's case: internal pages are recognised by a lowercase "specter://" prefix.
+  if (/^specter:\/\//i.test(text)) return 'specter://' + text.slice(10)
   if (/^(https?|file|ftp|chrome|devtools|view-source|data|blob|about):/i.test(text)) {
     if (/^about:blank$/i.test(text)) return 'about:blank'
     return text
   }
   if (/^[a-zA-Z]:[\\/]/.test(text)) return 'file:///' + text.replace(/\\/g, '/')
   if (/^mailto:/i.test(text)) return text
+  // UNC path (\\server\share\file.html)
+  if (/^\\\\[^\\]+\\/.test(text)) return 'file:' + text.replace(/\\/g, '/')
+  // IPv6 literal: [::1], [fe80::1]:8080/path (the host pattern below excludes ':')
+  if (/^\[[0-9a-f:.]+\](:\d{1,5})?([/?#].*)?$/i.test(text)) return 'http://' + text
 
   // host[:port][/path]
   const m = /^([^/?#:]+)(:\d{1,5})?([/?#].*)?$/.exec(text)
   if (!m) return null
   const host = m[1].toLowerCase()
   if (host === 'localhost' || isIPv4(host)) return 'http://' + text
-  if (/^\[[0-9a-f:]+\]$/i.test(host)) return 'http://' + text
   if (!host.includes('.')) return null
   const labels = host.split('.')
   if (labels.some((l) => !/^[a-z0-9-]+$/i.test(l) || l.startsWith('-') || l.endsWith('-'))) {
@@ -110,7 +115,8 @@ export function isInternal(url: string): boolean {
 }
 
 export function internalRoute(url: string): { page: string; sub: string; query: URLSearchParams } {
-  const rest = url.slice('specter://'.length)
+  // The fragment is page state (e.g. specter://webapps#<app id>), not part of the route.
+  const rest = url.slice('specter://'.length).split('#')[0]
   const [pathPart, queryPart = ''] = rest.split('?')
   const [page, ...sub] = pathPart.split('/').filter(Boolean)
   return { page: (page || 'newtab').toLowerCase(), sub: sub.join('/'), query: new URLSearchParams(queryPart) }
