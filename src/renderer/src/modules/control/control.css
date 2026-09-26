@@ -1,0 +1,877 @@
+/* GX Control — panel, gauges and new tab wallpapers. Colours come from theme variables only. */
+
+/* Zero-specificity reset for the module's own bare buttons. */
+:where(.ctl) :where(button:not(.btn, .icon-btn, .switch)) {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.ctl {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.ctl-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--solid-1, var(--bg-1));
+  border-bottom: 1px solid var(--line);
+}
+.ctl-nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px 5px;
+  border-radius: var(--radius-s);
+  color: var(--fg-2);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+}
+.ctl-nav button:hover {
+  color: var(--fg-0);
+  background: var(--bg-3);
+}
+.ctl-nav button.on {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.ctl-nav button.on::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: -9px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.ctl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+/* ---------------------------------------------------------------- gauges */
+
+.ctl-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 6px 2px;
+  position: relative;
+}
+.ctl-cluster::before {
+  content: '';
+  position: absolute;
+  inset: 0 10% 10%;
+  background: radial-gradient(closest-side, var(--accent-dim), transparent);
+  pointer-events: none;
+}
+.ctl-cluster-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ctl-foot-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+  letter-spacing: 0.04em;
+  margin-top: -4px;
+}
+.ctl-gauge {
+  position: relative;
+  flex: none;
+}
+.ctl-gauge svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ctl-gauge .g-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--fg-3) 30%, transparent);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.ctl-gauge .g-inner {
+  fill: color-mix(in srgb, var(--accent) 5%, transparent);
+  stroke: var(--line);
+  stroke-width: 0.6;
+}
+.ctl-gauge .g-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--accent-glow));
+}
+.ctl-gauge .g-stop-a {
+  stop-color: var(--accent);
+}
+.ctl-gauge .g-stop-b {
+  stop-color: var(--accent-2);
+}
+.ctl-gauge.warn .g-stop-a,
+.ctl-gauge.warn .g-stop-b {
+  stop-color: var(--warn);
+}
+.ctl-gauge.bad .g-stop-a {
+  stop-color: var(--warn);
+}
+.ctl-gauge.bad .g-stop-b {
+  stop-color: var(--bad);
+}
+.ctl-gauge.bad .g-fill {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--bad) 70%, transparent));
+}
+.ctl-gauge .g-tick {
+  stroke: var(--line-strong);
+  stroke-width: 0.8;
+}
+.ctl-gauge .g-tick.major {
+  stroke: var(--fg-3);
+  stroke-width: 1.1;
+}
+.ctl-gauge .g-tick.lit {
+  stroke: var(--accent);
+}
+.ctl-gauge.warn .g-tick.lit {
+  stroke: var(--warn);
+}
+.ctl-gauge.bad .g-tick.lit {
+  stroke: var(--bad);
+}
+.ctl-gauge .g-marker {
+  stroke: var(--fg-0);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.ctl-gauge .g-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  padding-top: 4%;
+}
+.ctl-gauge .g-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  padding-left: 0.22em;
+  color: var(--accent);
+}
+.ctl-gauge .g-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg-0);
+  font-variant-numeric: tabular-nums;
+  margin: 3px 0 2px;
+}
+.ctl-gauge[style*='width: 96px'] .g-value {
+  font-size: 15px;
+}
+.ctl-gauge .g-sub {
+  font-size: 10px;
+  color: var(--fg-2);
+  max-width: 76%;
+}
+.ctl-gauge.disabled .g-label {
+  color: var(--fg-3);
+}
+.ctl-gauge.disabled .g-value {
+  color: var(--fg-2);
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.ctl-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--bg-2) 85%, transparent);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  position: relative;
+  overflow: hidden;
+}
+.ctl-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(var(--accent), var(--accent-2));
+  opacity: 0.9;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.ctl-card.off::before {
+  opacity: 0.18;
+  box-shadow: none;
+}
+.ctl-card > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctl-card > header h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-0);
+  letter-spacing: 0.01em;
+}
+.ctl-card-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-s);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.ctl-card.off .ctl-card-icon {
+  background: var(--bg-3);
+  color: var(--fg-2);
+}
+.ctl-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--fg-1);
+}
+.ctl-toggle.disabled {
+  opacity: 0.5;
+}
+.ctl-hint {
+  font-size: 11px;
+  color: var(--fg-2);
+  line-height: 1.4;
+}
+.ctl-note {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+.ctl-inline {
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-1);
+}
+.ctl-status {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-1);
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+.ctl-status.bad {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+}
+
+/* chips */
+.ctl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ctl-chips button {
+  min-width: 34px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: all 0.12s;
+}
+.ctl-chips button:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--fg-0);
+}
+.ctl-chips button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.ctl-chips button:disabled {
+  opacity: 0.45;
+}
+
+/* slider */
+.ctl-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ctl-slider b {
+  min-width: 58px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--fg-0);
+}
+.ctl-slider input[type='range'] {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+.ctl-slider input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, var(--accent), var(--accent-2)) 0 / var(--p, 0%) 100% no-repeat,
+    var(--bg-4);
+}
+.ctl-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--fg-0);
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.ctl-slider.disabled {
+  opacity: 0.5;
+}
+.ctl-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+  margin-top: -6px;
+}
+.ctl-custom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ctl-num {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ctl-num .input {
+  height: 28px;
+  width: 100%;
+}
+.ctl-num .row {
+  gap: 6px;
+  font-size: 11px;
+}
+
+/* log */
+.ctl-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ctl-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--fg-1);
+  padding: 4px 0;
+  border-top: 1px dashed var(--line);
+}
+.ctl-log-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent);
+}
+.ctl-log-dot.heavy {
+  background: var(--warn);
+}
+.ctl-log-dot.manual {
+  background: var(--fg-2);
+}
+.ctl-log-time {
+  font-size: 10px;
+  min-width: 44px;
+  text-align: right;
+}
+.ctl-tablist {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 150px;
+  overflow: auto;
+}
+.ctl-mini-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.ctl-mini-tab.dim {
+  opacity: 0.7;
+}
+
+/* hot tabs */
+.ctl-hot-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px 6px;
+}
+.ctl-big {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--fg-0);
+  line-height: 1.1;
+}
+.ctl-hot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ctl-hot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-2) 85%, transparent);
+}
+.ctl-hot.heavy {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn) 6%, var(--bg-2));
+}
+.ctl-hot-title {
+  display: block;
+  max-width: 100%;
+  text-align: left;
+  font-size: 12px;
+  color: var(--fg-0);
+  padding: 0;
+}
+.ctl-hot-title:hover {
+  color: var(--accent);
+}
+.ctl-bar {
+  display: flex;
+  height: 4px;
+  margin: 5px 0 4px;
+  border-radius: 4px;
+  background: var(--bg-4);
+  overflow: hidden;
+}
+.ctl-bar span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.ctl-hot.heavy .ctl-bar span:not(.shared) {
+  background: linear-gradient(90deg, var(--warn), var(--bad));
+}
+.ctl-bar span.shared {
+  background: var(--fg-3);
+}
+.ctl-hot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 10.5px;
+  color: var(--fg-1);
+}
+.ctl-hot-meta .warn {
+  color: var(--warn);
+}
+
+/* sounds */
+.ctl-sound-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ctl-sound {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ctl-sound:hover {
+  border-color: var(--line-strong);
+}
+.ctl-sound.on {
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.ctl-sound-name {
+  font-size: 12px;
+  color: var(--fg-0);
+}
+
+/* wallpaper picker */
+.ctl-wp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.ctl-wp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.ctl-wp-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--solid-1, var(--bg-1));
+  overflow: hidden;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.ctl-wp-tile.none .ctl-wp-thumb {
+  background:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    var(--solid-1, var(--bg-1));
+}
+.ctl-wp-tile:hover .ctl-wp-thumb {
+  border-color: var(--accent-line);
+}
+.ctl-wp-tile.on .ctl-wp-thumb {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 14px var(--accent-glow);
+}
+.ctl-wp-name {
+  font-size: 11px;
+  color: var(--fg-1);
+  padding-left: 2px;
+}
+.ctl-wp-tile.on .ctl-wp-name {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- new tab wallpaper */
+
+/* The wallpaper is the bottom layer of .ntp; lift the page's own children
+   (flex items, so z-index applies without changing their position). */
+.ntp:has(> .ctl-wp) > :not(.ctl-wp) {
+  z-index: 1;
+}
+.ctl-wp {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: paint;
+  background: var(--solid-1, var(--bg-1));
+}
+.ctl-wp > * {
+  position: absolute;
+  inset: 0;
+}
+.ctl-wp-scrim {
+  background: var(--solid-1, var(--bg-1));
+}
+/* Soft pool of background colour behind the clock and search box keeps text legible on any image. */
+.ctl-wp::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(50% 38% at 50% 30%, color-mix(in srgb, var(--solid-1, var(--bg-1)) 55%, transparent), transparent 75%);
+}
+.ctl-wp.preview::after {
+  display: none;
+}
+.ntp:has(> .ctl-wp) :is(.ntp-brand, .ntp-clock, .ntp-date) {
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--solid-1, var(--bg-1)) 85%, transparent);
+}
+.ctl-wp[data-anim='off'] *,
+.ctl-wp[data-anim='off'] *::before,
+.ctl-wp[data-anim='off'] *::after {
+  animation-play-state: paused !important;
+}
+.wp-image {
+  background-size: cover;
+  background-position: center;
+}
+.wp-missing {
+  inset: auto 0 16px 0 !important;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fg-2);
+}
+
+/* aurora mesh */
+.wp-aurora {
+  background:
+    radial-gradient(140% 90% at 50% 120%, color-mix(in srgb, var(--accent-3) 22%, transparent), transparent 60%),
+    var(--solid-0, var(--bg-0));
+}
+.wp-aurora .b {
+  position: absolute;
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+:root[data-scheme='light'] .wp-aurora .b {
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+}
+.wp-aurora .b1 {
+  left: -18%;
+  top: -34%;
+  background: radial-gradient(closest-side, var(--accent), transparent);
+  animation: wp-drift-a 38s ease-in-out infinite alternate;
+}
+.wp-aurora .b2 {
+  right: -22%;
+  top: -10%;
+  background: radial-gradient(closest-side, var(--accent-2), transparent);
+  animation: wp-drift-b 46s ease-in-out infinite alternate;
+}
+.wp-aurora .b3 {
+  left: 16%;
+  bottom: -52%;
+  background: radial-gradient(closest-side, var(--accent-3), transparent);
+  animation: wp-drift-c 52s ease-in-out infinite alternate;
+}
+.wp-aurora .b4 {
+  width: 44%;
+  left: 44%;
+  top: 22%;
+  opacity: 0.3;
+  background: radial-gradient(closest-side, var(--accent), transparent);
+  animation: wp-drift-b 60s ease-in-out infinite alternate-reverse;
+}
+.wp-aurora .veil {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(100deg, transparent 0 34px, color-mix(in srgb, var(--fg-0) 3%, transparent) 34px 35px);
+  mask-image: linear-gradient(transparent, #000 30%, #000 60%, transparent);
+  opacity: 0.8;
+}
+@keyframes wp-drift-a {
+  to {
+    transform: translate(22%, 18%) scale(1.15);
+  }
+}
+@keyframes wp-drift-b {
+  to {
+    transform: translate(-18%, 22%) scale(0.9);
+  }
+}
+@keyframes wp-drift-c {
+  to {
+    transform: translate(12%, -20%) scale(1.2);
+  }
+}
+
+/* neon grid horizon */
+.wp-grid {
+  background: var(--solid-0, var(--bg-0));
+}
+.wp-grid > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.wp-grid .sky {
+  top: 0;
+  bottom: 42%;
+  background: linear-gradient(to bottom, var(--solid-0, var(--bg-0)) 10%, color-mix(in srgb, var(--accent-2) 26%, var(--solid-0, var(--bg-0))));
+}
+.wp-grid .sun {
+  left: 50%;
+  bottom: 42%;
+  width: min(34vw, 380px);
+  height: calc(min(34vw, 380px) / 2);
+  transform: translateX(-50%);
+  border-radius: min(34vw, 380px) min(34vw, 380px) 0 0;
+  background: linear-gradient(to bottom, var(--accent-2), var(--accent));
+  mask-image: linear-gradient(to bottom, #000 45%, transparent 45% 49%, #000 49% 60%, transparent 60% 65%, #000 65% 74%, transparent 74% 80%, #000 80% 87%, transparent 87% 94%, #000 94%);
+  box-shadow: 0 0 80px var(--accent-glow);
+  opacity: 0.9;
+}
+.ctl-wp.preview .wp-grid .sun {
+  width: 44%;
+  height: 22%;
+  border-radius: 999px 999px 0 0;
+}
+.wp-grid .horizon {
+  top: 58%;
+  height: 2px;
+  z-index: 1;
+  background: var(--accent);
+  box-shadow: 0 0 18px 2px var(--accent-glow);
+}
+.wp-grid .floor {
+  top: 58%;
+  bottom: 0;
+  overflow: hidden;
+  perspective: 260px;
+  perspective-origin: 50% 0;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 14%, var(--solid-0, var(--bg-0))), var(--solid-0, var(--bg-0)));
+}
+.wp-grid .lines {
+  position: absolute;
+  left: -60%;
+  right: -60%;
+  bottom: 0;
+  height: 400%;
+  transform-origin: 50% 100%;
+  transform: rotateX(78deg);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent) 75%, transparent) 2px, transparent 2px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 60%, transparent) 2px, transparent 2px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, transparent, #000 45%);
+  animation: wp-grid-run 2.4s linear infinite;
+}
+:root[data-scheme='light'] .wp-grid .lines {
+  opacity: 0.55;
+}
+@keyframes wp-grid-run {
+  to {
+    background-position: 0 64px, 0 64px;
+  }
+}
+
+/* starfield */
+.wp-stars {
+  background: var(--solid-0, var(--bg-0));
+}
+.wp-stars .nebula {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 45% at 78% 28%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 18% 76%, color-mix(in srgb, var(--accent-2) 20%, transparent), transparent 70%);
+}
+.wp-stars canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+:root[data-scheme='light'] .wp-stars {
+  background: var(--solid-1, var(--bg-1));
+}
+
+/* topographic */
+.wp-topo {
+  background:
+    radial-gradient(90% 70% at 70% 30%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%),
+    var(--solid-1, var(--bg-1));
+}
+.wp-topo svg {
+  width: 100%;
+  height: 100%;
+}
+.wp-topo path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.28;
+  stroke-width: 1;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.wp-topo path.major {
+  stroke: var(--accent-2);
+  stroke-opacity: 0.5;
+  stroke-width: 1.4;
+}
+
+/* gradient waves */
+.wp-waves {
+  background: linear-gradient(to bottom, var(--solid-0, var(--bg-0)), var(--solid-1, var(--bg-1)));
+}
+.wp-waves .glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 50% at 50% 100%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+}
+.wp-waves .wave {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 200%;
+  height: 100%;
+  animation: wp-wave 40s linear infinite;
+}
+.wp-waves .wave path {
+  stroke: none;
+}
+.wp-waves .w1 path {
+  fill: color-mix(in srgb, var(--accent-3) 16%, transparent);
+}
+.wp-waves .w2 {
+  animation-duration: 30s;
+  animation-direction: reverse;
+}
+.wp-waves .w2 path {
+  fill: color-mix(in srgb, var(--accent-2) 20%, transparent);
+}
+.wp-waves .w3 {
+  animation-duration: 24s;
+}
+.wp-waves .w3 path {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.wp-waves .w4 {
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+.wp-waves .w4 path {
+  fill: color-mix(in srgb, var(--accent) 34%, var(--solid-0, var(--bg-0)));
+}
+@keyframes wp-wave {
+  to {
+    transform: translateX(-50%);
+  }
+}
