@@ -205,3 +205,20 @@ export class SpeedMemory {
     return dropped
   }
 }
+
+// ------------------------------------------------------ preload ⇄ main process
+
+/** What the page preload needs to know (sent at document start and whenever the settings change). */
+export interface VideoPageConfig {
+  /** Keys, badge and speed keeping; off when the feature or this site is switched off. */
+  enabled: boolean
+  keys: [string, VideoAction][]
+  step: number
+  preferred: number
+  badge: boolean
+  /** Remembered speed for the page's site (only at document start). */
+  siteSpeed?: number | null
+}
+
+/** Commands SPECTER's UI sends to a page: a speed action, or 'set' with a rate. */
+export type VideoCommand = VideoAction | 'set'

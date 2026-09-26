@@ -1,6 +1,7 @@
 // Settings schema and defaults. Settings are stored as individual key/value
 // rows in SQLite so partial updates never rewrite unrelated state.
 import { DEFAULT_FILTER_LISTS } from './adblock'
+import type { VideoAction } from './video'
 
 export type ThemeId = 'specter' | 'neon' | 'aurora' | 'terminal' | 'paper' | 'synthwave' | 'blueprint' | 'brutal' | 'retro' | 'holo' | 'glitch'
 export type MotionLevel = 'full' | 'reduced' | 'off'
@@ -81,6 +82,17 @@ export interface Settings {
   'browser.hardwareAcceleration': boolean
   'browser.smoothScrolling': boolean
   'browser.spellcheck': boolean
+
+  // Video tools (built-in speed controller)
+  'video.enabled': boolean
+  /** Overrides of the default keys (S, D, R, Z, X, G); an empty string turns a key off. */
+  'video.keys': Partial<Record<VideoAction, string>>
+  'video.step': number
+  'video.preferredSpeed': number
+  'video.badge': boolean
+  'video.rememberSpeed': boolean
+  /** Hosts where the keys, badge and speed keeping are off. */
+  'video.disabledSites': string[]
 
   // Search
   'search.engine': string
@@ -210,6 +222,14 @@ export const DEFAULT_SETTINGS: Settings = {
   'browser.hardwareAcceleration': true,
   'browser.smoothScrolling': true,
   'browser.spellcheck': true,
+
+  'video.enabled': true,
+  'video.keys': {},
+  'video.step': 0.1,
+  'video.preferredSpeed': 1.8,
+  'video.badge': true,
+  'video.rememberSpeed': true,
+  'video.disabledSites': [],
 
   'search.engine': 'duckduckgo',
   'search.customTemplate': '',

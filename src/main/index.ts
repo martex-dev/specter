@@ -20,6 +20,7 @@ import { runShutdownCleanup } from './shutdown'
 import { activeSession, ensureDefaultProfile, onProfileSwitch, registerProfilesIpc } from './services/profiles'
 import { ensureDefaultWorkspaces, registerWorkspacesIpc } from './services/workspaces'
 import { attachCertificateCapture, registerPageIpc } from './services/page'
+import { registerVideoIpc } from './services/video'
 import { registerAppIpc, loadStoredExtensions } from './services/app'
 import { registerSearchIpc } from './services/search'
 import { registerImportIpc } from './services/importer'
@@ -121,6 +122,7 @@ function registerIpc(): void {
   registerPermissionsIpc()
   registerPrivacyIpc()
   registerAdblockIpc()
+  registerVideoIpc()
   registerProfilesIpc()
   registerWorkspacesIpc()
   registerPageIpc()

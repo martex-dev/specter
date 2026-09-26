@@ -36,6 +36,7 @@ import type {
 import type { SettingKey, Settings } from './settings'
 import type { UpdateState } from './updates'
 import type { AdblockStatus } from './adblock'
+import type { SiteSpeed, VideoAction } from './video'
 
 export interface AppInfo {
   version: string
@@ -147,6 +148,13 @@ export interface MediaState {
   volume?: number
   rate?: number
   hasVideo: boolean
+}
+
+/** A tab's playback speed as SPECTER's video tools see it (null speed: no media on the page). */
+export interface VideoSpeedState {
+  rate: number | null
+  /** Remembered-speed key of the tab's site, if it has one. */
+  site: string | null
 }
 
 export interface IpcContract {
@@ -311,6 +319,10 @@ export interface IpcContract {
   // Ad blocker (filter lists)
   'adblock:status': () => AdblockStatus
   'adblock:update': () => AdblockStatus
+  // Video tools (speed controller)
+  'video:command': (wcId: number, action: VideoAction | 'set', value?: number) => VideoSpeedState
+  'video:sites': () => SiteSpeed[]
+  'video:forget': (site: string | null) => void
 
   // Metrics
   'metrics:app': () => AppMetricsEntry[]
@@ -380,6 +392,7 @@ export const IPC_DOMAINS = [
   'search',
   'privacy',
   'adblock',
+  'video',
   'metrics',
   'logs',
   'diagnostics',
