@@ -127,6 +127,23 @@ export function useWatchlists(): { lists: Watchlist[]; loaded: boolean; reload: 
   return { lists, loaded, reload }
 }
 
+let wlEdits: Promise<unknown> = Promise.resolve()
+
+/**
+ * Rewrites a watchlist's symbols from its *stored* state, one edit at a time,
+ * so quick successive edits (or a toast action clicked later) never write back
+ * a stale copy of the list and drop symbols added or removed in between.
+ */
+export function editWatchlistSymbols(id: string, fn: (symbols: string[]) => string[]): Promise<void> {
+  const run = async () => {
+    const cur = (await invoke('market:watchlists')).find((w) => w.id === id)
+    if (cur) await invoke('market:watchlistSetSymbols', id, fn(cur.symbols))
+  }
+  const p = wlEdits.then(run, run)
+  wlEdits = p.catch(() => undefined)
+  return p
+}
+
 /** Symbols in any watchlist (kept fresh for the omnibox). */
 let knownSymbols = new Set<string>()
 let knownLoadedAt = 0

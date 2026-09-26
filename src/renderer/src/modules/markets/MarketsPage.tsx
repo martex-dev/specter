@@ -12,7 +12,7 @@ import { confirmAction, promptText } from '../../components/prompt'
 import { Seg } from '../../components/ui'
 import { ChartAttribution, PriceChart, type ChartKind } from './Chart'
 import { AlertsSection } from './Alerts'
-import { useMarketStatus, useNow, usePageVisible, useQuotes, useWatchlists, type QuoteAccess } from './store'
+import { editWatchlistSymbols, useMarketStatus, useNow, usePageVisible, useQuotes, useWatchlists, type QuoteAccess } from './store'
 import { ago, compact, DisabledNotice, PageHeader, Pct, px, qty, Stamp, stampFull, StatusLine, Unavailable } from './ui'
 
 const prefs = {
@@ -318,7 +318,7 @@ function WatchlistCard({
     setBusy(true)
     try {
       const v = await invoke('market:validate', sym)
-      const save = () => invoke('market:watchlistSetSymbols', list.id, [...list.symbols, sym])
+      const save = () => editWatchlistSymbols(list.id, (syms) => (syms.includes(sym) ? syms : [...syms, sym]))
       if (v.ok) {
         await save()
         setAdding('')
@@ -340,15 +340,16 @@ function WatchlistCard({
     }
   }
 
-  const remove = (s: string) => invoke('market:watchlistSetSymbols', list.id, list.symbols.filter((x) => x !== s))
-  const move = (s: string, d: -1 | 1) => {
-    const i = list.symbols.indexOf(s)
-    const j = i + d
-    if (j < 0 || j >= list.symbols.length) return
-    const next = [...list.symbols]
-    ;[next[i], next[j]] = [next[j], next[i]]
-    invoke('market:watchlistSetSymbols', list.id, next)
-  }
+  const remove = (s: string) => editWatchlistSymbols(list.id, (syms) => syms.filter((x) => x !== s))
+  const move = (s: string, d: -1 | 1) =>
+    editWatchlistSymbols(list.id, (syms) => {
+      const i = syms.indexOf(s)
+      const j = i + d
+      if (i < 0 || j < 0 || j >= syms.length) return syms
+      const next = [...syms]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
 
   const rows = useMemo(() => {
     const r = list.symbols.map((s) => ({ s, q: quotes.get(s) }))

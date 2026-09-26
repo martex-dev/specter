@@ -14,7 +14,7 @@ import { activateTab, activeTab, loadUrl, newTab, useBrowser } from '../../store
 import { getSetting } from '../../stores/settings'
 import { toast, toggleSidePanel } from '../../stores/ui'
 import { promptText } from '../../components/prompt'
-import { cachedQuote, watchedSymbols } from './store'
+import { cachedQuote, editWatchlistSymbols, watchedSymbols } from './store'
 import { HudTicker, MarketStatusItem, MarketStrip } from './widgets'
 import { parseNum, px } from './ui'
 import './markets.css'
@@ -166,7 +166,7 @@ export function register(): void {
             run: async () => {
               const lists = await invoke('market:watchlists')
               const w = lists[0]
-              if (w) await invoke('market:watchlistSetSymbols', w.id, [...w.symbols, sym])
+              if (w) await editWatchlistSymbols(w.id, (syms) => (syms.includes(sym) ? syms : [...syms, sym]))
               toast({ kind: 'ok', title: `${sym} added to ${w?.name ?? 'watchlist'}` })
             }
           })
