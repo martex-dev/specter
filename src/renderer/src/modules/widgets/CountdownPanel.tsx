@@ -79,8 +79,10 @@ export default function CountdownPanel() {
 
   const add = () => {
     const [y, mo, d] = date.split('-').map(Number)
+    // A cleared date field gives "" → year 0, which Date maps to 1900.
+    if (!y || !mo || !d) return
     const [h, mi] = time.split(':').map(Number)
-    const target = new Date(y, (mo || 1) - 1, d || 1, h || 0, mi || 0).getTime()
+    const target = new Date(y, mo - 1, d, h || 0, mi || 0).getTime()
     if (!Number.isFinite(target)) return
     setList([...list, { id: 'c' + Date.now().toString(36), title: title.trim() || 'Countdown', target, createdAt: Date.now(), color, notify }])
     setTitle('')
