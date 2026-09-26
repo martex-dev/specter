@@ -282,7 +282,7 @@ declare module '../ipc' {
     'git:status': (id: string) => GitStatus
     'git:log': (id: string, limit?: number) => GitCommitInfo[]
     'git:branches': (id: string) => GitBranch[]
-    'git:diff': (id: string, path: string, opts: { staged: boolean; untracked?: boolean }) => DiffResult
+    'git:diff': (id: string, path: string, opts: { staged: boolean; untracked?: boolean; origPath?: string }) => DiffResult
     'git:show': (id: string, hash: string) => { commit: GitCommitInfo | null; body: string; diff: DiffResult }
     'git:stage': (id: string, paths: string[]) => GitOpResult
     'git:unstage': (id: string, paths: string[]) => GitOpResult

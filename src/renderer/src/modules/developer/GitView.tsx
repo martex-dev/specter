@@ -9,7 +9,10 @@ import { stripAnsi } from './ansi'
 import { DiffView } from './parts'
 import { errMsg } from './store'
 
-type Sel = { kind: 'file'; path: string; staged: boolean; untracked: boolean } | { kind: 'commit'; hash: string } | null
+type Sel = { kind: 'file'; path: string; origPath?: string; staged: boolean; untracked: boolean } | { kind: 'commit'; hash: string } | null
+
+/** A staged rename is two index entries: unstaging only the new path would leave the old path's deletion staged. */
+const withOrig = (files: GitFileChange[]) => files.flatMap((f) => (f.origPath ? [f.path, f.origPath] : [f.path]))
 
 const opId = () => 'op' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
@@ -93,7 +96,7 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
     if (!sel) return
     const p =
       sel.kind === 'file'
-        ? invoke('git:diff', projectId, sel.path, { staged: sel.staged, untracked: sel.untracked })
+        ? invoke('git:diff', projectId, sel.path, { staged: sel.staged, untracked: sel.untracked, origPath: sel.staged ? sel.origPath : undefined })
         : invoke('git:show', projectId, sel.hash).then((r) => {
             if (!cancelled) setCommitInfo({ commit: r.commit, body: r.body })
             return r.diff
@@ -269,7 +272,7 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
   const unstaged = st.files.filter((f) => f.unstaged && !f.conflicted && f.kind !== 'untracked' && f.kind !== 'ignored')
   const untracked = st.files.filter((f) => f.kind === 'untracked')
   const isSel = (f: GitFileChange, stagedSide: boolean) => sel?.kind === 'file' && sel.path === f.path && sel.staged === stagedSide
-  const pick = (f: GitFileChange, stagedSide: boolean) => setSel({ kind: 'file', path: f.path, staged: stagedSide, untracked: f.kind === 'untracked' })
+  const pick = (f: GitFileChange, stagedSide: boolean) => setSel({ kind: 'file', path: f.path, origPath: f.origPath, staged: stagedSide, untracked: f.kind === 'untracked' })
 
   const group = (title: string, files: GitFileChange[], stagedSide: boolean, headerActions: React.ReactNode, rowActions: (f: GitFileChange) => React.ReactNode) =>
     files.length > 0 && (
@@ -328,8 +331,8 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
         'Staged',
         staged,
         true,
-        btn('Unstage all', <Minus size={13} />, () => void run('Unstage', () => invoke('git:unstage', projectId, staged.map((f) => f.path)))),
-        (f) => btn('Unstage', <Minus size={13} />, () => void run('Unstage', () => invoke('git:unstage', projectId, [f.path])))
+        btn('Unstage all', <Minus size={13} />, () => void run('Unstage', () => invoke('git:unstage', projectId, withOrig(staged)))),
+        (f) => btn('Unstage', <Minus size={13} />, () => void run('Unstage', () => invoke('git:unstage', projectId, withOrig([f]))))
       )}
       {group(
         'Changes',

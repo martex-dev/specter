@@ -145,7 +145,7 @@ export async function branches(projectId: string): Promise<GitBranch[]> {
 
 // Diffs --------------------------------------------------------------------------------
 
-export async function diff(projectId: string, path: string, opts: { staged: boolean; untracked?: boolean }): Promise<DiffResult> {
+export async function diff(projectId: string, path: string, opts: { staged: boolean; untracked?: boolean; origPath?: string }): Promise<DiffResult> {
   const { root, abs, rel } = resolveInProject(projectId, path)
   if (opts.untracked) {
     try {
@@ -165,6 +165,8 @@ export async function diff(projectId: string, path: string, opts: { staged: bool
   const args = ['diff', '--no-ext-diff', '--no-textconv', '--no-color', '-M']
   if (opts.staged) args.push('--cached')
   args.push('--', rel)
+  // A staged rename is only detected when both sides are in the pathspec.
+  if (opts.origPath) args.push(resolveInProject(projectId, opts.origPath).rel)
   const r = await git(root, args, { maxBuffer: MAX_DIFF_BYTES * 2 })
   if (r.code !== 0) throw new Error((r.stderr || r.error || 'git diff failed').trim())
   const truncated = r.stdout.length > MAX_DIFF_BYTES
