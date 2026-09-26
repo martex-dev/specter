@@ -385,6 +385,12 @@
   text-decoration: none !important;
   border-bottom: 1px dashed var(--accent-line);
 }
+.kn-task {
+  color: var(--fg-2);
+}
+.kn-task.done {
+  color: var(--ok);
+}
 .kn-wikilink.missing {
   color: var(--fg-2) !important;
   border-bottom-color: var(--fg-3);

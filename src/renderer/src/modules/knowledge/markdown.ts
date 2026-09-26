@@ -4,7 +4,16 @@ import DOMPurify from 'dompurify'
 import { replaceWikiLinks } from '@shared/modules/knowledge'
 import { openUrl } from './lib'
 
-const md = new Marked({ gfm: true, breaks: true })
+const md = new Marked({
+  gfm: true,
+  breaks: true,
+  renderer: {
+    // `- [ ]` / `- [x]` task items: <input> is sanitized away below, so draw a plain marker instead.
+    checkbox({ checked }) {
+      return `<span class="kn-task${checked ? ' done' : ''}" aria-hidden="true">${checked ? '☑' : '☐'}</span> `
+    }
+  }
+})
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
