@@ -47,6 +47,26 @@ export function listBookmarks(): Bookmark[] {
   return all<Row>('SELECT * FROM bookmarks WHERE profile_id = ? ORDER BY sort, created_at', activeProfileId()).map(toBookmark)
 }
 
+let batching = 0
+function changed(): void {
+  if (!batching) broadcast('bookmarks:changed', undefined)
+}
+
+/**
+ * Runs many bookmark writes in one transaction with a single change broadcast
+ * (one broadcast per imported bookmark made every window re-list all bookmarks
+ * thousands of times and froze SPECTER on large imports).
+ */
+export function bookmarkBatch<T>(fn: () => T): T {
+  batching++
+  try {
+    return tx(fn)
+  } finally {
+    batching--
+    changed()
+  }
+}
+
 export function addBookmark(b: Partial<Bookmark> & { title: string; kind: Bookmark['kind'] }): Bookmark {
   ensureBookmarkRoots()
   const id = uid('bm_')
@@ -66,7 +86,7 @@ export function addBookmark(b: Partial<Bookmark> & { title: string; kind: Bookma
     b.favicon ?? null,
     activeProfileId()
   )
-  broadcast('bookmarks:changed', undefined)
+  changed()
   return toBookmark(get<Row>('SELECT * FROM bookmarks WHERE id = ?', id)!)
 }
 
@@ -106,7 +126,7 @@ export function importBookmarksHtml(html: string, parentId: string): number {
   const stack: string[] = [parentId]
   const re = /<DT><H3[^>]*>([\s\S]*?)<\/H3>|<DT><A\s+([^>]*)>([\s\S]*?)<\/A>|<\/DL>/gi
   const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').trim()
-  tx(() => {
+  bookmarkBatch(() => {
     let m: RegExpExecArray | null
     let first = true
     while ((m = re.exec(html))) {
@@ -126,7 +146,6 @@ export function importBookmarksHtml(html: string, parentId: string): number {
       }
     }
   })
-  broadcast('bookmarks:changed', undefined)
   return count
 }
 

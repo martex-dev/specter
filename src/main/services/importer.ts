@@ -9,7 +9,7 @@ import type { ImportResult, ImportSource } from '@shared/ipc'
 import { hostname } from '@shared/url'
 import { run, tx } from '../db'
 import { handle } from '../ipc'
-import { addBookmark, otherFolderId } from './bookmarks'
+import { addBookmark, bookmarkBatch, otherFolderId } from './bookmarks'
 import { activeProfileId } from './profiles'
 import { createLogger } from '../logger'
 
@@ -65,9 +65,16 @@ export function detectSources(): ImportSource[] {
 function openCopy(file: string): { db: DatabaseSync; cleanup: () => void } {
   const dir = mkdtempSync(join(app.getPath('temp'), 'specter-import-'))
   const target = join(dir, 'db.sqlite')
-  copyFileSync(file, target)
-  for (const ext of ['-wal', '-shm']) if (existsSync(file + ext)) copyFileSync(file + ext, target + ext)
-  const db = new DatabaseSync(target, { readOnly: false })
+  let db: DatabaseSync
+  try {
+    copyFileSync(file, target)
+    for (const ext of ['-wal', '-shm']) if (existsSync(file + ext)) copyFileSync(file + ext, target + ext)
+    db = new DatabaseSync(target, { readOnly: false })
+  } catch (err) {
+    // e.g. EBUSY while the browser holds the file: don't leave the temp copy behind.
+    rmSync(dir, { recursive: true, force: true })
+    throw err
+  }
   return {
     db,
     cleanup: () => {
@@ -96,7 +103,7 @@ function importChromiumBookmarks(profilePath: string, parentId: string): number 
       for (const c of node.children ?? []) walk(c, f.id)
     }
   }
-  tx(() => {
+  bookmarkBatch(() => {
     for (const key of ['bookmark_bar', 'other', 'synced']) if (data.roots?.[key]?.children?.length) walk(data.roots[key], parentId)
   })
   return count
@@ -145,23 +152,27 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
     }
     if (what.bookmarks) {
       const rows = db
-        .prepare('SELECT b.id, b.type, b.parent, b.title, b.position, p.url FROM moz_bookmarks b LEFT JOIN moz_places p ON p.id = b.fk ORDER BY b.parent, b.position')
-        .all() as { id: number; type: number; parent: number; title: string | null; url: string | null }[]
-      const map = new Map<number, string>()
-      // Firefox roots: 1 = root, 2 = menu, 3 = toolbar, 5 = unfiled, 6 = mobile
-      map.set(1, parentId)
-      tx(() => {
-        for (const r of rows) {
-          if (r.id === 1) continue
-          const parent = map.get(r.parent)
-          if (!parent) continue
-          if (r.type === 2) map.set(r.id, addBookmark({ kind: 'folder', title: r.title || 'Folder', parentId: parent }).id)
-          else if (r.type === 1 && r.url && /^(https?|ftp|file):/i.test(r.url)) {
+        .prepare('SELECT b.id, b.type, b.parent, b.title, b.guid, b.position, p.url FROM moz_bookmarks b LEFT JOIN moz_places p ON p.id = b.fk ORDER BY b.parent, b.position')
+        .all() as { id: number; type: number; parent: number; title: string | null; guid: string | null; url: string | null }[]
+      const children = new Map<number, typeof rows>()
+      for (const r of rows) children.set(r.parent, [...(children.get(r.parent) ?? []), r])
+      // Walk the tree from the root (id 1; children: menu, toolbar, tags, unfiled, mobile).
+      // Id order is not tree order: a folder moved into a newer folder has a smaller
+      // id than its parent and was skipped, with everything inside it.
+      const walk = (folder: number, parent: string, depth: number): void => {
+        if (depth > 100) return
+        for (const r of children.get(folder) ?? []) {
+          if (r.type === 2) {
+            // The tags root repeats every tagged bookmark under per-tag folders.
+            if (r.guid === 'tags________') continue
+            walk(r.id, addBookmark({ kind: 'folder', title: r.title || 'Folder', parentId: parent }).id, depth + 1)
+          } else if (r.type === 1 && r.url && /^(https?|ftp|file):/i.test(r.url)) {
             addBookmark({ kind: 'bookmark', title: r.title || r.url, url: r.url, parentId: parent })
             result.bookmarks++
           }
         }
-      })
+      }
+      bookmarkBatch(() => walk(1, parentId, 0))
     }
   } finally {
     cleanup()
