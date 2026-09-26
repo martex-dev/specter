@@ -35,8 +35,22 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - **Workspaces** (`Ctrl+Shift+W`) with snapshots, compare, export (JSON / Markdown / HTML)
 - **Split view**: 50/50, 33/67, 67/33, 25/75, rows, three-column, quadrant, four-panel, draggable splitters, saved layouts
 - **Tab sleeping** with a lifecycle (active → background → idle → sleeping) and a dashboard showing memory actually released
-- 7 themes (SPECTER Dark, Obsidian, Midnight, Void, Terminal, Minimal, Light), accent colours, density, reduced motion
+- **6 complete theme packs**, each with its own layout, tab shape, typography and effects, plus 6 palettes each and a custom accent:
+  - **Specter** — refined graphite, connected tabs
+  - **Neon** — GX-style gamer HUD: angled tabs, glowing edges, left dock, Bahnschrift
+  - **Aurora** — frosted glass over a living gradient, floating pill tabs, floating page card
+  - **Terminal** — phosphor CRT: monospace, `[1:tab]` bracket tabs, scanlines, blinking prompt
+  - **Paper** — editorial light theme: serif headlines, underlined tabs, hairline rules
+  - **Synthwave** — outrun sunset, neon grid floor, retro sun, chunky gradient tabs
+- Mix-and-match layout (tab style, floating frame, centered address bar, dock side), automatic theme switching (follow Windows or a day/night schedule), density, reduced motion
+- **Vertical tabs** (optional): collapsible tab sidebar with groups, a pinned-tab grid, drag reorder and hover expansion
 - Focus mode, pop-out tool panels, quick capture, "Save to SPECTER", notification center
+
+### GX sidebar: apps, widgets and control
+An Opera-GX-style dock on the left or right, split into **apps / widgets / tools**:
+- **Web apps** — WhatsApp, Telegram, Discord, Messenger, Spotify, YouTube Music, ChatGPT, Claude, Gemini and more (20 in the catalog), or any site as a custom app. Panels stay alive while closed, show unread badges, and can use a mobile or desktop layout. Manage them at `specter://webapps`.
+- **Widgets** — weather (Open-Meteo, 7-day forecast, `weather paris` in the address bar), RSS/Atom news reader with feed auto-discovery, world clocks, calendar with `.ics` import and reminders, internet speed test (Cloudflare, runs only on click), currency converter, sticky notes and countdowns. Each can also be a new-tab card; manage them at `specter://widgets`.
+- **GX Control** — RAM limiter that sleeps least-recently-used background tabs and logs the memory actually released, per-tab network cap, CPU limiter for background tabs, "hot tabs" by memory and CPU, synthesized browser sounds, and animated new-tab wallpapers (or your own image).
 
 ### Power tools (tier 3)
 | Module | Highlights |
@@ -50,6 +64,11 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 | **Automation & cockpit** | Event-driven rules, declarative plugins, media controls for every playing tab, widget dashboard, multi-panel **cockpit** for multi-monitor setups |
 
 <p align="center">
+  <img src="docs/screenshots/theme-neon.png" alt="Neon theme with wallpaper" width="440" />
+  <img src="docs/screenshots/theme-synthwave.png" alt="Synthwave theme with the currency widget" width="440" />
+  <img src="docs/screenshots/theme-terminal.png" alt="Terminal theme with the calendar widget" width="440" />
+  <img src="docs/screenshots/theme-paper-control.png" alt="Paper theme with GX Control" width="440" />
+  <img src="docs/screenshots/web-apps.png" alt="Sidebar web apps" width="440" />
   <img src="docs/screenshots/markets.png" alt="Markets page" width="440" />
   <img src="docs/screenshots/ai-sidebar.png" alt="Local AI sidebar" width="440" />
   <img src="docs/screenshots/system-monitor.png" alt="System monitor" width="440" />

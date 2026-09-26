@@ -14,7 +14,12 @@ Status reflects what is implemented and verified in the running app, not intent.
 - Command palette, customisable shortcuts (UI and in-page), help, onboarding
 - Privacy Center, tracker blocking, GPC/DNT, HTTPS-first, per-site cookie/JS controls, third-party cookie blocking (approximate), security dashboard with live probes
 - Reader mode + TTS, find with regex, page tools, screenshots (visible/full page), PDF viewer, docked/detached DevTools, HTML5 fullscreen
-- 7 themes, accent colours, density, reduced motion
+- Theme engine v2: 6 theme packs (layouts, typography, effects) × 6 palettes, custom accent, layout mix-and-match, automatic day/night or system-following themes
+- Opera-GX-style dock with app / widget / tool sections, keep-alive panels and badges
+- Vertical tabs layout (collapsible sidebar, groups, pinned grid, drag reorder)
+- Sidebar web apps (20-app catalog + custom), unread badges, mobile/desktop layouts
+- Widgets: weather, RSS news, world clocks, calendar (.ics import, reminders), speed test, currency, sticky notes, countdowns
+- GX Control: RAM / network / CPU limiters, hot tabs, browser sounds, new-tab wallpapers
 - Diagnostics, log viewer, measured performance metrics, opt-in update checker (GitHub Releases)
 - Modules: local AI (Ollama), notes/research/knowledge (+ semantic search), markets/crypto/finance, system monitor, developer (projects, Git, terminal), toolkit, automation/plugins/media/widgets/cockpit
 - Windows installer + portable build
@@ -25,7 +30,8 @@ Status reflects what is implemented and verified in the running app, not intent.
 
 ## Planned
 
-- Vertical tabs layout (the setting exists but is not exposed yet)
+- Network limiter as a shared budget across tabs (currently a per-page cap)
+- Recurring calendar events (ICS import currently takes the first occurrence)
 - Chrome Web Store installs (currently: load unpacked extensions only)
 - Password manager integration with the OS credential store
 - Keep-alive for hidden internal pages (cockpit web panels currently reload when you leave the cockpit tab)
