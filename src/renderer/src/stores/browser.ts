@@ -360,7 +360,8 @@ export function closeTab(tabId: string): void {
   const f = findTab(tabId)
   if (!f) return
   const { ws, tab, index } = f
-  if (!tab.temporary) invoke('session:closedTabPush', { url: tab.url, title: tab.title, favicon: tab.favicon, workspaceId: ws.id, index }).catch(() => undefined)
+  // Blank new tabs are not worth restoring (Ctrl+Shift+T should bring back real pages).
+  if (!tab.temporary && tab.url !== 'specter://newtab') invoke('session:closedTabPush', { url: tab.url, title: tab.title, favicon: tab.favicon, workspaceId: ws.id, index }).catch(() => undefined)
   window.dispatchEvent(new CustomEvent('specter:tab-closed', { detail: { url: tab.url, wsId: ws.id } }))
   const remaining = ws.tabs.filter((t) => t.id !== tabId)
   if (remaining.length === 0) {
@@ -405,7 +406,9 @@ export async function reopenClosedTab(): Promise<void> {
   const t = await invoke('session:closedTabPop')
   if (!t) return
   const wsId = t.workspaceId && S().open[t.workspaceId] ? t.workspaceId : S().activeWsId
-  newTab(t.url, { wsId, index: t.index })
+  const id = newTab(t.url, { wsId, index: t.index })
+  // The tab went back to its (background) workspace: show it there.
+  if (id && wsId !== S().activeWsId) activateTab(id)
 }
 
 export function navigate(tabId: string, input: string, opts: { fromOmnibox?: boolean } = {}): void {
