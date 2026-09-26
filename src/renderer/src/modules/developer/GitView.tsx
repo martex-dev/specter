@@ -54,6 +54,8 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
   const [output, setOutput] = useState<{ title: string; text: string; ok: boolean | null } | null>(null)
   const outRef = useRef<HTMLPreElement>(null)
   const loading = useRef(false)
+  // Reload the shown diff whenever the file list or any file's status letters change (e.g. after staging it).
+  const statusKey = st ? st.files.map((f) => f.x + f.y + f.path).join('\0') : ''
 
   const refresh = useCallback(async () => {
     if (loading.current) return
@@ -105,7 +107,7 @@ export function GitView({ projectId, wide = false }: { projectId: string; wide?:
     return () => {
       cancelled = true
     }
-  }, [sel, projectId, st?.files.length])
+  }, [sel, projectId, statusKey])
 
   useEffect(() => {
     if (outRef.current) outRef.current.scrollTop = outRef.current.scrollHeight
