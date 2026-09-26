@@ -1,6 +1,7 @@
 // Research graph: Source → Claim → Evidence, drawn as a clean layered SVG.
 import { useMemo, useState } from 'react'
 import type { MissionFull } from '@shared/modules/knowledge'
+import { citationsFor } from './report'
 
 const COL_W = 250
 const GAP = 110
@@ -18,7 +19,8 @@ type Node = { id: string; col: 0 | 1 | 2; y: number; label: string; full: string
 export function ResearchGraph({ mission, onSelect }: { mission: MissionFull; onSelect?: (kind: Node['kind'], id: string) => void }) {
   const [hover, setHover] = useState<string | null>(null)
   const { nodes, edges, height } = useMemo(() => {
-    const srcIndex = new Map(mission.sources.map((s, i) => [s.id, i + 1]))
+    // Same S-numbers as the Sources tab and citations (oldest source = S1).
+    const srcIndex = new Map(citationsFor(mission).map((c) => [c.id, c.n]))
     // Order evidence by claim so edges don't cross much.
     const claimOrder = new Map(mission.claims.map((c, i) => [c.id, i]))
     const evidence = [...mission.evidence].sort((a, b) => (claimOrder.get(a.claimId ?? '') ?? 1e9) - (claimOrder.get(b.claimId ?? '') ?? 1e9))
