@@ -10,6 +10,7 @@ import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensi
 import { useSetting, useSettingsStore } from './stores/settings'
 import { closeOverlay, toast, useUi } from './stores/ui'
 import { tabIdForWcId } from './lib/webviews'
+import { fontInspectorChanged } from './lib/fontInspector'
 import { TabStrip, WorkspacePill } from './chrome/TabStrip'
 import { Toolbar } from './chrome/Toolbar'
 import { BookmarkBar } from './chrome/BookmarkBar'
@@ -121,6 +122,7 @@ export function App() {
       }),
       on('guest:crashed', ({ wcId, reason }) => handleGuestCrash(wcId, reason)),
       on('guest:unresponsive', ({ wcId, responsive }) => handleGuestUnresponsive(wcId, responsive)),
+      on('guest:fontInspector', fontInspectorChanged),
       on('permissions:request', (req) => {
         const tabId = tabIdForWcId(req.webContentsId)
         if (tabId) addPermissionRequest(req, tabId)

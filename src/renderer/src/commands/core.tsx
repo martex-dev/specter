@@ -5,6 +5,7 @@ import {
   Bookmark,
   BookOpen,
   Camera,
+  CaseSensitive,
   Clock,
   Code2,
   Columns2,
@@ -75,6 +76,7 @@ import { isInternal } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { toggleAdblockForActiveSite } from '../lib/adblock'
 import { toggleVideoToolsForActiveSite, videoSpeed } from '../lib/video'
+import { toggleFontInspector } from '../lib/fontInspector'
 import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
 import { registerCommands, runCommand, type Command } from '../lib/commands'
 import { webviewFor, wcIdFor } from '../lib/webviews'
@@ -604,6 +606,18 @@ export function registerCoreCommands(): void {
     { id: 'page.screenshotFull', title: 'Full-page capture', category: 'Page', icon: Camera, run: (a) => screenshot(true, false, a) },
     { id: 'page.screenshotClipboard', title: 'Screenshot to clipboard', category: 'Page', icon: Copy, run: (a) => screenshot(false, true, a) },
     { id: 'page.info', title: 'Page information', category: 'Page', icon: Info, run: () => openSidePanel('pagetools') },
+    {
+      id: 'page.fonts',
+      title: 'Identify fonts',
+      category: 'Page',
+      icon: CaseSensitive,
+      keywords: ['whatfont', 'font', 'typography', 'typeface', 'inspect'],
+      description: 'Hover text to see which font renders it. Esc exits.',
+      run: (a) => {
+        const wcId = requireWeb(tabFromArgs(a))
+        if (wcId !== null) void toggleFontInspector(wcId)
+      }
+    },
     {
       id: 'page.copyText',
       title: 'Copy clean page text',
