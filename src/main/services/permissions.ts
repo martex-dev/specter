@@ -14,7 +14,7 @@ const AUTO_ALLOW = new Set(['fullscreen', 'pointerLock', 'clipboard-sanitized-wr
 /** Never granted in v1 (device-level access with high abuse potential). */
 const AUTO_DENY = new Set(['midiSysex', 'hid', 'serial', 'usb', 'unknown'])
 
-const pending = new Map<string, { resolve: (ok: boolean) => void; origin: string; permissions: string[]; timer: NodeJS.Timeout; wcId: number }>()
+const pending = new Map<string, { resolve: (ok: boolean) => void; origin: string; permissions: string[]; timer: NodeJS.Timeout; wcId: number; hostId: number }>()
 const attached = new WeakSet<Session>()
 
 export function getDecision(origin: string, permission: string): PermissionDecision {
@@ -65,9 +65,9 @@ function ask(wc: WebContents, origin: string, perms: string[], details?: string)
     // Only a real page change cancels the prompt: iframes loading and SPA
     // pushState/hash navigations must not auto-deny it.
     const onNavigate = (details: Electron.Event<Electron.WebContentsDidStartNavigationEventParams>) => {
-      if (details.isMainFrame && !details.isSameDocument) finish(requestId, false)
+      if (details.isMainFrame && !details.isSameDocument) finish(requestId, false, true)
     }
-    const onDestroyed = () => finish(requestId, false)
+    const onDestroyed = () => finish(requestId, false, true)
     const done = (ok: boolean) => {
       if (!wc.isDestroyed()) {
         wc.off('did-start-navigation', onNavigate)
@@ -75,20 +75,22 @@ function ask(wc: WebContents, origin: string, perms: string[], details?: string)
       }
       resolve(ok)
     }
-    const timer = setTimeout(() => finish(requestId, false), 120_000)
-    pending.set(requestId, { resolve: done, origin, permissions: perms, timer, wcId: wc.id })
+    const timer = setTimeout(() => finish(requestId, false, true), 120_000)
+    pending.set(requestId, { resolve: done, origin, permissions: perms, timer, wcId: wc.id, hostId: host.id })
     sendTo(host.id, 'permissions:request', { requestId, webContentsId: wc.id, origin, permission: perms.join('+'), details })
     wc.on('did-start-navigation', onNavigate)
     wc.once('destroyed', onDestroyed)
   })
 }
 
-function finish(requestId: string, ok: boolean): void {
+/** `cancelled`: answered by navigation/timeout/tab close rather than the user, so the UI drops its prompt. */
+function finish(requestId: string, ok: boolean, cancelled = false): void {
   const p = pending.get(requestId)
   if (!p) return
   clearTimeout(p.timer)
   pending.delete(requestId)
   p.resolve(ok)
+  if (cancelled) sendTo(p.hostId, 'permissions:cancelled', { requestId })
 }
 
 export function attachPermissions(ses: Session): void {

@@ -6,7 +6,7 @@ import { isInternal } from '@shared/url'
 import { invoke, invokeRaw, on } from './lib/ipc'
 import { runCommand } from './lib/commands'
 import { applyTheme, titleBarColors } from './lib/themes'
-import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, updateTab } from './stores/browser'
+import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, dropPermissionRequest, updateTab } from './stores/browser'
 import { useSetting, useSettingsStore } from './stores/settings'
 import { closeOverlay, toast, useUi } from './stores/ui'
 import { tabIdForWcId } from './lib/webviews'
@@ -126,6 +126,7 @@ export function App() {
         if (tabId) addPermissionRequest(req, tabId)
         else invoke('permissions:respond', req.requestId, 'deny', false)
       }),
+      on('permissions:cancelled', ({ requestId }) => dropPermissionRequest(requestId)),
       on('window:state', (ws) => useUi.setState({ windowState: ws })),
       on('privacy:blocked', ({ perTab }) => {
         if (!perTab) return

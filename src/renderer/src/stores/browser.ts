@@ -953,6 +953,13 @@ export function addPermissionRequest(req: PermissionRequest, tabId: string): voi
   updateTab(tabId, { permissionRequests: [...(f.tab.permissionRequests ?? []), req] })
 }
 
+/** Main answered a prompt itself (the page navigated, it timed out): drop it from whichever tab shows it. */
+export function dropPermissionRequest(requestId: string): void {
+  for (const ws of Object.values(useBrowser.getState().open))
+    for (const tab of ws.tabs)
+      if (tab.permissionRequests?.some((r) => r.requestId === requestId)) updateTab(tab.id, { permissionRequests: tab.permissionRequests.filter((r) => r.requestId !== requestId) })
+}
+
 export function resolvePermissionRequest(tabId: string, requestId: string, decision: 'allow' | 'deny', remember: boolean): void {
   const f = findTab(tabId)
   const reqs = f?.tab.permissionRequests ?? []

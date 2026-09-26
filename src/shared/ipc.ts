@@ -326,6 +326,7 @@ export interface IpcContract {
 export interface IpcEvents {
   'downloads:changed': DownloadInfo
   'permissions:request': PermissionRequest
+  'permissions:cancelled': { requestId: string }
   'guest:contextMenu': ContextMenuParams
   'guest:openUrl': { url: string; disposition: 'foreground-tab' | 'background-tab' | 'new-window'; sourceWcId: number }
   'guest:crashed': { wcId: number; reason: string }
