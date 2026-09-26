@@ -234,6 +234,13 @@ function Paper({ sub }: PageProps) {
   )
 }
 
+/** Rounds down to 8 significant digits (rounding up could make a "100%" buy cost more than the cash). */
+function floorSig(x: number): number {
+  if (!(x > 0) || !isFinite(x)) return 0
+  const p = 10 ** (7 - Math.floor(Math.log10(x)))
+  return Number((Math.floor(x * p) / p).toPrecision(8))
+}
+
 function OrderTicket({ symbol, setSymbol, lookup, quotes, cash, feeRate, positionQty }: { symbol: string; setSymbol: (s: string) => void; lookup: string; quotes: ReturnType<typeof useQuotes>; cash: number; feeRate: number; positionQty: number }) {
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
   const [mode, setMode] = useState<'qty' | 'notional'>('notional')
@@ -249,8 +256,14 @@ function OrderTicket({ symbol, setSymbol, lookup, quotes, cash, feeRate, positio
     if (!q) return
     if (side === 'buy') {
       const notional = (cash * frac) / (1 + feeRate)
-      setAmount(mode === 'notional' ? String(Math.floor(notional * 100) / 100) : String(Number((notional / q.price).toPrecision(8))))
+      setAmount(mode === 'notional' ? String(Math.floor(notional * 100) / 100) : String(floorSig(notional / q.price)))
     } else {
+      if (frac === 1) {
+        // An amount would be re-converted at the (moved) fill price and either leave dust or exceed the position.
+        setMode('qty')
+        setAmount(String(positionQty))
+        return
+      }
       const qn = positionQty * frac
       setAmount(mode === 'qty' ? String(qn) : String(Math.floor(qn * q.price * 100) / 100))
     }
