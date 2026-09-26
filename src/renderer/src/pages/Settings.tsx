@@ -21,10 +21,12 @@ import {
   Puzzle,
   RotateCcw,
   Trash2,
-  Plus
+  Plus,
+  Film
 } from 'lucide-react'
 import { SEARCH_ENGINES, type SettingKey, type Settings as SettingsT } from '@shared/settings'
 import { DEFAULT_KEYBINDINGS, eventToAccelerator, normalizeAccelerator, resolveBindings } from '@shared/keys'
+import { SPEED_MAX, SPEED_MIN, VIDEO_ACTIONS, clampSpeed, formatSpeed, resolveVideoKeys, siteKey, type SiteSpeed, type VideoAction } from '@shared/video'
 import type { AppInfo } from '@shared/ipc'
 import type { Profile } from '@shared/types'
 import { invoke, invokeRaw } from '../lib/ipc'
@@ -250,6 +252,190 @@ function BrowserSection() {
         <Toggle k="downloads.askWhereToSave" title="Ask where to save each file" />
       </Group>
     </>
+  )
+}
+
+function VideoSection() {
+  const enabled = useSetting('video.enabled')
+  return (
+    <>
+      <Group title="Video tools">
+        <Toggle
+          k="video.enabled"
+          title="Speed keys and badge on pages with video"
+          desc="A built-in Video Speed Controller for any HTML5 video or audio. The media controls and the command palette change the speed either way."
+        />
+        <Toggle k="video.badge" title="Speed badge" desc="A small badge with − / + buttons in the video’s corner. It appears when the speed changes or you point at the video, then fades out." />
+        <Toggle k="video.rememberSpeed" title="Remember the speed for each site" desc="Kept for this profile and cleared with your browsing history." />
+        <PreferredSpeed />
+        <Choice k="video.step" title="Speed step" options={[0.05, 0.1, 0.25, 0.5].map((v) => ({ value: String(v), label: formatSpeed(v) }))} />
+      </Group>
+      {enabled && <VideoKeys />}
+      <RememberedSpeeds />
+      <VideoOffSites />
+    </>
+  )
+}
+
+function PreferredSpeed() {
+  const v = useSetting('video.preferredSpeed')
+  const [draft, setDraft] = useState(String(v))
+  useEffect(() => setDraft(String(v)), [v])
+  const save = () => {
+    const n = Number(draft)
+    if (!draft.trim() || !Number.isFinite(n) || n <= 0) return setDraft(String(v))
+    const c = clampSpeed(n)
+    setDraft(String(c))
+    if (c !== v) setSetting('video.preferredSpeed', c)
+  }
+  return (
+    <Row title="Preferred speed" desc={`What the “preferred speed” key switches to (${SPEED_MIN}× – ${SPEED_MAX}×).`}>
+      <input
+        className="input"
+        type="number"
+        min={SPEED_MIN}
+        max={SPEED_MAX}
+        step={0.05}
+        style={{ width: 90 }}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        aria-label="Preferred speed"
+      />
+    </Row>
+  )
+}
+
+function VideoKeys() {
+  const overrides = useSetting('video.keys')
+  const bindings = useSetting('keyboard.bindings')
+  const [recording, setRecording] = useState<VideoAction | null>(null)
+  useEffect(() => {
+    if (!recording) return
+    document.documentElement.dataset.recordingShortcut = '1'
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.key === 'Escape') return setRecording(null)
+      const next: Partial<Record<VideoAction, string>> = { ...overrides }
+      if (e.key === 'Backspace' || e.key === 'Delete') next[recording] = ''
+      else {
+        const acc = eventToAccelerator({ key: e.key, code: e.code, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
+        if (!acc) return
+        const keys = resolveVideoKeys(overrides)
+        const clash = VIDEO_ACTIONS.find((a) => a.id !== recording && keys[a.id] === acc)
+        if (clash) {
+          next[clash.id] = ''
+          toast({ kind: 'warn', title: `${acc} was the key for “${clash.label}”`, body: 'That key has been turned off.' })
+        }
+        const taken = Object.entries(resolveBindings(bindings)).find(([, a]) => a === acc)
+        if (taken) toast({ kind: 'warn', title: `${acc} is SPECTER’s shortcut for ${getCommand(taken[0])?.title ?? taken[0]}`, body: 'SPECTER’s shortcut wins inside pages, so this key won’t reach video tools.' })
+        next[recording] = acc
+      }
+      setSetting('video.keys', next)
+      setRecording(null)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      delete document.documentElement.dataset.recordingShortcut
+    }
+  }, [recording, overrides, bindings])
+  const keys = resolveVideoKeys(overrides)
+  return (
+    <Group title="Keys">
+      {VIDEO_ACTIONS.map((a) => (
+        <Row key={a.id} title={a.label}>
+          <div className="row" style={{ gap: 6 }}>
+            <button className="btn sm" style={{ minWidth: 150, justifyContent: 'flex-start' }} onClick={() => setRecording(a.id)}>
+              {recording === a.id ? <span className="accent">Press a key… (Esc cancels, ⌫ turns off)</span> : keys[a.id] ? <Kbd keys={keys[a.id]!} /> : <span className="dim">Off</span>}
+            </button>
+            <button
+              className="icon-btn sm"
+              style={{ visibility: overrides[a.id] !== undefined ? 'visible' : 'hidden' }}
+              onClick={() => {
+                const next = { ...overrides }
+                delete next[a.id]
+                setSetting('video.keys', next)
+              }}
+              data-tip="Reset to default"
+              aria-label={`Reset the key for ${a.label}`}
+            >
+              <RotateCcw size={12} />
+            </button>
+          </div>
+        </Row>
+      ))}
+      <div className="dim" style={{ fontSize: 11.5, padding: '10px 0' }}>
+        Keys work on pages with video or audio while you aren’t typing; other keys, and these keys with other modifiers, still reach the page. If a site’s own shortcuts clash, turn video tools off for it below or with the palette command “Toggle video tools on this site”.
+      </div>
+    </Group>
+  )
+}
+
+function RememberedSpeeds() {
+  const [list, setList] = useState<SiteSpeed[] | null>(null)
+  const load = () =>
+    invoke('video:sites')
+      .then(setList)
+      .catch(() => setList([]))
+  useEffect(() => {
+    load()
+  }, [])
+  return (
+    <Group title="Remembered speeds">
+      {list !== null && list.length === 0 && <div className="muted" style={{ padding: '14px 0' }}>No remembered speeds yet. Change the speed on a site and it is used there next time.</div>}
+      {list?.map((e) => (
+        <Row key={e.site} title={e.site} desc={formatSpeed(e.rate)}>
+          <button className="btn sm" onClick={() => invoke('video:forget', e.site).then(load)}>
+            Forget
+          </button>
+        </Row>
+      ))}
+      {!!list?.length && (
+        <Row title="Forget every site’s speed">
+          <button
+            className="btn sm"
+            onClick={async () => {
+              if (await confirmAction('Forget the remembered speed of every site?')) invoke('video:forget', null).then(load)
+            }}
+          >
+            <Trash2 size={12} /> Forget all
+          </button>
+        </Row>
+      )}
+    </Group>
+  )
+}
+
+function VideoOffSites() {
+  const list = useSetting('video.disabledSites')
+  const [draft, setDraft] = useState('')
+  const add = () => {
+    const text = draft.trim()
+    const site = siteKey(/^[a-z]+:\/\//i.test(text) ? text : 'https://' + text)
+    if (!site) return toast({ kind: 'warn', title: 'Enter a site such as example.com' })
+    if (!list.includes(site)) setSetting('video.disabledSites', [...list, site].sort())
+    setDraft('')
+  }
+  return (
+    <Group title="Off on these sites">
+      {list.length === 0 && <div className="muted" style={{ padding: '14px 0 4px' }}>Video tools work on every site.</div>}
+      {list.map((site) => (
+        <Row key={site} title={site}>
+          <button className="btn sm" onClick={() => setSetting('video.disabledSites', list.filter((s) => s !== site))}>
+            Remove
+          </button>
+        </Row>
+      ))}
+      <div className="row" style={{ gap: 6, padding: '10px 0' }}>
+        <input className="input grow" placeholder="example.com" value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} aria-label="Site to turn video tools off for" />
+        <button className="btn sm" onClick={add} disabled={!draft.trim()}>
+          <Plus size={12} /> Add
+        </button>
+      </div>
+    </Group>
   )
 }
 
@@ -976,6 +1162,7 @@ const CORE_SECTIONS: { id: string; title: string; icon: typeof Settings2; C: () 
   { id: 'general', title: 'General', icon: Settings2, C: General },
   { id: 'appearance', title: 'Appearance', icon: Brush, C: Appearance },
   { id: 'browser', title: 'Browser & tabs', icon: Globe, C: BrowserSection },
+  { id: 'video', title: 'Video', icon: Film, C: VideoSection },
   { id: 'search', title: 'Search', icon: Search, C: SearchSection },
   { id: 'privacy', title: 'Privacy', icon: Shield, C: PrivacySection },
   { id: 'security', title: 'Security', icon: Lock, C: SecuritySection },
