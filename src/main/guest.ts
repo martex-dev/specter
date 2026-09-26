@@ -34,6 +34,23 @@ export function tabIdForGuest(wcId: number): string | undefined {
   return guestTabs.get(wcId)
 }
 
+/** Pop-up window (OAuth sign-in and the like) → the tab guest that opened it. */
+const popupOpeners = new Map<number, number>()
+
+/** The tab guest a pop-up window belongs to (itself for a tab guest). */
+export function owningGuestOf(wcId: number): number | undefined {
+  const seen = new Set<number>()
+  let id: number | undefined = wcId
+  while (id !== undefined && !seen.has(id)) {
+    const wc = webContents.fromId(id)
+    if (!wc || wc.isDestroyed()) return undefined
+    if (wc.getType() === 'webview') return id
+    seen.add(id)
+    id = popupOpeners.get(id)
+  }
+  return undefined
+}
+
 /** Shortcuts that act on the page itself and must leave keyboard focus in it. */
 const KEEP_PAGE_FOCUS = new Set([
   'browser.reload', 'browser.hardReload', 'browser.reloadF5', 'browser.back', 'browser.forward', 'browser.stop',
@@ -153,6 +170,9 @@ function setupGuest(wc: WebContents): void {
   })
 
   wc.on('did-create-window', (child) => {
+    const childId = child.webContents.id
+    popupOpeners.set(childId, wc.id)
+    child.webContents.once('destroyed', () => popupOpeners.delete(childId))
     child.webContents.on('before-input-event', (_e, input) => {
       if (input.type === 'keyDown' && input.control && input.key.toLowerCase() === 'w') child.close()
     })

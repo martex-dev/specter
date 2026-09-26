@@ -25,6 +25,7 @@ import { registerFontInspectorIpc } from './services/fonts'
 import { registerAppIpc, loadStoredExtensions } from './services/app'
 import { registerSearchIpc } from './services/search'
 import { registerImportIpc } from './services/importer'
+import { attachPasswords, registerPasswordsIpc } from './services/passwords'
 import { registerNotificationsIpc } from './services/notifications'
 import { registerDiagnosticsIpc } from './services/diagnostics'
 import { registerUpdatesIpc } from './services/updates'
@@ -111,6 +112,7 @@ function attachSessionHandlers(): void {
   attachVideoTools(ses)
   attachDownloads(ses)
   attachCertificateCapture(ses)
+  attachPasswords(ses)
   ses.setSpellCheckerLanguages(['en-US'])
 }
 
@@ -131,6 +133,7 @@ function registerIpc(): void {
   registerFontInspectorIpc()
   registerSearchIpc()
   registerImportIpc()
+  registerPasswordsIpc()
   registerNotificationsIpc()
   registerDiagnosticsIpc()
   registerUpdatesIpc()
