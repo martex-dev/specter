@@ -121,6 +121,10 @@ export function TabStrip() {
         onWheel={(e) => {
           if (scrollRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) scrollRef.current.scrollLeft += e.deltaY
         }}
+        // A drag that is cancelled or dropped anywhere but on a tab must not
+        // leave the drop marker behind.
+        onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setDrop(null)}
+        onDragEnd={() => setDrop(null)}
         role="tablist"
         aria-label="Tabs"
       >

@@ -106,6 +106,10 @@ export function VerticalTabs() {
         clearTimeout(timer.current)
         setHover(false)
       }}
+      // A drag that is cancelled or dropped anywhere but on a tab must not leave
+      // the drop marker behind.
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setDrop(null)}
+      onDragEnd={() => setDrop(null)}
       aria-label="Tabs"
     >
       <div className="vtabs-head">
