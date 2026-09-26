@@ -12,6 +12,7 @@ import { randomInt } from 'node:crypto'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  checkPasswords,
   generatePassword,
   loginOrigin,
   loginsFromCsv,
@@ -418,6 +419,15 @@ export function registerPasswordsIpc(): void {
   }))
 
   handle('passwords:list', () => listRows().map(toLogin))
+
+  handle('passwords:check', () =>
+    checkPasswords(
+      listRows().flatMap((r) => {
+        const password = safeDecrypt(r)
+        return password === null ? [] : [{ id: r.id, origin: r.origin, username: r.username, password }]
+      })
+    )
+  )
 
   handle('passwords:reveal', (_e, id) => {
     const r = rowById(id)

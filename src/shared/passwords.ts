@@ -63,6 +63,8 @@ declare module './ipc' {
   interface IpcContract {
     'passwords:status': () => PasswordStatus
     'passwords:list': () => SavedLogin[]
+    /** Weak and reused passwords, worked out on this PC. */
+    'passwords:check': () => PasswordHealth
     'passwords:reveal': (id: string) => string
     /** Copies a password; the clipboard is cleared a minute later if it still holds it. */
     'passwords:copy': (id: string) => void
@@ -254,4 +256,52 @@ export function generatePassword(randomInt: (n: number) => number, maxLength?: n
     ;[chars[i], chars[j]] = [chars[j], chars[i]]
   }
   return chars.join('')
+}
+
+// ---------------------------------------------------------------- password check
+
+/** Passwords that top every leaked-password list; anything on it is weak regardless of length. */
+const COMMON = new Set(
+  (
+    '123456 123456789 12345678 password qwerty123 qwerty 1q2w3e4r 111111 12345 1234567 1234567890 123123 000000 abc123 password1 iloveyou ' +
+    'qwertyuiop 654321 666666 987654321 123321 1qaz2wsx 7777777 dragon monkey letmein football baseball welcome admin login princess ' +
+    'sunshine master shadow superman michael charlie passw0rd trustno1 hello123 freedom whatever qazwsx asdfgh asdfghjkl zxcvbnm ' +
+    'password123 admin123 welcome1 p@ssw0rd p@ssword 1234qwer q1w2e3r4 google secret starwars pokemon'
+  ).split(' ')
+)
+
+export type WeakReason = 'common' | 'short' | 'simple' | 'username'
+
+/** Why a password is weak, or null when it isn't. */
+export function weakness(password: string, username = ''): WeakReason | null {
+  const p = password.toLowerCase()
+  if (COMMON.has(p) || COMMON.has(p.replace(/[!.?]+$/, ''))) return 'common'
+  if (password.length < 8) return 'short'
+  const user = username.toLowerCase().split('@')[0]
+  if (user.length >= 3 && p.includes(user)) return 'username'
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter((r) => r.test(password)).length
+  // One kind of character (all digits, all lower case…) needs real length to be strong.
+  if (classes === 1 && password.length < 12) return 'simple'
+  if (/^(.)\1+$/.test(password) || /^(?:0123456789|abcdefghij|qwertyuiop)/i.test(password)) return 'simple'
+  return null
+}
+
+export interface PasswordHealth {
+  weak: { id: string; reason: WeakReason }[]
+  /** Groups of logins on different sites that share one password. */
+  reused: string[][]
+  checked: number
+}
+
+/** Looks at every login locally; nothing is sent anywhere. */
+export function checkPasswords(entries: { id: string; origin: string; username: string; password: string }[]): PasswordHealth {
+  const weak: PasswordHealth['weak'] = []
+  const byPassword = new Map<string, { id: string; origin: string }[]>()
+  for (const e of entries) {
+    const reason = weakness(e.password, e.username)
+    if (reason) weak.push({ id: e.id, reason })
+    byPassword.set(e.password, [...(byPassword.get(e.password) ?? []), { id: e.id, origin: e.origin }])
+  }
+  const reused = [...byPassword.values()].filter((g) => new Set(g.map((x) => x.origin)).size > 1).map((g) => g.map((x) => x.id))
+  return { weak, reused, checked: entries.length }
 }

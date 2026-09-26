@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generatePassword, loginOrigin, loginsFromCsv, loginsToCsv, matchOrigin, parseCsv } from '@shared/passwords'
+import { checkPasswords, generatePassword, loginOrigin, loginsFromCsv, loginsToCsv, matchOrigin, parseCsv, weakness } from '@shared/passwords'
 
 describe('parseCsv', () => {
   it('handles quotes, doubled quotes, embedded newlines, CRLF and a BOM', () => {
@@ -98,5 +98,34 @@ describe('generatePassword', () => {
   })
   it('always has the four classes, even from a degenerate source', () => {
     expect(generatePassword(() => 0)).toMatch(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[-_.!?@#$%]).{15}$/)
+  })
+})
+
+describe('password check', () => {
+  it('flags common, short, simple and username-based passwords', () => {
+    expect(weakness('password1')).toBe('common')
+    expect(weakness('Qwerty123')).toBe('common')
+    expect(weakness('Ab1!')).toBe('short')
+    expect(weakness('abcdefghjk')).toBe('simple')
+    expect(weakness('20240101')).toBe('simple')
+    expect(weakness('aaaaaaaaaaaaaaa')).toBe('simple')
+    expect(weakness('Martin-2024!', 'martin@example.test')).toBe('username')
+  })
+  it('passes strong passwords', () => {
+    expect(weakness('S4B$oBf?pc6h?V$')).toBeNull()
+    expect(weakness('correct horse battery staple')).toBeNull()
+    expect(weakness('longlowercasepassphrase')).toBeNull()
+  })
+  it('groups passwords reused on different sites only', () => {
+    const h = checkPasswords([
+      { id: 'a', origin: 'https://a.test', username: 'u', password: 'Same-pass-123' },
+      { id: 'b', origin: 'https://b.test', username: 'u', password: 'Same-pass-123' },
+      { id: 'c', origin: 'https://c.test', username: 'u', password: 'Other-pass-456' },
+      { id: 'd', origin: 'https://c.test', username: 'v', password: 'Other-pass-456' },
+      { id: 'e', origin: 'https://e.test', username: 'w', password: '123456' }
+    ])
+    expect(h.reused).toEqual([['a', 'b']])
+    expect(h.weak).toEqual([{ id: 'e', reason: 'common' }])
+    expect(h.checked).toBe(5)
   })
 })
