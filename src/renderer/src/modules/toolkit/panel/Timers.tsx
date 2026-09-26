@@ -24,6 +24,7 @@ import {
   timerStart,
   useClocks
 } from './clocks'
+import { NumberInput } from '../ui'
 
 /** Re-render every animation frame while `active` (only while mounted). */
 function useFrame(active: boolean): void {
@@ -174,7 +175,7 @@ export function PomodoroView() {
   const num = (k: 'work' | 'short' | 'long' | 'rounds', min: number, max: number) => (
     <label className="tkp-field" style={{ flex: 1 }}>
       <span className="label">{k === 'rounds' ? 'Rounds' : k === 'work' ? 'Focus min' : k === 'short' ? 'Short min' : 'Long min'}</span>
-      <input className="input mono" type="number" min={min} max={max} value={cfg[k]} onChange={(e) => pomodoroConfigure({ [k]: Math.max(min, Math.min(max, Number(e.target.value) || min)) })} disabled={running} />
+      <NumberInput className="input mono" min={min} max={max} value={cfg[k]} onValue={(v) => pomodoroConfigure({ [k]: v })} disabled={running} />
     </label>
   )
 

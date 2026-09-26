@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Seg } from '../../../components/ui'
 import { inspectUuid, uuidV7 } from '../lib/time'
-import { CopyBtn, KV, Pane, useToolState } from '../ui'
+import { CopyBtn, KV, NumberInput, Pane, useToolState } from '../ui'
 
 type Version = 'v4' | 'v7'
 
@@ -35,7 +35,7 @@ export default function UuidTool() {
         <Seg value={version} onChange={setVersion} options={[{ value: 'v4', label: 'v4 random' }, { value: 'v7', label: 'v7 time-ordered' }]} />
         <label className="row" style={{ gap: 6, fontSize: 12 }}>
           Count
-          <input className="input mono" type="number" min={1} max={10000} style={{ width: 84, height: 28 }} value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label="How many" />
+          <NumberInput className="input mono" min={1} max={10000} style={{ width: 84, height: 28 }} value={count} onValue={(v) => setCount(Math.round(v))} aria-label="How many" />
         </label>
         <label className="row" style={{ gap: 5, fontSize: 12 }}>
           <input type="checkbox" checked={upper} onChange={(e) => setUpper(e.target.checked)} /> Uppercase

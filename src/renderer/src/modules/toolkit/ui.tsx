@@ -37,6 +37,42 @@ export function useDebounced<T>(value: T, ms = 150): T {
   return v
 }
 
+/**
+ * Number field that can be cleared while typing: valid input is committed
+ * (clamped) as you type, and the field shows the committed value again on
+ * blur. A plain controlled `value={n}` snapped an emptied field straight back
+ * to a number, so typing after Backspace produced values like "150".
+ */
+export function NumberInput({
+  value,
+  min,
+  max,
+  onValue,
+  ...rest
+}: { value: number; min: number; max: number; onValue: (v: number) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'min' | 'max' | 'type'>) {
+  const [draft, setDraft] = useState(String(value))
+  useEffect(() => setDraft(String(value)), [value])
+  return (
+    <input
+      {...rest}
+      type="number"
+      min={min}
+      max={max}
+      value={draft}
+      onChange={(e) => {
+        const t = e.target.value
+        setDraft(t)
+        const n = Number(t)
+        if (t.trim() !== '' && Number.isFinite(n)) onValue(Math.max(min, Math.min(max, n)))
+      }}
+      onBlur={(e) => {
+        setDraft(String(value))
+        rest.onBlur?.(e)
+      }}
+    />
+  )
+}
+
 // ---------------------------------------------------------------- clipboard
 
 export async function copyText(text: string, what = 'Copied'): Promise<void> {

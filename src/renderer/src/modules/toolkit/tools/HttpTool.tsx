@@ -4,7 +4,7 @@ import { Seg } from '../../../components/ui'
 import { invoke } from '../../../lib/ipc'
 import type { HttpToolResponse } from '@shared/modules/toolkit'
 import { parseJson } from '../lib/json'
-import { CopyBtn, ErrorNote, JsonTree, Pane, bytes, useToolState } from '../ui'
+import { CopyBtn, ErrorNote, JsonTree, NumberInput, Pane, bytes, useToolState } from '../ui'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
@@ -99,7 +99,7 @@ export default function HttpTool() {
               </label>
               <label className="row" style={{ gap: 4, fontSize: 11.5 }}>
                 Timeout
-                <input className="input mono" type="number" min={1} max={120} style={{ width: 54, height: 22, padding: '0 6px' }} value={timeout} onChange={(e) => setTimeoutS(Math.max(1, Math.min(120, Number(e.target.value) || 30)))} aria-label="Timeout seconds" />s
+                <NumberInput className="input mono" min={1} max={120} style={{ width: 54, height: 22, padding: '0 6px' }} value={timeout} onValue={setTimeoutS} aria-label="Timeout seconds" />s
               </label>
               <CopyBtn text={() => curlFor(method, url.trim(), hdrs, body)} title="Copy as cURL" />
             </>
