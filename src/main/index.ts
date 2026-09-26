@@ -1,7 +1,7 @@
 // SPECTER main process entry.
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray, crashReporter } from 'electron'
 import { join } from 'node:path'
-import { openDatabase, closeDatabase, metaSet, isDbOpen } from './db'
+import { openDatabase, closeDatabase, isDbOpen } from './db'
 import { createLogger, initLogFile } from './logger'
 import { bus, BUS_EVENT_NAMES, type BusEventName } from './bus'
 import { broadcastRaw, handleRaw } from './ipc'
@@ -12,7 +12,8 @@ import { registerHistoryIpc } from './services/history'
 import { ensureBookmarkRoots, registerBookmarksIpc } from './services/bookmarks'
 import { attachDownloads, registerDownloadsIpc } from './services/downloads'
 import { attachPermissions, registerPermissionsIpc } from './services/permissions'
-import { attachPrivacy, clearOnExitIfEnabled, registerPrivacyIpc } from './services/privacy'
+import { attachPrivacy, registerPrivacyIpc } from './services/privacy'
+import { runShutdownCleanup } from './shutdown'
 import { activeSession, ensureDefaultProfile, onProfileSwitch, registerProfilesIpc } from './services/profiles'
 import { ensureDefaultWorkspaces, registerWorkspacesIpc } from './services/workspaces'
 import { attachCertificateCapture, registerPageIpc } from './services/page'
@@ -190,18 +191,8 @@ app.on('before-quit', (e) => {
   if (cleaned) return
   e.preventDefault()
   cleaned = true
-  ;(async () => {
-    try {
-      // Give renderers a moment to flush workspace state.
-      for (const c of chromeContexts()) if (!c.win.isDestroyed()) c.win.webContents.send('evt:command:run', { id: 'internal.flush' })
-      await new Promise((r) => setTimeout(r, 150))
-      await clearOnExitIfEnabled()
-      metaSet('session:cleanExit', '1')
-    } catch (err) {
-      log.error('shutdown cleanup failed', err)
-    }
-    app.quit()
-  })()
+  // Idempotent: when "Restart to update" already ran it (before spawning the installer) this resolves at once.
+  runShutdownCleanup().finally(() => app.quit())
 })
 
 app.on('will-quit', () => {

@@ -32,9 +32,13 @@ function write(level: LogEntry['level'], scope: string, message: string, data?: 
   if (ring.length > RING_MAX) ring.splice(0, ring.length - RING_MAX)
   if (LEVELS[level] < LEVELS[minLevel]) return
   const line = `${new Date(entry.ts).toISOString()} ${level.toUpperCase().padEnd(5)} [${scope}] ${message}${data !== undefined ? ' ' + safeJson(entry.data) : ''}`
-  if (level === 'error') console.error(line)
-  else if (level === 'warn') console.warn(line)
-  else console.log(line)
+  try {
+    if (level === 'error') console.error(line)
+    else if (level === 'warn') console.warn(line)
+    else console.log(line)
+  } catch {
+    /* a closed stdout/stderr pipe (EPIPE) must not throw into callers, e.g. the updater's quit handler */
+  }
   if (logFile) {
     try {
       appendFileSync(logFile, line + '\n')
