@@ -56,7 +56,24 @@ Extensions can read pages you visit — the Security dashboard lists them.
 
 ## Passwords
 
-SPECTER does not store passwords in v1 and does not import them from other browsers.
+SPECTER's password manager (`specter://passwords`) keeps saved logins in the profile's `specter.db`,
+each password encrypted with Electron `safeStorage` — Windows DPAPI, so only your Windows account on
+this PC can decrypt them. If DPAPI isn't available nothing is stored (there is no plain-text fallback).
+
+- **Filling.** A page-side preload runs in each frame's isolated world. It shows saved logins in a
+  closed shadow root under the focused sign-in field and asks for a password only after a real
+  (`isTrusted`) click or key press on a suggestion. The main process answers from Chromium's record of
+  the requesting frame's origin — never from anything the page sends — so a site only receives logins
+  saved for that site (an `https` login is never given to an `http` page; other hosts of the same
+  site are listed but must be picked explicitly). Pages get no API: nothing is exposed to the main world.
+- **Saving.** Submitted logins are held in the main process and offered ("Save password?") only
+  after the sign-in looks successful: a navigation the page itself starts right after the submit,
+  the password form disappearing, or a sign-in pop-up closing. Leaving the page any other way drops it.
+- **Importing from Chrome.** Chrome encrypts its password store so that only Chrome can read it, and
+  SPECTER doesn't try to. You export from Chrome (Settings → Passwords → Export, confirmed with your
+  Windows password) and import the CSV; SPECTER then offers to move that plain-text file to the Recycle
+  Bin. Exports from Edge, Brave, Opera, Firefox, Bitwarden, 1Password and LastPass are read the same way.
+- **Exporting** asks for confirmation and warns that the file is plain text.
 
 ## Reporting
 

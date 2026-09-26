@@ -7,7 +7,8 @@ every way data can leave your computer, all of which are user-visible.
 
 History, recent searches, bookmarks, workspaces and snapshots, downloads list, site
 permissions, notifications, notes, research, knowledge base, AI conversations,
-portfolio / paper trades, automations, remembered video speeds per site, settings — in `specter.db` (SQLite) inside the
+portfolio / paper trades, automations, remembered video speeds per site, settings, saved
+passwords (each encrypted with Windows data protection) — in `specter.db` (SQLite) inside the
 profile folder (`%APPDATA%\SPECTER` by default). Cookies, site storage and cache are
 Chromium's, isolated per SPECTER profile.
 
