@@ -4,7 +4,7 @@
 import { create } from 'zustand'
 import type { WebviewTag } from 'electron'
 import type { WebApp, WebAppInput } from '@shared/modules/webapps'
-import { desktopUserAgent, mobileUserAgent, originOfUrl } from '@shared/modules/webapps'
+import { desktopUserAgent, mobileUserAgent, originOfUrl, parseUnread } from '@shared/modules/webapps'
 import { invoke, on } from '../../lib/ipc'
 import { newTab } from '../../stores/browser'
 import { openSidePanel, toast, toggleSidePanel, useUi } from '../../stores/ui'
@@ -115,6 +115,8 @@ function patchLocal(id: string, patch: Partial<WebApp>): void {
 
 export async function saveApp(input: WebAppInput): Promise<WebApp | null> {
   if (input.id) patchLocal(input.id, input as Partial<WebApp>)
+  // Turning the badge on: count from the current title now, not at the next title change.
+  if (input.id && input.badges !== undefined) setRuntime(input.id, { unread: input.badges ? parseUnread(runtimeOf(input.id).title) : 0 })
   try {
     return await invoke('webapps:save', input)
   } catch (err) {
