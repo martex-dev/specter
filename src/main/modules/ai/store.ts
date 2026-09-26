@@ -4,6 +4,7 @@
 import type { AiContextMeta, AiConversation, AiConversationSummary, AiMessage } from '@shared/modules/ai'
 import { all, get, json, registerMigrations, run, tx, uid } from '../../db'
 import { activeProfileId } from '../../services/profiles'
+import { completedTurns } from './prompt'
 
 export function registerAiMigrations(): void {
   registerMigrations('ai', [
@@ -121,9 +122,7 @@ export function finishMessage(id: string, content: string, status: AiMessage['st
 
 /** History for the model: completed turns only, oldest first. */
 export function historyFor(conversationId: string, excludeIds: string[] = []): { role: 'user' | 'assistant'; content: string }[] {
-  return all<MsgRow>('SELECT * FROM ai_messages WHERE conversation_id = ? ORDER BY created_at, rowid', conversationId)
-    .filter((r) => !excludeIds.includes(r.id) && (r.role === 'user' || r.status === 'done' || (r.status === 'stopped' && r.content)))
-    .map((r) => ({ role: r.role, content: r.content }))
+  return completedTurns(all<MsgRow>('SELECT * FROM ai_messages WHERE conversation_id = ? ORDER BY created_at, rowid', conversationId).filter((r) => !excludeIds.includes(r.id)))
 }
 
 export function renameConversation(id: string, title: string): void {

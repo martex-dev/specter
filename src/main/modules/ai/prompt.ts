@@ -54,6 +54,23 @@ export function buildUserMessage(prompt: string, items: AiContextItem[]): string
 }
 
 /**
+ * Completed question/answer pairs, oldest first. A question whose answer
+ * failed (or was stopped before any text) is left out, so retrying it doesn't
+ * send the model the same question twice.
+ */
+export function completedTurns(rows: { role: 'user' | 'assistant'; content: string; status: string }[]): ChatMessage[] {
+  const out: ChatMessage[] = []
+  for (let i = 0; i < rows.length - 1; i++) {
+    const q = rows[i]
+    const a = rows[i + 1]
+    if (q.role !== 'user' || a.role !== 'assistant') continue
+    if (a.status === 'done' || (a.status === 'stopped' && a.content.trim())) out.push({ role: 'user', content: q.content }, { role: 'assistant', content: a.content })
+    i++
+  }
+  return out
+}
+
+/**
  * Keeps the most recent history that fits in `maxChars`, always starting on a
  * user turn so the conversation stays well-formed.
  */

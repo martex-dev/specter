@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMessages, buildSystemPrompt, buildUserMessage, titleFrom, trimHistory } from '../../src/main/modules/ai/prompt'
+import { buildMessages, buildSystemPrompt, buildUserMessage, completedTurns, titleFrom, trimHistory } from '../../src/main/modules/ai/prompt'
 import { fitContext } from '../../src/main/modules/ai/context'
 import { resolvePipeline, stageContext, stageTask, BUILTIN_AGENTS } from '../../src/main/modules/ai/agents'
 import { parseSuggestions, isLoopbackUrl, quickAction, AI_QUICK_ACTIONS } from '../../src/shared/modules/ai'
@@ -52,6 +52,22 @@ describe('messages', () => {
     expect(t[0].role).toBe('user')
     expect(t.map((m) => m.content[0])).toEqual(['c', 'd'])
     expect(trimHistory(h, 10)).toEqual([])
+  })
+
+  it('keeps only completed question/answer pairs in history', () => {
+    const rows = [
+      { role: 'user' as const, content: 'q1', status: 'done' },
+      { role: 'assistant' as const, content: 'a1', status: 'done' },
+      { role: 'user' as const, content: 'q2', status: 'done' },
+      { role: 'assistant' as const, content: '', status: 'error' },
+      { role: 'user' as const, content: 'q2', status: 'done' },
+      { role: 'assistant' as const, content: 'partial', status: 'stopped' },
+      { role: 'user' as const, content: 'q3', status: 'done' },
+      { role: 'assistant' as const, content: '', status: 'stopped' },
+      { role: 'user' as const, content: 'q4', status: 'done' }
+    ]
+    expect(completedTurns(rows).map((m) => m.content)).toEqual(['q1', 'a1', 'q2', 'partial'])
+    expect(completedTurns([])).toEqual([])
   })
 
   it('builds system + history + user', () => {
