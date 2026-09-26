@@ -34,7 +34,7 @@ import { listCommands, getCommand } from '../lib/commands'
 import { settingsSections } from '../lib/registry'
 import { WORKSPACE_COLORS } from '../lib/icons'
 import { loadUrl, useBrowser } from '../stores/browser'
-import { getSetting, setSetting, useSetting } from '../stores/settings'
+import { setSetting, useSetting } from '../stores/settings'
 import { toast } from '../stores/ui'
 import { checkForUpdatesNow, installUpdate, useUpdates } from '../stores/updates'
 import { describeUpdateState } from '@shared/updates'
@@ -70,6 +70,13 @@ export function Choice<K extends SettingKey>({ k, title, desc, options }: { k: K
   return (
     <Row title={title} desc={desc}>
       <select className="select" value={String(v)} onChange={(e) => setSetting(k, (typeof v === 'number' ? Number(e.target.value) : e.target.value) as never)} style={{ minWidth: 180 }}>
+        {/* Unset / stale value (e.g. no startup workspace yet, or it was deleted): without this the
+            select shows the first option as if chosen, and picking that option saves nothing. */}
+        {!options.some((o) => o.value === String(v)) && (
+          <option value={String(v)} disabled>
+            Choose…
+          </option>
+        )}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -371,13 +378,14 @@ function WorkspacesSection() {
 
 function AISection() {
   const models = useAiModels()
+  const model = useSetting('ai.model')
   return (
     <Group title="Local AI">
       <Toggle k="ai.enabled" title="Enable AI features" desc="AI is optional. When disabled, no AI UI appears and nothing is sent anywhere." />
       <Choice k="ai.provider" title="Provider" options={[{ value: 'ollama', label: 'Ollama (local)' }, { value: 'disabled', label: 'Disabled' }]} />
       <TextSetting k="ai.ollamaUrl" title="Ollama address" desc="Only local / LAN addresses are recommended — prompts are sent to this server." />
       <Row title="Chat model" desc={models ? `${models.length} models installed` : 'Ollama offline — models unavailable'}>
-        <select className="select" value={getSetting('ai.model')} onChange={(e) => setSetting('ai.model', e.target.value)} style={{ minWidth: 200 }} disabled={!models?.length}>
+        <select className="select" value={model} onChange={(e) => setSetting('ai.model', e.target.value)} style={{ minWidth: 200 }} disabled={!models?.length}>
           <option value="">Automatic (first available)</option>
           {(models ?? []).map((m) => (
             <option key={m} value={m}>
@@ -461,7 +469,8 @@ function TickerSymbols() {
   const syms = useSetting('markets.tickerSymbols')
   return (
     <Row title="Ticker symbols" desc="Shown in the HUD and on the new tab page.">
-      <input className="input" style={{ width: 240 }} defaultValue={syms.join(', ')} onBlur={(e) => setSetting('markets.tickerSymbols', e.target.value.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 12))} />
+      {/* keyed so the uncontrolled field re-syncs when the setting changes elsewhere (reset, import, HUD) */}
+      <input key={syms.join(',')} className="input" style={{ width: 240 }} defaultValue={syms.join(', ')} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} onBlur={(e) => setSetting('markets.tickerSymbols', e.target.value.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 12))} />
     </Row>
   )
 }
@@ -1014,10 +1023,12 @@ export default function SettingsPage({ tabId, sub }: PageProps) {
         </div>
       </nav>
       <div className="settings-body">
-        <h1 className="page-title" style={{ marginBottom: 4 }}>
-          {active.title}
-        </h1>
-        <active.C />
+        <div className="settings-inner">
+          <h1 className="page-title" style={{ marginBottom: 4 }}>
+            {active.title}
+          </h1>
+          <active.C />
+        </div>
       </div>
     </div>
   )
