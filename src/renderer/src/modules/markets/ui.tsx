@@ -33,9 +33,15 @@ export function px(n: number | null | undefined): string {
   return formatPrice(n)
 }
 
+/** Rounds to `digits` decimals without a negative zero, so e.g. −0.001 reads as a neutral 0.00. */
+function round(n: number, digits: number): number {
+  const r = Number(n.toFixed(digits))
+  return r === 0 ? 0 : r
+}
+
 export function money(n: number | null | undefined, digits = 2): string {
   if (n === null || n === undefined || !isFinite(n)) return '—'
-  return new Intl.NumberFormat(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
+  return new Intl.NumberFormat(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(round(n, digits))
 }
 
 export function qty(n: number | null | undefined): string {
@@ -50,18 +56,21 @@ export function compact(n: number | null | undefined): string {
 
 export function signed(n: number | null | undefined, digits = 2): string {
   if (n === null || n === undefined || !isFinite(n)) return '—'
-  return (n > 0 ? '+' : '') + money(n, digits)
+  const r = round(n, digits)
+  return (r > 0 ? '+' : '') + money(r, digits)
 }
 
 export function Pct({ v, digits = 2, className = '' }: { v: number | null | undefined; digits?: number; className?: string }) {
   if (v === null || v === undefined || !isFinite(v)) return <span className={'dim ' + className}>—</span>
-  return <span className={(v > 0 ? 'up ' : v < 0 ? 'down ' : 'muted ') + className}>{(v > 0 ? '+' : '') + v.toFixed(digits)}%</span>
+  const r = round(v, digits)
+  return <span className={(r > 0 ? 'up ' : r < 0 ? 'down ' : 'muted ') + className}>{(r > 0 ? '+' : '') + r.toFixed(digits)}%</span>
 }
 
 export function Signed({ v, digits = 2, suffix = '' }: { v: number | null | undefined; digits?: number; suffix?: string }) {
   if (v === null || v === undefined || !isFinite(v)) return <span className="dim">—</span>
+  const r = round(v, digits)
   return (
-    <span className={v > 0 ? 'up' : v < 0 ? 'down' : 'muted'}>
+    <span className={r > 0 ? 'up' : r < 0 ? 'down' : 'muted'}>
       {signed(v, digits)}
       {suffix}
     </span>

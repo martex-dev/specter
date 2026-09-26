@@ -479,7 +479,7 @@ function WatchlistCard({
                           {q.marketCap ? compact(q.marketCap) : '—'}
                         </td>
                         <td className="r num" data-tip={q.derivNote ?? (q.derivTs ? `Binance Futures · ${stampFull(q.derivTs)}` : 'Loading…')}>
-                          {q.fundingRate !== undefined && q.fundingRate !== null ? <span className={q.fundingRate >= 0 ? 'up' : 'down'}>{(q.fundingRate * 100).toFixed(4)}%</span> : '—'}
+                          {q.fundingRate !== undefined && q.fundingRate !== null ? <span className={q.fundingRate > 0 ? 'up' : q.fundingRate < 0 ? 'down' : 'muted'}>{(q.fundingRate * 100).toFixed(4)}%</span> : '—'}
                         </td>
                         <td className="r num" data-tip={q.openInterest ? `${qty(q.openInterest)} ${s} · Binance Futures` : q.derivNote}>
                           {q.openInterest ? compact(q.openInterest * q.price) : '—'}

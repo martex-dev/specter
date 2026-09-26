@@ -40,7 +40,7 @@ export function HudTicker() {
             {q ? (
               <>
                 <b className="num">{hudPrice(q.price)}</b>
-                {q.changePct24h !== null && <span className={'num ' + (q.changePct24h >= 0 ? 'up' : 'down')}>{(q.changePct24h >= 0 ? '+' : '') + q.changePct24h.toFixed(1)}%</span>}
+                {q.changePct24h !== null && <Pct v={q.changePct24h} digits={1} className="num" />}
               </>
             ) : (
               <b className="dim">{quotes.error(s) ? 'N/A' : '…'}</b>
