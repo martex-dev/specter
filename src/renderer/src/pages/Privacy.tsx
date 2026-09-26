@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Brain, Cookie, Database, Download, FolderSearch, History, KeyRound, Shield, ShieldCheck, Trash2 } from 'lucide-react'
+import { Brain, Cookie, Database, Download, FolderSearch, History, KeyRound, RefreshCw, Shield, ShieldBan, ShieldCheck, Trash2, X } from 'lucide-react'
 import type { BlockedRequest, ClearDataOptions, PrivacySummary } from '@shared/ipc'
-import { invoke } from '../lib/ipc'
+import { normalizeSiteHost, type AdblockStatus } from '@shared/adblock'
+import { invoke, on } from '../lib/ipc'
+import { setAdblockForSite } from '../lib/adblock'
 import { formatBytes, timeAgo } from '../lib/format'
 import { setSetting, useSetting } from '../stores/settings'
 import { toast } from '../stores/ui'
@@ -59,7 +61,7 @@ export default function Privacy(_: PageProps) {
       </div>
 
       <div className="grid-4">
-        <Stat icon={<ShieldCheck size={14} />} label="Trackers blocked" value={sum ? sum.trackersBlockedSession.toLocaleString() : '—'} sub={`this session · list of ${sum?.blocklistSize ?? '—'} domains`} />
+        <Stat icon={<ShieldCheck size={14} />} label="Requests blocked" value={sum ? sum.trackersBlockedSession.toLocaleString() : '—'} sub="ads & trackers · this session" />
         <Stat icon={<Cookie size={14} />} label="Cookies stored" value={sum ? sum.cookieCount.toLocaleString() : '—'} sub="current profile" />
         <Stat icon={<History size={14} />} label="History entries" value={sum ? sum.historyEntries.toLocaleString() : '—'} sub={recordHistory ? 'recording' : 'recording paused'} />
         <Stat icon={<Database size={14} />} label="Cache" value={sum ? formatBytes(sum.cacheBytes) : '—'} sub={`${sum?.sitePermissions ?? 0} site permissions`} />
@@ -70,13 +72,15 @@ export default function Privacy(_: PageProps) {
           <Shield size={15} /> Protection
         </div>
         <div className="card setting-group">
-          <PrivRow title="Tracker blocking" desc="Third-party requests to known ad/analytics domains are cancelled." on={blockTrackers} set={(v) => setSetting('privacy.blockTrackers', v)} />
+          <PrivRow title="Built-in tracker list" desc={`Third-party requests to ${sum?.blocklistSize ?? 'about 200'} well-known ad/analytics domains are cancelled — works even before filter lists are downloaded.`} on={blockTrackers} set={(v) => setSetting('privacy.blockTrackers', v)} />
           <PrivRow title="Global Privacy Control" desc="Sends Sec-GPC: 1 with every request." on={gpc} set={(v) => setSetting('privacy.sendGPC', v)} />
           <PrivRow title="HTTPS upgrade" desc="http:// navigations try HTTPS first." on={https} set={(v) => setSetting('privacy.httpsUpgrade', v)} />
           <PrivRow title="Record history" desc="Stored locally in SQLite, never uploaded." on={recordHistory} set={(v) => setSetting('privacy.recordHistory', v)} />
           <PrivRow title="Remote search suggestions" desc="When on, address-bar keystrokes are sent to your search engine." on={remote} set={(v) => setSetting('search.remoteSuggestions', v)} />
         </div>
       </div>
+
+      <AdblockSection />
 
       <div className="section">
         <div className="section-title">Data flows</div>
@@ -179,6 +183,113 @@ export default function Privacy(_: PageProps) {
           <button className="btn" onClick={() => newTab('specter://settings/privacy')}>
             Privacy settings & site permissions
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AdblockSection() {
+  const [st, setSt] = useState<AdblockStatus | null>(null)
+  const enabled = useSetting('privacy.adblock')
+  const lists = useSetting('privacy.adblockLists')
+  const custom = useSetting('privacy.adblockCustomFilters')
+  const [draft, setDraft] = useState(custom)
+  const [site, setSite] = useState('')
+  useEffect(() => {
+    invoke('adblock:status').then(setSt)
+    return on('adblock:status', setSt)
+  }, [])
+  useEffect(() => setDraft(custom), [custom])
+
+  const toggleList = (id: string, v: boolean) => setSetting('privacy.adblockLists', v ? [...new Set([...lists, id])] : lists.filter((x) => x !== id))
+  const addSite = async () => {
+    const host = normalizeSiteHost(site)
+    if (!host) return toast({ kind: 'error', title: 'Not a valid site', body: 'Enter a host such as example.com' })
+    await setAdblockForSite(host, false)
+    setSite('')
+  }
+  const state = !enabled
+    ? 'Off — ads are not filtered'
+    : st?.updating
+      ? st.ready
+        ? 'Updating filter lists…'
+        : 'Downloading filter lists for the first time…'
+      : st?.ready
+        ? `Active · ${(st.rules + st.customRules).toLocaleString()} rules${st.lastUpdated ? ` · lists updated ${timeAgo(st.lastUpdated)}` : ''} · ${st.blockedSession.toLocaleString()} blocked this session`
+        : 'Not loaded yet'
+
+  return (
+    <div className="section">
+      <div className="section-title">
+        <ShieldBan size={15} /> Ad blocker
+      </div>
+      <div className="card setting-group">
+        <div className="setting">
+          <div className="st-text">
+            <div className="st-title">Block ads, trackers and malware</div>
+            <div className="st-desc">
+              {state}
+              {enabled && st?.error && <div style={{ color: 'var(--warn)', marginTop: 3 }}>{st.error}</div>}
+            </div>
+          </div>
+          <button className="btn sm" disabled={!enabled || st?.updating} onClick={() => invoke('adblock:update').then(setSt)}>
+            <RefreshCw size={12} /> Update now
+          </button>
+          <Switch on={enabled} onChange={(v) => setSetting('privacy.adblock', v)} label="Ad blocker" />
+        </div>
+        {(st?.lists ?? []).map((l) => (
+          <div key={l.id} className="setting" style={enabled ? undefined : { opacity: 0.55 }}>
+            <div className="st-text">
+              <div className="st-title">
+                {l.name} {l.enabled && l.rules > 0 && <span className="badge">{l.rules.toLocaleString()} rules</span>}
+              </div>
+              <div className="st-desc">{l.desc}</div>
+            </div>
+            <Switch on={lists.includes(l.id)} disabled={!enabled} onChange={(v) => toggleList(l.id, v)} label={l.name} />
+          </div>
+        ))}
+        <div className="setting" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+          <div className="st-text">
+            <div className="st-title">My filters</div>
+            <div className="st-desc">
+              One rule per line in uBlock Origin / Adblock Plus syntax — <span className="mono">||ads.example.com^</span> blocks a host, <span className="mono">example.com##.banner</span> hides an element, <span className="mono">@@||example.com^</span> allows one.
+            </div>
+          </div>
+          <textarea className="textarea mono" rows={5} style={{ width: '100%', fontSize: 12 }} spellCheck={false} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="! comments start with !" aria-label="My filters" />
+          <div className="row" style={{ width: '100%' }}>
+            <span className="dim" style={{ fontSize: 11.5 }}>{st ? `${st.customRules} rule${st.customRules === 1 ? '' : 's'} saved` : ''}</span>
+            <span className="spacer" />
+            <button className="btn sm" disabled={draft === custom} onClick={() => setDraft(custom)}>
+              Revert
+            </button>
+            <button className="btn sm solid" disabled={draft === custom} onClick={() => setSetting('privacy.adblockCustomFilters', draft).then(() => toast({ kind: 'ok', title: 'Filters saved', body: 'Reload pages to apply.', ttl: 2500 }))}>
+              Save filters
+            </button>
+          </div>
+        </div>
+        <div className="setting" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+          <div className="st-text">
+            <div className="st-title">Sites where the ad blocker is off</div>
+            <div className="st-desc">Includes their subdomains. You can also switch a site from the lock icon in the address bar.</div>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {(st?.allowlist ?? []).length === 0 && <span className="dim" style={{ fontSize: 12 }}>None — ads are blocked everywhere.</span>}
+            {(st?.allowlist ?? []).map((h) => (
+              <span key={h} className="badge" style={{ gap: 4 }}>
+                {h}
+                <button className="icon-btn sm" style={{ width: 16, height: 16 }} onClick={() => setAdblockForSite(h, true)} aria-label={`Turn the ad blocker back on for ${h}`}>
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="row" style={{ width: '100%', maxWidth: 420 }}>
+            <input className="input grow" value={site} onChange={(e) => setSite(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addSite()} placeholder="example.com" aria-label="Site to exclude" />
+            <button className="btn sm" disabled={!site.trim()} onClick={addSite}>
+              Add site
+            </button>
+          </div>
         </div>
       </div>
     </div>
