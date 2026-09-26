@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Copy, ExternalLink, Image as ImageIcon, Link2, ListTree, RefreshCw, ScrollText } from 'lucide-react'
 import type { PageStats } from '@shared/types'
 import { isInternal } from '@shared/url'
@@ -15,13 +15,18 @@ export default function PageToolsPanel() {
   const [view, setView] = useState<View>(typeof arg === 'string' && ['links', 'images', 'outline'].includes(arg) ? (arg as View) : 'overview')
   const [stats, setStats] = useState<PageStats | null | 'loading'>('loading')
   const [filter, setFilter] = useState('')
+  const reqRef = useRef(0)
 
   const load = async () => {
+    // Only the latest request may land: after a tab switch a slower page's
+    // stats would otherwise overwrite the new tab's.
+    const req = ++reqRef.current
     if (!tab || isInternal(tab.url)) return setStats(null)
     const id = wcIdFor(tab.id)
     if (id === null) return setStats(null)
     setStats('loading')
-    setStats(await invoke('guest:stats', id).catch(() => null))
+    const s = await invoke('guest:stats', id).catch(() => null)
+    if (req === reqRef.current) setStats(s)
   }
 
   useEffect(() => {
