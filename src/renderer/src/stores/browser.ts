@@ -371,11 +371,17 @@ export function closeTab(tabId: string): void {
   }
   let nextActive = ws.activeTabId
   if (ws.activeTabId === tabId) {
-    // Prefer the tab to the right, then left (Chrome behaviour), within the same group if possible.
-    const sameGroup = tab.groupId ? remaining.filter((t) => t.groupId === tab.groupId) : []
-    const pool = sameGroup.length ? sameGroup : remaining
-    const right = pool.find((t) => ws.tabs.indexOf(t) > index)
-    nextActive = (right ?? pool[pool.length - 1]).id
+    // Closing the focused pane of a split: focus a remaining pane (another tab would
+    // replace one of the still-visible panes, or hide the pane the user was looking at).
+    const panesLeft = ws.layout.preset !== 'single' ? ws.layout.panes.filter((p) => p !== tabId && remaining.some((t) => t.id === p)) : []
+    if (panesLeft.length) nextActive = panesLeft[Math.min(Math.max(0, ws.layout.panes.indexOf(tabId)), panesLeft.length - 1)]
+    else {
+      // Prefer the tab to the right, then left (Chrome behaviour), within the same group if possible.
+      const sameGroup = tab.groupId ? remaining.filter((t) => t.groupId === tab.groupId) : []
+      const pool = sameGroup.length ? sameGroup : remaining
+      const right = pool.find((t) => ws.tabs.indexOf(t) > index)
+      nextActive = (right ?? pool[pool.length - 1]).id
+    }
   }
   updateWs(ws.id, (w) => {
     let layout = w.layout
@@ -386,7 +392,9 @@ export function closeTab(tabId: string): void {
     const groups = w.groups.filter((g) => remaining.some((t) => t.groupId === g.id))
     return { ...w, tabs: remaining, activeTabId: nextActive, layout, groups }
   })
-  if (nextActive && nextActive !== ws.activeTabId) activateTab(nextActive)
+  // A page closing itself in a background workspace must not pull the user over there;
+  // that workspace wakes its visible tab when it is switched to.
+  if (nextActive && nextActive !== ws.activeTabId && ws.id === S().activeWsId) activateTab(nextActive)
 }
 
 export function closeTabs(ids: string[]): void {
