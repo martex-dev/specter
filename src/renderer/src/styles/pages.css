@@ -556,3 +556,41 @@
 .pw-actions:focus-within {
   opacity: 1;
 }
+
+/* ---------------------------------------------------------------- profile import */
+
+.pi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pi-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 14px minmax(180px, 240px);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-2);
+  font-size: 12.5px;
+}
+.pi-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.pi-result {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+}
+.pi-pw {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}

@@ -44,6 +44,7 @@ import { describeUpdateState } from '@shared/updates'
 import { Kbd, Seg, Switch } from '../components/ui'
 import { confirmAction, promptText } from '../components/prompt'
 import { PasswordImport } from '../components/PasswordImport'
+import { ProfileImport } from '../components/ProfileImport'
 import type { PageProps } from './registry'
 
 // ---------------------------------------------------------------- primitives
@@ -934,49 +935,59 @@ function ProfilesSection() {
     load()
   }, [])
   return (
-    <Group title="Profiles">
-      <div className="muted" style={{ fontSize: 12, padding: '12px 0 6px', lineHeight: 1.5 }}>
-        Each profile has isolated cookies, site storage, cache, history, bookmarks and workspaces. Switching profile reopens SPECTER’s windows.
-      </div>
-      {profiles.map((p) => (
-        <Row key={p.id} title={<span className="row">{<span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color }} />} {p.name}</span>} desc={p.id === current?.id ? 'Current profile' : `Created ${new Date(p.createdAt).toLocaleDateString()}`}>
-          <div className="row">
-            {p.id !== current?.id && (
-              <button className="btn sm" onClick={() => invoke('profiles:openWindow', p.id)}>
-                Switch
-              </button>
-            )}
-            {p.id !== 'default' && p.id !== current?.id && (
-              <button
-                className="btn sm danger"
-                onClick={async () => {
-                  if (await confirmAction(`Delete profile “${p.name}”?`, 'All its cookies, history, bookmarks, workspaces and saved passwords are deleted.', 'Delete', true)) {
-                    await invoke('profiles:delete', p.id)
-                    load()
-                  }
-                }}
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-          </div>
+    <>
+      <Group title="Profiles">
+        <div className="muted" style={{ fontSize: 12, padding: '12px 0 6px', lineHeight: 1.5 }}>
+          Each profile has isolated cookies, site storage, cache, history, bookmarks and workspaces. Switching profile reopens SPECTER’s windows.
+        </div>
+        {profiles.map((p) => (
+          <Row key={p.id} title={<span className="row">{<span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color }} />} {p.name}</span>} desc={p.id === current?.id ? 'Current profile' : `Created ${new Date(p.createdAt).toLocaleDateString()}`}>
+            <div className="row">
+              {p.id !== current?.id && (
+                <button className="btn sm" onClick={() => invoke('profiles:openWindow', p.id)}>
+                  Switch
+                </button>
+              )}
+              {p.id !== 'default' && p.id !== current?.id && (
+                <button
+                  className="btn sm danger"
+                  onClick={async () => {
+                    if (await confirmAction(`Delete profile “${p.name}”?`, 'All its cookies, history, bookmarks, workspaces and saved passwords are deleted.', 'Delete', true)) {
+                      await invoke('profiles:delete', p.id)
+                      load()
+                    }
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          </Row>
+        ))}
+        <Row title="Add profile">
+          <button
+            className="btn"
+            onClick={async () => {
+              const name = await promptText({ title: 'New profile', placeholder: 'Profile name' })
+              if (name?.trim()) {
+                await invoke('profiles:create', name.trim(), WORKSPACE_COLORS[profiles.length % WORKSPACE_COLORS.length])
+                load()
+              }
+            }}
+          >
+            <Plus size={13} /> Add
+          </button>
         </Row>
-      ))}
-      <Row title="Add profile">
-        <button
-          className="btn"
-          onClick={async () => {
-            const name = await promptText({ title: 'New profile', placeholder: 'Profile name' })
-            if (name?.trim()) {
-              await invoke('profiles:create', name.trim(), WORKSPACE_COLORS[profiles.length % WORKSPACE_COLORS.length])
-              load()
-            }
-          }}
-        >
-          <Plus size={13} /> Add
-        </button>
-      </Row>
-    </Group>
+      </Group>
+      <Group title="Bring over your browser profiles">
+        <div className="muted" style={{ fontSize: 12, padding: '12px 0 8px', lineHeight: 1.5 }}>
+          Each Chrome profile (or Edge, Brave, Firefox…) can become a SPECTER profile of its own, with its bookmarks, history and passwords. Signed-in sessions can’t be copied from other browsers — you sign in to each site once, and your imported passwords fill it in.
+        </div>
+        <div style={{ paddingBottom: 12 }}>
+          <ProfileImport onDone={load} />
+        </div>
+      </Group>
+    </>
   )
 }
 
