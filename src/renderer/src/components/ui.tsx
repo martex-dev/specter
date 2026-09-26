@@ -307,7 +307,10 @@ export function Modal({ title, icon, children, footer, onClose, width }: { title
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
   }, [onClose])
-  return (
+  // Portalled: a Modal opened from an internal page would otherwise sit inside
+  // .content, which Aurora gives a backdrop-filter; its fixed scrim would then
+  // cover only the content area and leave the toolbar live.
+  return createPortal(
     <div className="scrim center" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal pop" style={width ? { width: `min(${width}px, calc(100vw - 40px))` } : undefined} role="dialog" aria-modal="true">
         <div className="modal-h">
@@ -321,7 +324,8 @@ export function Modal({ title, icon, children, footer, onClose, width }: { title
         <div className="modal-b">{children}</div>
         {footer && <div className="modal-f">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
