@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Brain, Cookie, Database, Download, FolderSearch, History, KeyRound, Shield, ShieldCheck, Trash2 } from 'lucide-react'
-import type { ClearDataOptions, PrivacySummary } from '@shared/ipc'
+import type { BlockedRequest, ClearDataOptions, PrivacySummary } from '@shared/ipc'
 import { invoke } from '../lib/ipc'
 import { formatBytes, timeAgo } from '../lib/format'
 import { setSetting, useSetting } from '../stores/settings'
@@ -20,7 +20,7 @@ const RANGES = [
 
 export default function Privacy(_: PageProps) {
   const [sum, setSum] = useState<PrivacySummary | null>(null)
-  const [blocked, setBlocked] = useState<{ url: string; host: string; ts: number; tabUrl: string }[]>([])
+  const [blocked, setBlocked] = useState<BlockedRequest[]>([])
   const [clear, setClear] = useState<ClearDataOptions>({ history: true, cookies: false, cache: true, storage: false, downloads: false, permissions: false })
   const [range, setRange] = useState(0)
   const blockTrackers = useSetting('privacy.blockTrackers')
@@ -140,7 +140,7 @@ export default function Privacy(_: PageProps) {
       </div>
 
       <div className="section">
-        <div className="section-title">Most blocked tracker hosts · this session</div>
+        <div className="section-title">Most blocked hosts · this session</div>
         <div className="card">
           {topHosts.length === 0 ? (
             <div className="empty">Nothing blocked yet this session.</div>
@@ -151,6 +151,7 @@ export default function Privacy(_: PageProps) {
                   <th>Host</th>
                   <th style={{ width: 90 }}>Requests</th>
                   <th>Last seen on</th>
+                  <th style={{ width: 110 }}>Blocked by</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,6 +167,7 @@ export default function Privacy(_: PageProps) {
                       <td className="muted ellipsis" style={{ maxWidth: 360 }}>
                         {last ? `${new URL(last.tabUrl || 'about:blank').hostname || '—'} · ${timeAgo(last.ts)}` : ''}
                       </td>
+                      <td className="muted">{last?.by === 'builtin' ? 'Tracker list' : 'Filter lists'}</td>
                     </tr>
                   )
                 })}
