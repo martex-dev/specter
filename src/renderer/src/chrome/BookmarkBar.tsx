@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { AppWindow, ExternalLink, Folder, FolderPlus, Pencil, Trash2, Plus, Layers } from 'lucide-react'
 import type { Bookmark } from '@shared/types'
 import { prettyAccelerator } from '@shared/keys'
+import { toUrl } from '@shared/url'
 import { invoke, on } from '../lib/ipc'
 import { shortcutFor } from '../lib/commands'
 import { activeTab, loadUrl, newTab } from '../stores/browser'
 import { openMenu, type MenuItem } from '../stores/ui'
 import { Favicon } from '../components/ui'
-import { promptText } from '../components/prompt'
+import { confirmAction, promptText } from '../components/prompt'
 
 export function useBookmarks(): Bookmark[] {
   const [list, setList] = useState<Bookmark[]>([])
@@ -57,12 +58,22 @@ export function bookmarkMenu(b: Bookmark, all: Bookmark[]): MenuItem[] {
       if (b.kind === 'bookmark') {
         const u = await promptText({ title: 'Edit bookmark', label: 'URL', initial: b.url })
         if (u === null) return
-        url = u
+        url = toUrl(u) ?? u
       }
       await invoke('bookmarks:update', b.id, { title, url })
     }
   })
-  if (!b.id.startsWith('bar_') && !b.id.startsWith('other_')) items.push({ label: 'Delete', icon: <Trash2 size={14} />, danger: true, run: () => invoke('bookmarks:remove', b.id) })
+  if (!b.id.startsWith('bar_') && !b.id.startsWith('other_'))
+    items.push({
+      label: 'Delete',
+      icon: <Trash2 size={14} />,
+      danger: true,
+      run: async () => {
+        // A folder takes everything inside it with it, and there is no undo.
+        if (b.kind === 'folder' && !(await confirmAction(`Delete folder “${b.title}”?`, 'Everything inside this folder is deleted too.', 'Delete', true))) return
+        await invoke('bookmarks:remove', b.id)
+      }
+    })
   items.push(
     { separator: true },
     {
