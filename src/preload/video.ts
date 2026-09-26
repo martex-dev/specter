@@ -442,6 +442,8 @@ function start(): void {
 function stop(): void {
   if (!started) return
   started = false
+  // Switched back on later, the page keeps whatever speed it has by then.
+  desired = null
   life.abort()
   life = new AbortController()
   for (const mo of watched.values()) mo.disconnect()
