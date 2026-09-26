@@ -936,7 +936,13 @@ export function addPermissionRequest(req: PermissionRequest, tabId: string): voi
 }
 
 export function resolvePermissionRequest(tabId: string, requestId: string, decision: 'allow' | 'deny', remember: boolean): void {
-  invoke('permissions:respond', requestId, decision, remember).catch(() => undefined)
   const f = findTab(tabId)
-  if (f) updateTab(tabId, { permissionRequests: (f.tab.permissionRequests ?? []).filter((r) => r.requestId !== requestId) })
+  const reqs = f?.tab.permissionRequests ?? []
+  const req = reqs.find((r) => r.requestId === requestId)
+  // Identical requests queued behind this one (a page asking repeatedly) get the same answer
+  // instead of re-prompting one after another.
+  const same = req ? reqs.filter((r) => r.origin === req.origin && r.permission === req.permission) : []
+  const ids = new Set([requestId, ...same.map((r) => r.requestId)])
+  for (const id of ids) invoke('permissions:respond', id, decision, remember).catch(() => undefined)
+  if (f) updateTab(tabId, { permissionRequests: reqs.filter((r) => !ids.has(r.requestId)) })
 }
