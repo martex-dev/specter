@@ -112,10 +112,12 @@ export function catalogApp(id: string | null | undefined): CatalogApp | undefine
 export const UNREAD_DOT = -1
 
 const INBOX_WORDS = '(?:inbox|posteingang|bo[iî]te de r[ée]ception|bandeja de entrada|posta in arrivo|caixa de entrada|входящие|mail|messages?|chats?|notifications?)'
-const RE_LEADING = /^\s*[([](\d{1,5})\+?[)\]]\s*/
+// A count, optionally with thousands separators (Gmail: "Inbox (1,234)", "(1.234)", "(1 234)").
+const NUM = '(\\d{1,3}(?:[,.\\u00a0\\u202f ]\\d{3})+|\\d{1,5})'
+const RE_LEADING = new RegExp('^\\s*[([]' + NUM + '\\+?[)\\]]\\s*')
 const RE_WORDS =
-  /(?:^|[\s|·•:,\-–—(])(\d{1,5})\+?\s+(?:unread|new|ungelesen|non lus?|no le[ií]dos?|non letti|непрочитанн\S*)(?:\s+(?:messages?|items?|notifications?|chats?|conversations?|mentions?))?(?=\s*(?:$|[|·•:,)\-–—]))/i
-const RE_INBOX = new RegExp('^\\s*' + INBOX_WORDS + '\\s*\\((\\d{1,5})\\+?\\)', 'i')
+  /(?:^|[\s|·•:,\-–—(])(\d{1,3}(?:,\d{3})+|\d{1,5})\+?\s+(?:unread|new|ungelesen|non lus?|no le[ií]dos?|non letti|непрочитанн\S*)(?:\s+(?:messages?|items?|notifications?|chats?|conversations?|mentions?))?(?=\s*(?:$|[|·•:,)\-–—]))/i
+const RE_INBOX = new RegExp('^\\s*' + INBOX_WORDS + '\\s*\\(' + NUM + '\\+?\\)', 'i')
 const RE_DOT = /^\s*(?:[•●◉⦁]|\*|!)\s/
 
 /**
@@ -138,7 +140,7 @@ export function parseUnread(title: string | null | undefined): number {
 }
 
 function clampCount(s: string): number {
-  const n = Number(s)
+  const n = Number(s.replace(/\D/g, ''))
   return Number.isFinite(n) && n > 0 ? Math.min(n, 99999) : 0
 }
 

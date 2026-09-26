@@ -21,6 +21,14 @@ describe('parseUnread', () => {
     expect(parseUnread('Inbox (12) - me@example.com - Gmail')).toBe(12)
     expect(parseUnread('Posteingang (2) - me@example.com - Gmail')).toBe(2)
   })
+  it('reads counts with thousands separators', () => {
+    expect(parseUnread('Inbox (1,234) - me@example.com - Gmail')).toBe(1234)
+    expect(parseUnread('Posteingang (12.345) - me@example.com - Gmail')).toBe(12345)
+    expect(parseUnread('(1 234) WhatsApp')).toBe(1234)
+    expect(parseUnread('(2,500+) Discord')).toBe(2500)
+    expect(parseUnread('Mail | 1,024 unread')).toBe(1024)
+    expect(parseUnread('(1) 234 photos')).toBe(1)
+  })
   it('flags unread without a count', () => {
     expect(parseUnread('• Discord | #general')).toBe(UNREAD_DOT)
     expect(parseUnread('* Slack | general | Acme')).toBe(UNREAD_DOT)
