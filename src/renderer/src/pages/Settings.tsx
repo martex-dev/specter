@@ -302,7 +302,8 @@ function PrivacySection() {
   return (
     <>
       <Group title="Tracking">
-        <Toggle k="privacy.blockTrackers" title="Block known trackers" desc="Blocks third-party requests to a built-in list of advertising and analytics domains. See the Privacy Center for what was blocked." />
+        <Toggle k="privacy.adblock" title="Ad blocker" desc="Blocks ads, trackers and malware with uBlock Origin / EasyList filter lists, and hides cookie banners. Choose lists, add your own filters and exclude sites in the Privacy Center." />
+        <Toggle k="privacy.blockTrackers" title="Built-in tracker list" desc="Blocks third-party requests to a compact built-in list of advertising and analytics domains. Works without downloading anything." />
         <Toggle k="privacy.sendGPC" title="Send Global Privacy Control signal" desc="Sec-GPC: 1 — a legally recognised opt-out in some regions." />
         <Toggle k="privacy.sendDNT" title="Send Do Not Track" desc="Most sites ignore it and it adds a fingerprinting bit." />
         <Toggle k="privacy.blockThirdPartyCookies" title="Block third-party cookies" desc="Approximation: strips cookies on requests to a different registrable domain than the page. May break some sign-ins and embeds." />
