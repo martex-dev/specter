@@ -1,19 +1,25 @@
 // Browser migration: import bookmarks and history from Chromium-family
-// browsers and Firefox. Passwords are intentionally NOT imported (they are
-// encrypted with OS-bound keys; exporting them would weaken security).
+// browsers and Firefox — into the open profile, or each browser profile into a
+// SPECTER profile of its own. Passwords are not read from other browsers'
+// encrypted stores; they come over through the browser's own export file (see
+// services/passwords.ts).
 import { app } from 'electron'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { ImportResult, ImportSource } from '@shared/ipc'
+import type { ImportResult, ImportSource, ImportSourceProfile, ImportTarget, ProfileImportResult } from '@shared/ipc'
+import { chromiumProfileInfo, profileDisplayName, PROFILE_COLORS } from '@shared/browserImport'
 import { hostname } from '@shared/url'
-import { get, run, tx } from '../db'
+import { all, get, registerMigrations, run, tx } from '../db'
 import { handle } from '../ipc'
-import { addBookmark, bookmarkBatch, otherFolderId, removeBookmark } from './bookmarks'
-import { activeProfileId } from './profiles'
+import { addBookmark, barFolderId, bookmarkBatch, ensureBookmarkRoots, otherFolderId, removeBookmark } from './bookmarks'
+import { activeProfileId, createProfile, getProfile, listProfiles } from './profiles'
 import { createLogger } from '../logger'
 
 const log = createLogger('import')
+
+// Which SPECTER profile each browser profile went into, so importing again fills the same one.
+registerMigrations('importer', [`CREATE TABLE profile_sources (source_key TEXT PRIMARY KEY, profile_id TEXT NOT NULL, imported_at INTEGER NOT NULL);`])
 
 const CHROMIUM: { id: ImportSource['id']; name: string; dir: () => string; single?: boolean }[] = [
   { id: 'chrome', name: 'Google Chrome', dir: () => join(process.env.LOCALAPPDATA ?? '', 'Google', 'Chrome', 'User Data') },
@@ -23,37 +29,50 @@ const CHROMIUM: { id: ImportSource['id']; name: string; dir: () => string; singl
   { id: 'opera', name: 'Opera', dir: () => join(process.env.APPDATA ?? '', 'Opera Software'), single: true }
 ]
 
-function chromiumProfiles(base: string, single?: boolean): { name: string; path: string }[] {
+const sourceKey = (sourceId: string, path: string) => `${sourceId}:${path.toLowerCase()}`
+
+function importedInto(sourceId: string, path: string): string | undefined {
+  const id = get<{ profile_id: string }>('SELECT profile_id FROM profile_sources WHERE source_key = ?', sourceKey(sourceId, path))?.profile_id
+  return id && getProfile(id) ? id : undefined
+}
+
+function chromiumProfiles(sourceId: string, base: string, single?: boolean): ImportSourceProfile[] {
   if (!existsSync(base)) return []
+  const hasData = (dir: string) => existsSync(join(dir, 'Bookmarks')) || existsSync(join(dir, 'History'))
   if (single) {
     // Opera keeps each edition's profile directly in its folder.
     return readdirSync(base)
-      .filter((d) => existsSync(join(base, d, 'Bookmarks')) || existsSync(join(base, d, 'History')))
-      .map((d) => ({ name: d, path: join(base, d) }))
+      .filter((d) => hasData(join(base, d)))
+      .map((d) => ({ name: d, label: d, path: join(base, d), importedInto: importedInto(sourceId, join(base, d)) }))
   }
-  let names: Record<string, { name?: string }> = {}
+  let info = new Map<string, { label?: string; account?: string; color?: string }>()
   try {
-    names = JSON.parse(readFileSync(join(base, 'Local State'), 'utf8'))?.profile?.info_cache ?? {}
+    info = chromiumProfileInfo(JSON.parse(readFileSync(join(base, 'Local State'), 'utf8')))
   } catch {
-    /* ignore */
+    /* no or unreadable Local State: folder names only */
   }
   return readdirSync(base)
-    .filter((d) => (d === 'Default' || /^Profile \d+$/.test(d)) && (existsSync(join(base, d, 'Bookmarks')) || existsSync(join(base, d, 'History'))))
-    .map((d) => ({ name: names[d]?.name ? `${names[d].name} (${d})` : d, path: join(base, d) }))
+    .filter((d) => (d === 'Default' || /^Profile \d+$/.test(d)) && hasData(join(base, d)))
+    .sort((a, b) => (a === 'Default' ? -1 : b === 'Default' ? 1 : Number(a.slice(8)) - Number(b.slice(8))))
+    .map((d) => {
+      const i = info.get(d)
+      const path = join(base, d)
+      return { name: profileDisplayName(d, i?.label), label: i?.label, dir: d, account: i?.account, color: i?.color, path, importedInto: importedInto(sourceId, path) }
+    })
 }
 
-function firefoxProfiles(): { name: string; path: string }[] {
+function firefoxProfiles(): ImportSourceProfile[] {
   const base = join(process.env.APPDATA ?? '', 'Mozilla', 'Firefox', 'Profiles')
   if (!existsSync(base)) return []
   return readdirSync(base)
     .filter((d) => existsSync(join(base, d, 'places.sqlite')))
-    .map((d) => ({ name: d, path: join(base, d) }))
+    .map((d) => ({ name: d, label: d.replace(/^[a-z0-9]+\./, ''), path: join(base, d), importedInto: importedInto('firefox', join(base, d)) }))
 }
 
 export function detectSources(): ImportSource[] {
   const out: ImportSource[] = []
   for (const b of CHROMIUM) {
-    const profiles = chromiumProfiles(b.dir(), b.single)
+    const profiles = chromiumProfiles(b.id, b.dir(), b.single)
     if (profiles.length) out.push({ id: b.id, name: b.name, profiles })
   }
   const ff = firefoxProfiles()
@@ -88,26 +107,68 @@ function openCopy(file: string): { db: DatabaseSync; cleanup: () => void } {
   }
 }
 
-function importChromiumBookmarks(profilePath: string, parentId: string): number {
+// ---------------------------------------------------------------- bookmarks
+
+/**
+ * Adds bookmarks without duplicating what's already there: folders with the same name under
+ * the same parent are reused, and a URL the profile already has bookmarked is skipped.
+ */
+class BookmarkWriter {
+  count = 0
+  private urls: Set<string>
+  constructor(private profileId: string) {
+    this.urls = new Set(all<{ url: string }>("SELECT url FROM bookmarks WHERE profile_id = ? AND kind = 'bookmark' AND url IS NOT NULL", profileId).map((r) => r.url))
+  }
+  folder(title: string, parentId: string): string {
+    const existing = get<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title = ? AND profile_id = ?", parentId, title, this.profileId)
+    return existing?.id ?? addBookmark({ kind: 'folder', title, parentId }, this.profileId).id
+  }
+  bookmark(title: string, url: string, parentId: string): void {
+    if (!/^(https?|ftp|file):/i.test(url) || this.urls.has(url)) return
+    this.urls.add(url)
+    addBookmark({ kind: 'bookmark', title: title || url, url, parentId }, this.profileId)
+    this.count++
+  }
+}
+
+/** Where imported bookmarks go: straight into the bar / other roots of an empty profile, else one folder in Other bookmarks. */
+interface BookmarkPlan {
+  bar: string
+  other: string
+}
+
+function bookmarkPlan(profileId: string, sourceName: string): { plan: BookmarkPlan; wrapper?: string } {
+  ensureBookmarkRoots(profileId)
+  const empty = !get("SELECT 1 FROM bookmarks WHERE profile_id = ? AND parent_id IS NOT NULL LIMIT 1", profileId)
+  if (empty) return { plan: { bar: barFolderId(profileId), other: otherFolderId(profileId) } }
+  const title = `Imported from ${sourceName}`
+  const existing = get<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title = ? AND profile_id = ?", otherFolderId(profileId), title, profileId)
+  const wrapper = existing?.id ?? addBookmark({ kind: 'folder', title, parentId: otherFolderId(profileId) }, profileId).id
+  return { plan: { bar: wrapper, other: wrapper }, wrapper: existing ? undefined : wrapper }
+}
+
+function importChromiumBookmarks(profilePath: string, profileId: string, plan: BookmarkPlan): number {
   const file = join(profilePath, 'Bookmarks')
   if (!existsSync(file)) return 0
   const data = JSON.parse(readFileSync(file, 'utf8'))
-  let count = 0
-  const walk = (node: any, parent: string) => {
-    if (!node) return
-    if (node.type === 'url' && /^(https?|ftp|file):/i.test(node.url)) {
-      addBookmark({ kind: 'bookmark', title: node.name || node.url, url: node.url, parentId: parent })
-      count++
-    } else if (node.type === 'folder' || node.children) {
-      const f = addBookmark({ kind: 'folder', title: node.name || 'Folder', parentId: parent })
-      for (const c of node.children ?? []) walk(c, f.id)
+  const w = new BookmarkWriter(profileId)
+  const walk = (node: any, parent: string, depth: number) => {
+    if (!node || depth > 100) return
+    if (node.type === 'url' && typeof node.url === 'string') w.bookmark(node.name, node.url, parent)
+    else if (node.type === 'folder' || node.children) {
+      const f = w.folder(node.name || 'Folder', parent)
+      for (const c of node.children ?? []) walk(c, f, depth + 1)
     }
   }
   bookmarkBatch(() => {
-    for (const key of ['bookmark_bar', 'other', 'synced']) if (data.roots?.[key]?.children?.length) walk(data.roots[key], parentId)
+    // The roots' own children go straight into the matching SPECTER root (or the import folder).
+    for (const c of data.roots?.bookmark_bar?.children ?? []) walk(c, plan.bar, 0)
+    for (const key of ['other', 'synced']) for (const c of data.roots?.[key]?.children ?? []) walk(c, plan.other, 0)
   })
-  return count
+  return w.count
 }
+
+// ---------------------------------------------------------------- history
 
 /** Adds one visit unless it is already there, so importing twice doesn't double the history. */
 function insertVisit(url: string, title: string, visitedAt: number, profile: string): boolean {
@@ -117,7 +178,7 @@ function insertVisit(url: string, title: string, visitedAt: number, profile: str
   return true
 }
 
-function importChromiumHistory(profilePath: string): number {
+function importChromiumHistory(profilePath: string, profileId: string): number {
   const file = join(profilePath, 'History')
   if (!existsSync(file)) return 0
   const { db, cleanup } = openCopy(file)
@@ -127,12 +188,11 @@ function importChromiumHistory(profilePath: string): number {
     // which node:sqlite refuses to return as a number.
     q.setReadBigInts(true)
     const rows = q.all() as { url: string; title: string | null; last_visit_time: bigint }[]
-    const profile = activeProfileId()
     let added = 0
     tx(() => {
       for (const r of rows) {
         const ts = Number(BigInt(r.last_visit_time) / 1000n) - 11644473600000
-        if (insertVisit(r.url, r.title ?? '', ts, profile)) added++
+        if (insertVisit(r.url, r.title ?? '', ts, profileId)) added++
       }
     })
     return added
@@ -141,7 +201,7 @@ function importChromiumHistory(profilePath: string): number {
   }
 }
 
-function importFirefox(profilePath: string, what: { bookmarks: boolean; history: boolean }, parentId: string): ImportResult {
+function importFirefox(profilePath: string, what: { bookmarks: boolean; history: boolean }, profileId: string, plan: BookmarkPlan | null): ImportResult {
   const result: ImportResult = { bookmarks: 0, history: 0, errors: [] }
   const { db, cleanup } = openCopy(join(profilePath, 'places.sqlite'))
   try {
@@ -149,17 +209,17 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
       const q = db.prepare('SELECT url, title, last_visit_date FROM moz_places WHERE last_visit_date IS NOT NULL AND hidden = 0 ORDER BY last_visit_date DESC LIMIT 25000')
       q.setReadBigInts(true)
       const rows = q.all() as { url: string; title: string | null; last_visit_date: bigint }[]
-      const profile = activeProfileId()
       tx(() => {
-        for (const r of rows) if (insertVisit(r.url, r.title ?? '', Number(BigInt(r.last_visit_date) / 1000n), profile)) result.history++
+        for (const r of rows) if (insertVisit(r.url, r.title ?? '', Number(BigInt(r.last_visit_date) / 1000n), profileId)) result.history++
       })
     }
-    if (what.bookmarks) {
+    if (what.bookmarks && plan) {
       const rows = db
         .prepare('SELECT b.id, b.type, b.parent, b.title, b.guid, b.position, p.url FROM moz_bookmarks b LEFT JOIN moz_places p ON p.id = b.fk ORDER BY b.parent, b.position')
         .all() as { id: number; type: number; parent: number; title: string | null; guid: string | null; url: string | null }[]
       const children = new Map<number, typeof rows>()
       for (const r of rows) children.set(r.parent, [...(children.get(r.parent) ?? []), r])
+      const w = new BookmarkWriter(profileId)
       // Walk the tree from the root (id 1; children: menu, toolbar, tags, unfiled, mobile).
       // Id order is not tree order: a folder moved into a newer folder has a smaller
       // id than its parent and was skipped, with everything inside it.
@@ -169,14 +229,14 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
           if (r.type === 2) {
             // The tags root repeats every tagged bookmark under per-tag folders.
             if (r.guid === 'tags________') continue
-            walk(r.id, addBookmark({ kind: 'folder', title: r.title || 'Folder', parentId: parent }).id, depth + 1)
-          } else if (r.type === 1 && r.url && /^(https?|ftp|file):/i.test(r.url)) {
-            addBookmark({ kind: 'bookmark', title: r.title || r.url, url: r.url, parentId: parent })
-            result.bookmarks++
-          }
+            // Firefox's own roots map onto SPECTER's: the toolbar to the bar, the rest to Other.
+            if (depth === 0) walk(r.id, r.guid === 'toolbar_____' ? plan.bar : plan.other, depth + 1)
+            else walk(r.id, w.folder(r.title || 'Folder', parent), depth + 1)
+          } else if (r.type === 1 && r.url) w.bookmark(r.title ?? '', r.url, parent)
         }
       }
-      bookmarkBatch(() => walk(1, parentId, 0))
+      bookmarkBatch(() => walk(1, plan.other, 0))
+      result.bookmarks = w.count
     }
   } finally {
     cleanup()
@@ -184,42 +244,73 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
   return result
 }
 
-export function registerImportIpc(): void {
-  handle('import:sources', () => detectSources())
-  handle('import:run', (_e, sourceId, profilePath, what) => {
-    const source = detectSources().find((s) => s.id === sourceId)
-    if (!source || !source.profiles.some((p) => p.path === profilePath)) throw new Error('Unknown import source')
-    const result: ImportResult = { bookmarks: 0, history: 0, errors: [] }
-    let folderId = otherFolderId()
-    if (what.bookmarks) folderId = addBookmark({ kind: 'folder', title: `Imported from ${source.name}`, parentId: otherFolderId() }).id
-    // Don't leave an empty "Imported from …" folder behind when there was nothing to bring over.
-    const done = (r: ImportResult): ImportResult => {
-      if (what.bookmarks && r.bookmarks === 0) removeBookmark(folderId)
-      log.info('import finished', { sourceId, ...r })
-      return r
+// ---------------------------------------------------------------- running an import
+
+function resolveTarget(source: ImportSource, profile: ImportSourceProfile, target: ImportTarget): { profileId: string; created: boolean } {
+  if (target === 'current') return { profileId: activeProfileId(), created: false }
+  if (typeof target === 'object') {
+    if (!getProfile(target.profileId)) throw new Error('That SPECTER profile no longer exists.')
+    return { profileId: target.profileId, created: false }
+  }
+  // 'new': the profile made by an earlier import of the same browser profile, else a fresh one.
+  if (profile.importedInto) return { profileId: profile.importedInto, created: false }
+  const label = profile.label || profile.name
+  const name = source.id === 'chrome' ? label : `${label} (${source.name})`
+  const color = profile.color ?? PROFILE_COLORS[listProfiles().length % PROFILE_COLORS.length]
+  return { profileId: createProfile(name, color).id, created: true }
+}
+
+function runImport(sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }, target: ImportTarget): ProfileImportResult {
+  const source = detectSources().find((s) => s.id === sourceId)
+  const profile = source?.profiles.find((p) => p.path === profilePath)
+  if (!source || !profile) throw new Error('Unknown import source')
+  const { profileId, created } = resolveTarget(source, profile, target)
+  const result: ProfileImportResult = { bookmarks: 0, history: 0, errors: [], profileId, profileName: getProfile(profileId)?.name ?? '', created }
+  const bm = what.bookmarks ? bookmarkPlan(profileId, source.name) : null
+
+  if (sourceId === 'firefox') {
+    try {
+      const r = importFirefox(profilePath, what, profileId, bm?.plan ?? null)
+      result.bookmarks = r.bookmarks
+      result.history = r.history
+      result.errors.push(...r.errors)
+    } catch (err: any) {
+      log.error('firefox import failed', err)
+      result.errors.push(String(err?.message ?? err))
     }
-    if (sourceId === 'firefox') {
+  } else {
+    if (bm) {
       try {
-        return done(importFirefox(profilePath, what, folderId))
-      } catch (err: any) {
-        log.error('firefox import failed', err)
-        return done({ ...result, errors: [String(err?.message ?? err)] })
-      }
-    }
-    if (what.bookmarks) {
-      try {
-        result.bookmarks = importChromiumBookmarks(profilePath, folderId)
+        result.bookmarks = importChromiumBookmarks(profilePath, profileId, bm.plan)
       } catch (err: any) {
         result.errors.push('Bookmarks: ' + (err?.message ?? err))
       }
     }
     if (what.history) {
       try {
-        result.history = importChromiumHistory(profilePath)
+        result.history = importChromiumHistory(profilePath, profileId)
       } catch (err: any) {
         result.errors.push('History: ' + (err?.message ?? err))
       }
     }
-    return done(result)
+  }
+  // Don't leave an empty "Imported from …" folder behind when there was nothing to bring over.
+  if (bm?.wrapper && result.bookmarks === 0) removeBookmark(bm.wrapper)
+  run(
+    'INSERT INTO profile_sources(source_key, profile_id, imported_at) VALUES(?,?,?) ON CONFLICT(source_key) DO UPDATE SET profile_id = excluded.profile_id, imported_at = excluded.imported_at',
+    sourceKey(sourceId, profilePath),
+    profileId,
+    Date.now()
+  )
+  log.info('import finished', { sourceId, profileId, created, bookmarks: result.bookmarks, history: result.history, errors: result.errors.length })
+  return result
+}
+
+export function registerImportIpc(): void {
+  handle('import:sources', () => detectSources())
+  handle('import:run', (_e, sourceId, profilePath, what): ImportResult => {
+    const { bookmarks, history, errors } = runImport(sourceId, profilePath, what, 'current')
+    return { bookmarks, history, errors }
   })
+  handle('import:toProfile', (_e, sourceId, profilePath, what, target) => runImport(sourceId, profilePath, what, target))
 }
