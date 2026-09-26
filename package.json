@@ -1,8 +1,8 @@
 {
   "name": "specter",
   "productName": "SPECTER",
-  "version": "0.2.0",
-  "description": "SPECTER — The Power Browser. A Chromium-based desktop browser with local-first power tools.",
+  "version": "0.2.1",
+  "description": "SPECTER \u2014 The Power Browser. A Chromium-based desktop browser with local-first power tools.",
   "main": "out/main/index.js",
   "author": "SPECTER Contributors",
   "license": "MIT",
@@ -14,10 +14,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "test:e2e": "npm run build && node tests/e2e/run.mjs",
-    "dist": "npm run build && electron-builder --win --x64"
+    "dist": "npm run build && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
-    "@mozilla/readability": "^0.6.0"
+    "@mozilla/readability": "^0.6.0",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
