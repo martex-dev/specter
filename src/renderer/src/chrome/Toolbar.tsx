@@ -14,7 +14,9 @@ import {
   Rows2,
   Save,
   Square,
-  X
+  X,
+  Paintbrush,
+  Palette as PaletteIcon
 } from 'lucide-react'
 import type { DownloadInfo, SplitPreset } from '@shared/types'
 import { invoke, on } from '../lib/ipc'
@@ -25,6 +27,34 @@ import { openMenu, toggleSidePanel, useUi, type MenuItem } from '../stores/ui'
 import { Omnibox } from './Omnibox'
 import { mainMenu } from './mainMenu'
 import { promptText } from '../components/prompt'
+import { resolveTheme, THEMES } from '../lib/themes'
+import { setSetting as setSettingValue } from '../stores/settings'
+
+function themeMenu(): MenuItem[] {
+  const { theme, palette } = resolveTheme(getSetting('appearance.theme'), getSetting('appearance.palette'))
+  const swatch = (bg: string, a: string) => <span style={{ width: 12, height: 12, borderRadius: 3, background: `linear-gradient(135deg, ${bg} 50%, ${a} 50%)`, display: 'inline-block', border: '1px solid rgba(255,255,255,0.2)' }} />
+  return [
+    { header: 'Theme' },
+    ...THEMES.map((t) => ({
+      label: t.name,
+      icon: swatch(t.palettes[0].bg0, t.palettes[0].accent),
+      checked: t.id === theme.id ? true : undefined,
+      submenu: t.palettes.map((p) => ({
+        label: p.name,
+        icon: swatch(p.bg0, p.accent),
+        run: () => {
+          setSettingValue('appearance.theme', t.id)
+          setSettingValue('appearance.palette', p.id)
+          setSettingValue('appearance.accent', '')
+          if (t.id !== theme.id) setSettingValue('appearance.layout', {})
+        }
+      }))
+    })),
+    { separator: true },
+    { label: `Palette: ${palette.name} — next`, icon: <PaletteIcon size={14} />, run: () => runCommand('ui.nextPalette') },
+    { label: 'Theme gallery & accent colour…', icon: <Paintbrush size={14} />, run: () => runCommand('ui.themes') }
+  ]
+}
 
 export function Toolbar() {
   const tab = useActiveTab()
@@ -71,6 +101,17 @@ export function Toolbar() {
           aria-label="Split view"
         >
           <Columns2 size={16} />
+        </button>
+        <button
+          className="icon-btn"
+          onClick={(e) => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            openMenu({ x: r.left - 200, y: r.bottom + 6, items: themeMenu(), width: 250 })
+          }}
+          data-tip="Theme & colours"
+          aria-label="Theme and colours"
+        >
+          <Paintbrush size={16} />
         </button>
         <DownloadsButton />
         {!showRail && (
