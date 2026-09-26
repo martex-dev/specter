@@ -138,6 +138,10 @@ export function createBrowserWindow(opts: {
 
   const wcId = win.webContents.id
   trustWebContents(wcId)
+  // The last closed window's row is kept for restore. If SPECTER kept running (tray /
+  // run in background) and a new window opens, that row is stale: it would be restored
+  // next launch as an extra window showing the same workspace.
+  if (!opts.reuseRowId && !chromeContexts().some((c) => !c.popoutPanel)) run('DELETE FROM window_sessions WHERE profile_id = ?', activeProfileId())
   const ctx: WindowCtx = {
     win,
     rowId: null,
