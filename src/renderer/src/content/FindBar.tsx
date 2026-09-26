@@ -5,12 +5,22 @@ import { webviewFor, wcIdFor } from '../lib/webviews'
 import { setFindOpen } from '../stores/ui'
 import { onFound } from './findEvents'
 
+type FindResult = { active: number; matches: number; error?: string }
+type FindState = { q: string; matchCase: boolean; wholeWord: boolean; regex: boolean; result: FindResult | null }
+
+// The bar unmounts while its tab is in the background; keep its query (and the page's
+// highlights) so switching back doesn't show an empty box over stale highlights.
+const saved = new Map<string, FindState>()
+
 export function FindBar({ tabId }: { tabId: string }) {
-  const [q, setQ] = useState('')
-  const [matchCase, setMatchCase] = useState(false)
-  const [wholeWord, setWholeWord] = useState(false)
-  const [regex, setRegex] = useState(false)
-  const [result, setResult] = useState<{ active: number; matches: number; error?: string } | null>(null)
+  const init = saved.get(tabId)
+  const [q, setQ] = useState(init?.q ?? '')
+  const [matchCase, setMatchCase] = useState(init?.matchCase ?? false)
+  const [wholeWord, setWholeWord] = useState(init?.wholeWord ?? false)
+  const [regex, setRegex] = useState(init?.regex ?? false)
+  const [result, setResult] = useState<FindResult | null>(init?.result ?? null)
+  // Restored bar: the page still has its highlights, so don't search again (it would scroll).
+  const restored = useRef(!!init?.q)
   const inputRef = useRef<HTMLInputElement>(null)
   const advanced = wholeWord || regex
 
@@ -25,10 +35,18 @@ export function FindBar({ tabId }: { tabId: string }) {
     return () => window.removeEventListener('specter:focus-find', focus)
   }, [])
 
+  useEffect(() => {
+    saved.set(tabId, { q, matchCase, wholeWord, regex, result })
+  }, [tabId, q, matchCase, wholeWord, regex, result])
+
   useEffect(() => onFound(tabId, (r) => setResult({ active: r.activeMatchOrdinal, matches: r.matches })), [tabId])
 
   // Run a new search whenever the query or options change.
   useEffect(() => {
+    if (restored.current) {
+      restored.current = false
+      return
+    }
     const wv = webviewFor(tabId)
     const wcId = wcIdFor(tabId)
     if (!wv || wcId === null) return
@@ -55,7 +73,7 @@ export function FindBar({ tabId }: { tabId: string }) {
     const wv = webviewFor(tabId)
     const wcId = wcIdFor(tabId)
     if (!wv || wcId === null || !q) return
-    if (advanced) setResult(await invoke('guest:findAdvancedStep', wcId, forward))
+    if (advanced) setResult(await invoke('guest:findAdvancedStep', wcId, forward).catch((e) => ({ matches: 0, active: 0, error: String(e) })))
     else wv.findInPage(q, { matchCase, forward, findNext: false })
   }
 
@@ -64,6 +82,7 @@ export function FindBar({ tabId }: { tabId: string }) {
     const wcId = wcIdFor(tabId)
     wv?.stopFindInPage('clearSelection')
     if (wcId !== null) invoke('guest:findAdvancedClear', wcId).catch(() => undefined)
+    saved.delete(tabId)
     setFindOpen(tabId, false)
     wv?.focus()
   }
