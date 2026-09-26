@@ -276,11 +276,15 @@ export default function AutomationsPage({ query }: PageProps) {
   const [rules] = useRules()
   const [editing, setEditing] = useState<AutomationRuleInput | null>(null)
 
+  // `query` is a new URLSearchParams on every parent render: key the effect on its
+  // text so ?new=1 / ?tab= apply once per navigation, not on every re-render.
+  const queryKey = query.toString()
   useEffect(() => {
     if (query.get('new') === '1') setEditing(emptyRule())
     const t = query.get('tab') as Tab | null
     if (t) setTab(t)
-  }, [query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey])
 
   const addTemplate = async (tpl: (typeof TEMPLATES)[number]) => {
     try {
