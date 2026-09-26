@@ -37,17 +37,25 @@ export function activeSession(): Electron.Session {
   return session.fromPartition(activeProfile().partition)
 }
 
+export function getProfile(id: string): Profile | null {
+  const r = get<Row>('SELECT * FROM profiles WHERE id = ?', id)
+  return r ? toProfile(r) : null
+}
+
+/** Creates a profile with its own session partition (used by the UI and the browser importer). */
+export function createProfile(name: string, color: string): Profile {
+  const id = uid('p_')
+  run('INSERT INTO profiles(id, name, color, partition, created_at) VALUES(?, ?, ?, ?, ?)', id, name.trim() || 'Profile', color, 'persist:specter-' + id, Date.now())
+  return toProfile(get<Row>('SELECT * FROM profiles WHERE id = ?', id)!)
+}
+
 export function onProfileSwitch(fn: (profileId: string) => void): void {
   switchHandler = fn
 }
 
 export function registerProfilesIpc(): void {
   handle('profiles:list', () => listProfiles())
-  handle('profiles:create', (_e, name, color) => {
-    const id = uid('p_')
-    run('INSERT INTO profiles(id, name, color, partition, created_at) VALUES(?, ?, ?, ?, ?)', id, name.trim() || 'Profile', color, 'persist:specter-' + id, Date.now())
-    return toProfile(get<Row>('SELECT * FROM profiles WHERE id = ?', id)!)
-  })
+  handle('profiles:create', (_e, name, color) => createProfile(name, color))
   handle('profiles:delete', async (_e, id) => {
     if (id === 'default' || id === activeProfileId()) throw new Error('Cannot delete the default or active profile')
     const p = get<Row>('SELECT * FROM profiles WHERE id = ?', id)
