@@ -5,6 +5,10 @@ import { register as knowledgeRegister } from './knowledge'
 import { register as developerRegister } from './developer'
 import { register as automationRegister } from './automation'
 import { register as toolkitRegister } from './toolkit'
+import { register as webappsRegister } from './webapps'
+import { register as widgetsRegister } from './widgets'
+import { register as controlRegister } from './control'
+
 
 // Renderer-side registration of optional power-tool modules. Each module
 // registers its commands, pages, side panels, HUD/status items and omnibox
@@ -19,7 +23,10 @@ const MODULES: ModuleRegistration[] = [
   { name: 'knowledge', register: knowledgeRegister },
   { name: 'developer', register: developerRegister },
   { name: 'automation', register: automationRegister },
-  { name: 'toolkit', register: toolkitRegister }
+  { name: 'toolkit', register: toolkitRegister },
+  { name: 'webapps', register: webappsRegister },
+  { name: 'widgets', register: widgetsRegister },
+  { name: 'control', register: controlRegister }
 ]
 
 export function registerModules(): void {

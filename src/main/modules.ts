@@ -10,6 +10,9 @@ import { register as knowledgeRegister } from './modules/knowledge'
 import { register as developerRegister } from './modules/developer'
 import { register as automationRegister } from './modules/automation'
 import { register as toolkitRegister } from './modules/toolkit'
+import { register as webappsRegister } from './modules/webapps'
+import { register as widgetsRegister } from './modules/widgets'
+import { register as controlRegister } from './modules/control'
 
 const log = createLogger('modules')
 
@@ -22,7 +25,10 @@ const MODULES: ModuleEntry[] = [
   { name: 'knowledge', register: knowledgeRegister },
   { name: 'developer', register: developerRegister },
   { name: 'automation', register: automationRegister },
-  { name: 'toolkit', register: toolkitRegister }
+  { name: 'toolkit', register: toolkitRegister },
+  { name: 'webapps', register: webappsRegister },
+  { name: 'widgets', register: widgetsRegister },
+  { name: 'control', register: controlRegister }
 ]
 
 export function registerModules(): void {
