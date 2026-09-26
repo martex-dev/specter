@@ -3,7 +3,8 @@ import { Clock, Layers, Pencil, Plus, Search, SlidersHorizontal, X } from 'lucid
 import type { QuickLink } from '@shared/settings'
 import { SEARCH_ENGINES } from '@shared/settings'
 import { invoke } from '../lib/ipc'
-import { newTabWidgets } from '../lib/registry'
+import { newTabBackgrounds, newTabWidgets } from '../lib/registry'
+import { getCommand } from '../lib/commands'
 import { workspaceIcon } from '../lib/icons'
 import { timeAgo } from '../lib/format'
 import { loadUrl, switchWorkspace, useBrowser } from '../stores/browser'
@@ -23,6 +24,15 @@ function faviconFor(url: string): string | undefined {
   }
 }
 
+function greeting(d: Date): string {
+  const h = d.getHours()
+  if (h < 5) return 'Night owl mode'
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  if (h < 22) return 'Good evening'
+  return 'Late night session'
+}
+
 export default function NewTab({ tabId }: PageProps) {
   const [now, setNow] = useState(Date.now())
   const showClock = useSetting('newtab.showClock')
@@ -35,6 +45,7 @@ export default function NewTab({ tabId }: PageProps) {
   const activeWsId = useBrowser((s) => s.activeWsId)
   const [top, setTop] = useState<{ url: string; title: string; visits: number }[]>([])
   const widgets = useSyncExternalStore(newTabWidgets.subscribe, () => newTabWidgets.list())
+  const backgrounds = useSyncExternalStore(newTabBackgrounds.subscribe, () => newTabBackgrounds.list())
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 15_000)
@@ -60,11 +71,15 @@ export default function NewTab({ tabId }: PageProps) {
 
   return (
     <div className="ntp" onKeyDown={(e) => e.key.length === 1 && !e.ctrlKey && !e.altKey && typeIntoOmnibox(e.key)}>
+      {backgrounds.map((b) => (
+        <b.component key={b.id} />
+      ))}
       <div className="ntp-brand">
         <SpecterMark size={20} /> SPECTER
       </div>
       {showClock && (
         <>
+          <div className="ntp-greeting">{greeting(d)}</div>
           <div className="ntp-clock">{d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           <div className="ntp-date">{d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
         </>
@@ -195,7 +210,8 @@ export default function NewTab({ tabId }: PageProps) {
               { label: 'Shortcuts', checked: showLinks, run: () => setSetting('newtab.showQuickLinks', !showLinks) },
               { label: 'Frequent sites & workspaces', checked: showRecent, run: () => setSetting('newtab.showRecent', !showRecent) },
               { label: 'Market strip', checked: useSettingSnapshot('newtab.showMarkets'), run: () => setSetting('newtab.showMarkets', !useSettingSnapshot('newtab.showMarkets')) },
-              { label: 'System stats', checked: useSettingSnapshot('newtab.showSystem'), run: () => setSetting('newtab.showSystem', !useSettingSnapshot('newtab.showSystem')) }
+              { label: 'System stats', checked: useSettingSnapshot('newtab.showSystem'), run: () => setSetting('newtab.showSystem', !useSettingSnapshot('newtab.showSystem')) },
+              ...(getCommand('control.wallpaper') ? [{ separator: true } as const, { label: 'Wallpaper…', run: () => getCommand('control.wallpaper')?.run() }] : [])
             ]
           })
         }
