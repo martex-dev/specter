@@ -105,10 +105,10 @@ export function TooltipLayer() {
   )
 }
 
-function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[]; x: number; y: number; width?: number; onClose: () => void; depth?: number }) {
+function MenuList({ items, x, y, flipX, width, onClose, depth = 0 }: { items: MenuItem[]; x: number; y: number; flipX?: number; width?: number; onClose: () => void; depth?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ left: x, top: y })
-  const [sub, setSub] = useState<{ index: number; x: number; y: number } | null>(null)
+  const [sub, setSub] = useState<{ index: number; x: number; y: number; flipX: number } | null>(null)
   const [sel, setSel] = useState(-1)
   // Submenu intent: don't close an open submenu instantly when the pointer
   // crosses a sibling on its way into the submenu.
@@ -132,10 +132,12 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
     const r = el.getBoundingClientRect()
     let left = x
     let top = y
-    if (left + r.width > window.innerWidth - 6) left = depth ? x - r.width - (width ?? 220) + 4 : window.innerWidth - r.width - 6
+    // A submenu that doesn't fit on the right opens to the left of its parent
+    // item (the parent can be wider than `width`, which is only a minimum).
+    if (left + r.width > window.innerWidth - 6) left = depth && flipX !== undefined ? flipX - r.width - 2 : window.innerWidth - r.width - 6
     if (top + r.height > window.innerHeight - 6) top = Math.max(6, window.innerHeight - r.height - 6)
     setPos({ left: Math.max(6, left), top })
-  }, [x, y, depth, width])
+  }, [x, y, flipX, depth, width])
 
   useEffect(() => {
     if (depth) return
@@ -181,7 +183,7 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
               clearTimeout(closeTimer.current)
               if (it.submenu) {
                 const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                setSub({ index: i, x: r.right + 2, y: r.top - 5 })
+                setSub({ index: i, x: r.right + 2, y: r.top - 5, flipX: r.left })
               } else if (sub) closeTimer.current = window.setTimeout(() => setSub(null), 350)
             }}
             onClick={(e) => {
@@ -199,7 +201,7 @@ function MenuList({ items, x, y, width, onClose, depth = 0 }: { items: MenuItem[
       })}
       {sub && items[sub.index]?.submenu && (
         <div onMouseEnter={() => clearTimeout(closeTimer.current)} style={{ display: 'contents' }}>
-          <MenuList items={items[sub.index].submenu!} x={sub.x} y={sub.y} width={width} onClose={onClose} depth={depth + 1} />
+          <MenuList items={items[sub.index].submenu!} x={sub.x} y={sub.y} flipX={sub.flipX} width={width} onClose={onClose} depth={depth + 1} />
         </div>
       )}
     </div>
