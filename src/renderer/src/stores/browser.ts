@@ -33,7 +33,7 @@ export interface RuntimeTab extends TabState {
   themeColor?: string
   /** Last measured top-level load time (navigation start → load finished), ms. */
   loadMs?: number
-  /** Third-party tracker requests blocked on the current page. */
+  /** Ad and tracker requests blocked on the current page. */
   blocked?: number
   /** Tab that opened this one (for Chrome-like child placement). Not persisted. */
   openerId?: string

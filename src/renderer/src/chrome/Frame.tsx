@@ -59,7 +59,7 @@ function TrackersHudItem() {
   const [n, setN] = useState(0)
   useEffect(() => on('privacy:blocked', (p) => setN(p.total)), [])
   return (
-    <button className="hud-item" onClick={() => runCommand('privacy.open')} data-tip={`${n} tracker requests blocked this session`}>
+    <button className="hud-item" onClick={() => runCommand('privacy.open')} data-tip={`${n} ad & tracker requests blocked this session`}>
       <ShieldCheck size={11} /> <b>{n}</b>
     </button>
   )
