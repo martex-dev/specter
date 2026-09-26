@@ -147,7 +147,8 @@ function MenuList({ items, x, y, flipX, width, onClose, depth = 0 }: { items: Me
       else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()
         const cur = actionable.findIndex((a) => a.i === sel)
-        const next = actionable[(cur + (e.key === 'ArrowDown' ? 1 : -1) + actionable.length) % actionable.length]
+        // Nothing selected yet: Down starts at the first item, Up at the last.
+        const next = cur < 0 ? actionable[e.key === 'ArrowDown' ? 0 : actionable.length - 1] : actionable[(cur + (e.key === 'ArrowDown' ? 1 : -1) + actionable.length) % actionable.length]
         if (next) setSel(next.i)
       } else if (e.key === 'Enter' && sel >= 0) {
         e.preventDefault()
