@@ -1,6 +1,9 @@
 // UI extension points used by feature modules.
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
+import type { MenuItem } from '../stores/ui'
 import type { LucideIcon } from 'lucide-react'
+
+export type SidebarSection = 'apps' | 'widgets' | 'tools' | 'system'
 
 export interface SidePanelDef {
   id: string
@@ -8,6 +11,22 @@ export interface SidePanelDef {
   icon: LucideIcon
   order: number
   component: ComponentType<{ popout?: boolean }>
+  /** Dock section. Defaults: order < 100 → 'tools', otherwise 'system'. */
+  section?: SidebarSection
+  /** Custom icon (e.g. a web app's favicon) instead of the Lucide icon. */
+  iconNode?: ReactNode
+  /** Small badge rendered on the dock button (e.g. unread count). */
+  Badge?: ComponentType
+  /** Stay mounted while hidden (web apps keep playing / receiving messages). */
+  keepAlive?: boolean
+  /** Default panel width in px. */
+  width?: number
+  /** Render without SPECTER's panel header. */
+  bare?: boolean
+  /** Extra header controls. */
+  headerExtra?: ComponentType
+  /** Extra items for the dock button's context menu. */
+  contextItems?: () => MenuItem[]
   /** Hide from the rail unless enabled by this predicate. */
   enabled?: () => boolean
   /** Can be popped out into a floating window. */
@@ -59,6 +78,16 @@ function makeRegistry<T extends { id: string; order: number }>() {
       cache = [...items.values()].sort((a, b) => a.order - b.order)
       listeners.forEach((l) => l())
     },
+    unregister(id: string) {
+      if (!items.delete(id)) return
+      cache = [...items.values()].sort((a, b) => a.order - b.order)
+      listeners.forEach((l) => l())
+    },
+    /** Re-evaluate dynamic fields (enabled(), badges) without changing entries. */
+    refresh() {
+      cache = [...cache]
+      listeners.forEach((l) => l())
+    },
     list(): T[] {
       return cache
     },
@@ -77,3 +106,5 @@ export const hudItems = makeRegistry<HudItemDef>()
 export const statusItems = makeRegistry<StatusItemDef>()
 export const settingsSections = makeRegistry<SettingsSectionDef>()
 export const newTabWidgets = makeRegistry<NewTabWidgetDef>()
+/** Full-bleed layers rendered behind the new tab page (e.g. wallpapers). */
+export const newTabBackgrounds = makeRegistry<{ id: string; order: number; component: ComponentType }>()
