@@ -138,10 +138,16 @@ export function updateTab(tabId: string, patch: Partial<RuntimeTab>): void {
 
 const PERSISTED_KEYS = new Set(['url', 'title', 'favicon', 'pinned', 'groupId', 'muted', 'suspended', 'scrollY', 'note', 'lastActive', 'zoom', 'temporary'])
 
-function toPersisted(ws: RuntimeWorkspace): WorkspaceState {
+export function toPersisted(ws: RuntimeWorkspace): WorkspaceState {
+  const kept = ws.tabs.filter((t) => !t.temporary)
+  const keptIds = new Set(kept.map((t) => t.id))
+  // Temporary tabs are not saved, so the active tab / split panes must not point at one
+  // (a restore would otherwise show an empty content area with no active tab).
+  const activeTabId = ws.activeTabId && keptIds.has(ws.activeTabId) ? ws.activeTabId : [...kept].sort((a, b) => b.lastActive - a.lastActive)[0]?.id
+  const panes = ws.layout.panes.filter((id) => keptIds.has(id))
+  const layout = panes.length === ws.layout.panes.length ? ws.layout : panes.length > 1 ? { ...ws.layout, panes, preset: fitPreset(ws.layout.preset, panes.length), sizes: undefined } : { preset: 'single' as const, panes: [] }
   return {
-    tabs: ws.tabs
-      .filter((t) => !t.temporary)
+    tabs: kept
       .map((t) => ({
         id: t.id,
         url: t.url,
@@ -158,8 +164,8 @@ function toPersisted(ws: RuntimeWorkspace): WorkspaceState {
         zoom: t.zoom
       })),
     groups: ws.groups,
-    activeTabId: ws.activeTabId,
-    layout: ws.layout
+    activeTabId,
+    layout
   }
 }
 
@@ -228,16 +234,21 @@ export function internalTitle(url: string): string {
 // ---------------------------------------------------------------- init
 
 function toRuntime(w: Workspace, wakeActive: boolean): RuntimeWorkspace {
-  const visible = new Set(w.state.layout.preset !== 'single' ? w.state.layout.panes : [])
-  if (w.state.activeTabId) visible.add(w.state.activeTabId)
+  // Older saves may reference a tab that no longer exists (e.g. an unsaved temporary tab).
+  const ids = new Set(w.state.tabs.map((t) => t.id))
+  const activeTabId = w.state.activeTabId && ids.has(w.state.activeTabId) ? w.state.activeTabId : w.state.tabs[0]?.id
+  const panes = w.state.layout.panes.filter((id) => ids.has(id))
+  const layout: SplitLayout = panes.length === w.state.layout.panes.length ? w.state.layout : panes.length > 1 ? { ...w.state.layout, panes, preset: fitPreset(w.state.layout.preset, panes.length), sizes: undefined } : { preset: 'single', panes: [] }
+  const visible = new Set(layout.preset !== 'single' ? layout.panes : [])
+  if (activeTabId) visible.add(activeTabId)
   return {
     id: w.id,
     name: w.name,
     icon: w.icon,
     color: w.color,
     groups: w.state.groups,
-    activeTabId: w.state.activeTabId,
-    layout: w.state.layout,
+    activeTabId,
+    layout,
     // Lazy restore: only visible tabs load immediately.
     tabs: w.state.tabs.map((t) => ({ ...t, suspended: isInternal(t.url) ? false : wakeActive && visible.has(t.id) ? false : true, pendingScrollY: t.scrollY }))
   }
