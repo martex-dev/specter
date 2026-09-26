@@ -16,6 +16,9 @@ function useImageData(path: string | null): { url: string | null; error: boolean
     let alive = true
     invoke('control:wallpaperData', path)
       .then((url) => {
+        // Only one custom wallpaper exists at a time (main deletes the others);
+        // drop earlier multi-MB data URLs instead of keeping them for the session.
+        for (const k of dataCache.keys()) if (k !== path) dataCache.delete(k)
         dataCache.set(path, url)
         if (alive) setState({ url, error: !url })
       })
