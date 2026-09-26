@@ -21,6 +21,7 @@ import {
   HelpCircle,
   Home,
   Keyboard,
+  KeyRound,
   Layers,
   Link2,
   LogOut,
@@ -305,6 +306,7 @@ export function registerCoreCommands(): void {
       }
     },
     { id: 'browser.history', title: 'History', category: 'Browser', icon: Clock, run: () => newTab('specter://history') },
+    { id: 'browser.passwords', title: 'Passwords', category: 'Browser', icon: KeyRound, run: () => newTab('specter://passwords') },
     { id: 'browser.downloads', title: 'Downloads', category: 'Browser', icon: Download, run: () => toggleSidePanel('downloads') },
     {
       id: 'browser.devtools',

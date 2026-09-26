@@ -501,3 +501,58 @@
   border: none;
   border-top: 1px solid var(--line);
 }
+
+/* ---------------------------------------------------------------- passwords */
+
+.pw-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg-1);
+}
+.pw-list {
+  padding: 4px 0;
+}
+.pw-site + .pw-site {
+  border-top: 1px solid var(--line);
+}
+.pw-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 4px;
+  font-weight: 600;
+  color: var(--fg-0);
+  font-size: 12.5px;
+}
+.pw-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 110px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px 4px 38px;
+  min-height: 34px;
+  font-size: 12.5px;
+}
+.pw-row:hover {
+  background: var(--bg-3);
+}
+.pw-pass.masked {
+  letter-spacing: 0.1em;
+  color: var(--fg-2);
+}
+.pw-meta {
+  font-size: 11.5px;
+}
+.pw-actions {
+  gap: 2px;
+  opacity: 0.55;
+}
+.pw-row:hover .pw-actions,
+.pw-actions:focus-within {
+  opacity: 1;
+}
