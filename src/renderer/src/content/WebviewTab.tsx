@@ -5,6 +5,7 @@ import { markReady, registerWebview, unregisterWebview } from '../lib/webviews'
 import { closeTab, findTab, updateTab, useBrowser, activateTab } from '../stores/browser'
 import { useUi } from '../stores/ui'
 import { emitFound } from './findEvents'
+import { hostname } from '@shared/url'
 import { begin, end } from '../lib/perf'
 
 interface Props {
@@ -66,6 +67,7 @@ export function WebviewTab({ tabId, initialUrl, partition, visible }: Props) {
       nav()
     })
     let navStart = 0
+    let committedUrl = ''
     on('did-start-navigation', (e) => {
       if (e.isMainFrame && !e.isInPlace) navStart = performance.now()
     })
@@ -85,7 +87,26 @@ export function WebviewTab({ tabId, initialUrl, partition, visible }: Props) {
       }
     })
     on('did-navigate', (e) => {
-      updateTab(tabId, { url: e.url, error: undefined, crashed: undefined, reader: false, blockedPopups: undefined, permissionRequests: undefined })
+      // Untitled documents never fire page-title-updated and sites without an icon link never
+      // fire page-favicon-updated, so drop the previous page's title and (cross-site) favicon.
+      let title: string | undefined
+      try {
+        title = wv.getTitle() || undefined
+      } catch {
+        /* not ready */
+      }
+      const siteChanged = !!committedUrl && hostname(committedUrl) !== hostname(e.url)
+      committedUrl = e.url
+      updateTab(tabId, {
+        url: e.url,
+        error: undefined,
+        crashed: undefined,
+        reader: false,
+        blockedPopups: undefined,
+        permissionRequests: undefined,
+        ...(title ? { title } : {}),
+        ...(siteChanged ? { favicon: undefined } : {})
+      })
       nav()
       invoke('history:add', { url: e.url, title: wv.getTitle(), workspaceId: wsIdOf() }).catch(() => undefined)
       window.dispatchEvent(new CustomEvent('specter:page-navigated', { detail: { tabId, url: e.url } }))
