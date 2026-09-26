@@ -2,13 +2,15 @@
 //
 // - Network filtering runs inside privacy.ts's webRequest hooks (Electron allows
 //   one listener per event), through adblockBeforeRequest / adblockCSP.
-// - Element hiding uses Ghostery's frame preload, registered on each profile
-//   session. It runs in the page's isolated world, reports DOM classes/ids, and
-//   only talks to the two channels handled below.
+// - Cosmetic filtering uses two frame preloads registered on each profile session,
+//   both in the page's isolated world: src/preload/adblock.ts fetches scriptlets
+//   (e.g. YouTube ad removal) synchronously so they run before the page's own
+//   scripts, and Ghostery's preload reports DOM classes/ids for element hiding.
+//   They only talk to the three channels handled below.
 // - Lists are downloaded to <userData>/adblock, refreshed as often as each list
 //   asks, and compiled in a worker thread; the compiled engine is cached so
 //   startup costs ~10 ms.
-import { app, ipcMain, session as electronSession, type IpcMainInvokeEvent, type Session } from 'electron'
+import { app, ipcMain, session as electronSession, type IpcMainEvent, type IpcMainInvokeEvent, type Session } from 'electron'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -121,7 +123,7 @@ function loadCachedEngine(): boolean {
     if (!existsSync(engineFile()) || !existsSync(engineKeyFile())) return false
     const key = readFileSync(engineKeyFile(), 'utf8').trim()
     if (key !== computeKey(readMeta(), enabledUrls())) return false
-    engine = FiltersEngine.deserialize(new Uint8Array(readFileSync(engineFile())))
+    engine = prepareEngine(FiltersEngine.deserialize(new Uint8Array(readFileSync(engineFile()))))
     engineKey = key
     return true
   } catch (err) {
@@ -171,7 +173,7 @@ function rebuild(refresh: Refresh): Promise<void> {
         const resources = existsSync(listFile(RESOURCES_URL)) ? readFileSync(listFile(RESOURCES_URL), 'utf8') : null
         const t0 = performance.now()
         const bytes = await compileInWorker([...texts, customFilters()].join('\n'), resources)
-        engine = FiltersEngine.deserialize(bytes)
+        engine = prepareEngine(FiltersEngine.deserialize(bytes))
         engineKey = key
         writeAtomic(engineFile(), bytes)
         writeAtomic(engineKeyFile(), key)
@@ -228,9 +230,10 @@ export function attachAdblock(ses: Session): void {
   if (attached.has(ses)) return
   attached.add(ses)
   try {
+    ses.registerPreloadScript({ type: 'frame', id: 'specter-adblock-scriptlets', filePath: join(__dirname, '../preload/adblock.js') })
     ses.registerPreloadScript({ type: 'frame', id: 'specter-adblock-cosmetics', filePath: require.resolve('@ghostery/adblocker-electron-preload') })
   } catch (err) {
-    log.warn('could not register cosmetic filtering preload', err)
+    log.warn('could not register cosmetic filtering preloads', err)
   }
 }
 
@@ -289,6 +292,54 @@ export function adblockCSP(details: Electron.OnHeadersReceivedListenerDetails, t
 
 // ------------------------------------------------------------ cosmetic filters
 
+// Scriptlets share helper functions (safeSelf caches pristine natives before any
+// scriptlet patches them). Ghostery assembles every scriptlet as a standalone
+// script that re-declares those helpers; run one after another, later copies
+// capture already-patched functions and YouTube dies in infinite recursion. Like
+// uBlock Origin, SPECTER injects one script per page: helpers once, then every
+// scriptlet call in its own try block.
+const SCRIPTLET_TAG = /^\/\*specter-scriptlet:([\w.-]+)\*\//
+const SCRIPTLET_PRELUDE = "if (typeof scriptletGlobals === 'undefined') { var scriptletGlobals = {}; }"
+const SCRIPTLET_ARGS = "(...[`{{1}}`,`{{2}}`,`{{3}}`,`{{4}}`,`{{5}}`,`{{6}}`,`{{7}}`,`{{8}}`,`{{9}}`,`{{10}}`].filter((a,i) => a !== '{{'+(i+1)+'}}').map((a) => decodeURIComponent(a)))"
+interface ScriptletResources {
+  getScriptlet(name: string): string | undefined
+  getRawScriptlet(name: string): { name: string; body: string } | undefined
+  getScriptletDependencies(scriptlet: { name: string; body: string }): string[]
+}
+let scriptletAssembly = true
+
+/** Makes the engine return bare scriptlet calls (tagged with their name) instead of self-contained scripts. */
+function prepareEngine(e: FiltersEngine): FiltersEngine {
+  const res = e.resources as unknown as Partial<ScriptletResources>
+  if (typeof res.getScriptlet !== 'function' || typeof res.getRawScriptlet !== 'function' || typeof res.getScriptletDependencies !== 'function') {
+    // Internal API of @ghostery/adblocker (version pinned in package.json).
+    scriptletAssembly = false
+    log.warn('scriptlet assembly unavailable: this adblocker version changed its resources API')
+    return e
+  }
+  const original = res.getScriptlet.bind(res)
+  const raw = res.getRawScriptlet.bind(res)
+  res.getScriptlet = (name: string) => {
+    const scriptlet = raw(name)
+    return scriptlet ? `/*specter-scriptlet:${scriptlet.name}*/(${scriptlet.body})${SCRIPTLET_ARGS}` : original(name)
+  }
+  return e
+}
+
+/** One script for a page: the prelude, each helper once, then every scriptlet call isolated. */
+function assembleScriptlets(scripts: string[], resources: ScriptletResources | null): string {
+  if (!scripts.length) return ''
+  const helpers = new Set<string>()
+  const calls: string[] = []
+  for (const script of scripts) {
+    const m = SCRIPTLET_TAG.exec(script)
+    const scriptlet = m && resources ? resources.getRawScriptlet(m[1]) : undefined
+    if (scriptlet) for (const dep of resources!.getScriptletDependencies(scriptlet)) helpers.add(dep)
+    calls.push(`try {\n${script}\n} catch (e) {}`)
+  }
+  return `(function () {\n${SCRIPTLET_PRELUDE};\n${[...helpers].join(';\n')}\n${calls.join('\n')}\n})();`
+}
+
 /** The URL's real host name (the shared hostname() drops "www.", but filters like www.youtube.com##… need it). */
 function exactHost(url: string): string {
   try {
@@ -301,7 +352,7 @@ function exactHost(url: string): string {
 const strings = (v: unknown): string[] | undefined => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 20_000) : undefined)
 
 /** Only tab guests and their pop-ups (profile sessions) run the cosmetic preload. */
-function fromGuest(e: IpcMainInvokeEvent): boolean {
+function fromGuest(e: IpcMainInvokeEvent | IpcMainEvent): boolean {
   const s = e.sender
   if (s.isDestroyed() || s.session === electronSession.defaultSession) return false
   const t = s.getType()
@@ -309,6 +360,31 @@ function fromGuest(e: IpcMainInvokeEvent): boolean {
 }
 
 function registerCosmeticIpc(): void {
+  // Synchronous: the page is paused at document start until this returns.
+  ipcMain.on('specter-adblock:scriptlets', (e, url: unknown) => {
+    // Assigning returnValue sends the reply at once, so it is assigned exactly once.
+    let code = ''
+    try {
+      if (fromGuest(e) && typeof url === 'string' && /^https?:/.test(url) && engine && active(e.sender.getURL() || url)) {
+        const host = exactHost(url)
+        const { scripts } = engine.getCosmeticsFilters({
+          url,
+          hostname: host,
+          domain: registrableDomain(host),
+          getBaseRules: false,
+          getInjectionRules: true,
+          getExtendedRules: false,
+          getRulesFromHostname: true,
+          getRulesFromDOM: false,
+          callerContext: { frameId: e.frameId, processId: e.processId }
+        })
+        code = scriptletAssembly ? assembleScriptlets(scripts, engine.resources as unknown as ScriptletResources) : scripts.map((s) => `try {\n${s}\n} catch (e) {}`).join('\n')
+      }
+    } catch (err) {
+      log.debug('scriptlet lookup failed', err)
+    }
+    e.returnValue = code
+  })
   ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', (e) => fromGuest(e) && !!engine?.config.enableMutationObserver)
   ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url: unknown, msg?: { classes?: unknown; hrefs?: unknown; ids?: unknown; lifecycle?: unknown }) => {
     if (!fromGuest(e) || typeof url !== 'string' || !/^https?:/.test(url) || !engine) return
@@ -323,7 +399,7 @@ function registerCosmeticIpc(): void {
       hrefs: strings(msg?.hrefs),
       ids: strings(msg?.ids),
       getBaseRules: first,
-      // Scriptlets are left out: they must run before the page's own scripts.
+      // Scriptlets were already injected at document start by the scriptlet preload.
       getInjectionRules: false,
       getExtendedRules: false,
       getRulesFromHostname: first,

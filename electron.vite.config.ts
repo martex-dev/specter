@@ -11,7 +11,9 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    resolve: { alias: { '@shared': shared } }
+    resolve: { alias: { '@shared': shared } },
+    // index: SPECTER's own UI. adblock: ad-blocker scriptlets for web pages (sandboxed, so it must stay a single file).
+    build: { rollupOptions: { input: { index: resolve(__dirname, 'src/preload/index.ts'), adblock: resolve(__dirname, 'src/preload/adblock.ts') } } }
   },
   renderer: {
     resolve: {

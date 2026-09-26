@@ -6,8 +6,8 @@
 //     interface IpcContract { 'market:quotes': (symbols: string[]) => Quote[] }
 //   }
 //
-// Web pages (tab guests) cannot reach any of this: their only preload is the ad
-// blocker's cosmetic-filter script, which talks to its own two channels.
+// Web pages (tab guests) cannot reach any of this: their only preloads are the ad
+// blocker's two isolated-world scripts, which talk to their own three channels.
 
 import type {
   Bookmark,
