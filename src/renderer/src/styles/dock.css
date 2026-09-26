@@ -1,0 +1,435 @@
+/* The dock (Opera-GX-style sidebar), side panels and theme gallery. */
+
+.rail.dock {
+  width: var(--rail-w);
+  gap: 0;
+  padding: 8px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.rail.dock::-webkit-scrollbar {
+  display: none;
+}
+.rail.dock-left {
+  border-left: none;
+  border-right: 1px solid var(--line);
+}
+.dock-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dock-section .rail-sep {
+  margin: 7px 0;
+}
+.dock-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+  flex: none;
+}
+.dock-btn img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: contain;
+}
+.dock-btn:hover {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+.dock-btn:active {
+  transform: scale(0.94);
+}
+.dock-btn.on {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.dock-btn.on::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.dock-left .dock-btn.on::before {
+  left: -5px;
+}
+.dock-right .dock-btn.on::before {
+  right: -5px;
+}
+.dock-add {
+  color: var(--fg-3);
+  border: 1px dashed var(--line-strong);
+  width: 30px;
+  height: 30px;
+  margin-top: 2px;
+}
+.dock-alive {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--fg-3);
+}
+/* Badges supplied by modules. */
+.dock-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--solid-0, var(--bg-0));
+}
+.dock-badge.soft {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.dock-dot {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--solid-0, var(--bg-0));
+}
+
+.sidepanel-left {
+  border-left: none;
+  border-right: 1px solid var(--line);
+  animation-name: slide-in-left;
+}
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+.sidepanel-left .sidepanel-resize {
+  left: auto;
+  right: -4px;
+}
+
+/* ---------------------------------------------------------------- theme gallery */
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: var(--radius-l);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  color: var(--fg-1);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur-slow) var(--ease),
+    box-shadow var(--dur-slow) var(--ease);
+}
+.theme-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.theme-card.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 10px 30px var(--accent-dim);
+}
+.theme-mock {
+  height: 118px;
+  margin: 8px 8px 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.theme-mock i {
+  display: block;
+}
+.theme-meta {
+  padding: 10px 12px 12px;
+}
+.theme-meta b {
+  font-size: 13.5px;
+  color: var(--fg-0);
+}
+.theme-tag {
+  font-size: 11.5px;
+  color: var(--fg-2);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.palette-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--fg-1);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.palette-chip:hover {
+  color: var(--fg-0);
+  border-color: var(--fg-3);
+}
+.palette-chip.on {
+  border-color: var(--accent);
+  color: var(--fg-0);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.palette-sw {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.accent-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid var(--line-strong);
+  transition: transform var(--dur) var(--ease);
+}
+.accent-dot:hover {
+  transform: scale(1.12);
+}
+.accent-dot.on {
+  box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--fg-0);
+}
+.accent-picker {
+  width: 30px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* ================================================================ vertical tabs */
+
+.vtabs-slot {
+  position: relative;
+  width: 52px;
+  flex: none;
+  z-index: 3;
+}
+.vtabs-slot.open {
+  width: 248px;
+}
+.vtabs {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-0);
+  border-right: 1px solid var(--line);
+  transition: width var(--dur-slow) var(--ease);
+  overflow: hidden;
+  z-index: 3;
+}
+.vtabs.expanded {
+  width: 248px;
+}
+.vtabs:not(.pinned-open).expanded {
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.35);
+}
+.vtabs-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 10px;
+  flex: none;
+}
+.vtabs-pinned {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.vtabs-pinned .vtab {
+  justify-content: center;
+  padding: 0;
+}
+.vtabs-pinned .vtab .vtab-title,
+.vtabs-pinned .vtab .vtab-close {
+  display: none;
+}
+.vtabs-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 6px;
+  scrollbar-width: thin;
+}
+.vtab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  margin-bottom: 2px;
+  border-radius: var(--radius);
+  border: none;
+  background: transparent;
+  color: var(--fg-1);
+  font-size: 12.5px;
+  cursor: default;
+  width: 100%;
+  text-align: left;
+  animation: tab-in var(--dur-slow) var(--ease);
+}
+.vtab::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--group, transparent);
+}
+.vtab:hover {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+.vtab.active {
+  background: var(--bg-4);
+  color: var(--fg-0);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.vtab.in-view:not(.active) {
+  background: var(--bg-2);
+}
+.vtab.suspended .vtab-icon {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.vtab.drop-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.vtab.drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.vtab-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.vtab-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+}
+.vtab-close {
+  opacity: 0;
+}
+.vtab:hover .vtab-close,
+.vtab.active .vtab-close {
+  opacity: 1;
+}
+.vtab-new {
+  margin: 4px 6px 8px;
+  width: auto;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.vtab-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.vtab-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+[data-theme='neon'] .vtab.active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  box-shadow: inset 2px 0 0 var(--accent), 0 0 14px var(--accent-dim);
+}
+[data-theme='terminal'] .vtab {
+  font-family: var(--font-mono);
+  border-radius: 0;
+}
+[data-theme='terminal'] .vtab.active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+[data-theme='synthwave'] .vtab.active {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
+  color: var(--accent-fg);
+}
+[data-theme='aurora'] .vtabs {
+  background: color-mix(in srgb, var(--solid-0) 45%, transparent);
+  backdrop-filter: blur(24px);
+}
+[data-frame='floating'] .vtabs {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+/* Hover-expanded tab sidebar floats over pages: keep it legible on bright sites. */
+.vtabs:not(.pinned-open).expanded,
+[data-theme='aurora'] .vtabs:not(.pinned-open).expanded {
+  background: color-mix(in srgb, var(--solid-0) 94%, transparent);
+  backdrop-filter: blur(24px);
+}
