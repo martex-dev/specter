@@ -84,8 +84,11 @@ export function KnowledgeGraph({ graph }: { graph: KgGraph }) {
   const [name, setName] = useState('')
   const [type, setType] = useState<EntityType>('Concept')
   const [desc, setDesc] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  const [fromSel, setFrom] = useState('')
+  const [toSel, setTo] = useState('')
+  // A picked entity that has since been deleted no longer counts as picked.
+  const from = graph.entities.some((e) => e.id === fromSel) ? fromSel : ''
+  const to = graph.entities.some((e) => e.id === toSel) ? toSel : ''
   const [rel, setRel] = useState<RelationType>('RELATED_TO')
   const [sel, setSel] = useState<string | null>(null)
 
