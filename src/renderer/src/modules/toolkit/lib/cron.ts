@@ -15,6 +15,8 @@ export interface CronField {
   values: number[]
   /** True when the field was `*` / `?` (unrestricted). */
   any: boolean
+  /** True when the field starts with `*` / `?` (e.g. `*` or `*\/2`) — Vixie cron's DOM_STAR / DOW_STAR. */
+  star: boolean
   raw: string
 }
 
@@ -58,7 +60,8 @@ function parseValue(s: string, spec: { name: string; min: number; max: number; n
 }
 
 function parseField(raw: string, spec: { name: string; min: number; max: number; names?: string[] }): CronField {
-  if (/[LW#]/i.test(raw) && !/^[A-Z]{3}$/i.test(raw)) throw new CronError(`"${raw}": L, W and # are not supported`)
+  // Month / weekday names (JUL, WED…) contain L and W; only flag them outside names.
+  if (/[LW#]/i.test(spec.names ? raw.replace(/[A-Z]{3}/gi, '') : raw)) throw new CronError(`"${raw}": L, W and # are not supported`)
   const set = new Set<number>()
   let any = false
   for (const part of raw.split(',')) {
@@ -88,7 +91,7 @@ function parseField(raw: string, spec: { name: string; min: number; max: number;
     }
     for (let v = lo; v <= hi; v += step) set.add(spec.name === 'day of week' && v === 7 ? 0 : v)
   }
-  return { name: spec.name, min: spec.min, max: spec.max, values: [...set].sort((a, b) => a - b), any, raw }
+  return { name: spec.name, min: spec.min, max: spec.max, values: [...set].sort((a, b) => a - b), any, star: raw[0] === '*' || raw[0] === '?', raw }
 }
 
 export function parseCron(expr: string): CronSchedule {
@@ -134,9 +137,9 @@ function make(p: Parts, tz: Zone): Date {
 function dayMatches(s: CronSchedule, p: Parts & { dow: number }): boolean {
   const domOk = s.dom.values.includes(p.d)
   const dowOk = s.dow.values.includes(p.dow)
-  if (s.dom.any && s.dow.any) return true
-  if (s.dom.any) return dowOk
-  if (s.dow.any) return domOk
+  // Vixie cron: if either field starts with "*" (e.g. "*" or "*\/2") both must
+  // match; only two explicitly restricted fields match on EITHER.
+  if (s.dom.star || s.dow.star) return domOk && dowOk
   return domOk || dowOk
 }
 
@@ -191,10 +194,11 @@ function listText(items: string[]): string {
   return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]
 }
 
-/** Detects "every n starting at lo" fields (e.g. `*\/15`, `5-59/10`). */
+/** Detects "every n starting at lo" fields (e.g. `*\/15`, `5-59/10`). Ranges ending early (`0-30/15`) are listed instead. */
 function stepOf(f: CronField): { step: number; start: number } | null {
   const m = /^(\*|\d+)(?:-(\d+))?\/(\d+)$/.exec(f.raw)
   if (!m) return null
+  if (m[2] !== undefined && Number(m[2]) < f.max) return null
   return { step: Number(m[3]), start: m[1] === '*' ? f.min : Number(m[1]) }
 }
 
@@ -238,7 +242,7 @@ export function describeCron(schedule: CronSchedule | string): string {
   const parts = [time]
   const domText = dom.any ? '' : stepOf(dom) ? `every ${ordinal(stepOf(dom)!.step)} day of the month` : `on day ${ranges(dom.values, String)} of the month`
   const dowText = dow.any ? '' : `on ${ranges(dow.values, (d) => DAY_NAMES[d])}`
-  if (domText && dowText) parts.push(`${domText} or ${dowText}`)
+  if (domText && dowText) parts.push(dom.star || dow.star ? `${domText}, but only ${dowText}` : `${domText} or ${dowText}`)
   else if (domText) parts.push(domText)
   else if (dowText) parts.push(dowText)
   if (!month.any) parts.push(`in ${ranges(month.values, (m) => MONTH_NAMES[m - 1])}`)

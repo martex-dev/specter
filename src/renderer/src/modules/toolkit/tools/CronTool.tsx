@@ -103,7 +103,13 @@ export default function CronTool() {
                   </div>
                 ))}
               </div>
-              {!res.s.dom.any && !res.s.dow.any && <div className="tk-ok">Day-of-month and day-of-week are both set: runs when either matches (standard cron).</div>}
+              {!res.s.dom.any && !res.s.dow.any && (
+                <div className="tk-ok">
+                  {res.s.dom.star || res.s.dow.star
+                    ? 'Day-of-month and day-of-week are both set and one starts with "*": runs only when both match (standard cron).'
+                    : 'Day-of-month and day-of-week are both set: runs when either matches (standard cron).'}
+                </div>
+              )}
             </Pane>
           </div>
           <div className="tk-note">Standard 5-field cron. Supports * , - / names (JAN, MON) and @macros. Quartz extensions (seconds, L, W, #) are not supported.</div>

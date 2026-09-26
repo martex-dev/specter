@@ -52,4 +52,28 @@ describe('toolkit cron helper', () => {
     expect(describeCron('0 0 1 1 *')).toBe('At 00:00, on day 1 of the month, in January')
     expect(describeCron('@hourly')).toBe('At minute 0 past every hour')
   })
+
+  it('accepts month / weekday names that contain L or W', () => {
+    expect(parseCron('0 9 * * MON,WED,FRI').dow.values).toEqual([1, 3, 5])
+    expect(parseCron('0 9 * * WED-FRI').dow.values).toEqual([3, 4, 5])
+    expect(parseCron('0 9 * JUL-DEC *').month.values).toEqual([7, 8, 9, 10, 11, 12])
+    expect(parseCron('0 9 * APR,JUL *').month.values).toEqual([4, 7])
+    expect(() => parseCron('0 0 * * 5L')).toThrow(/not supported/)
+    expect(() => parseCron('0 0 LW * *')).toThrow(/not supported/)
+    expect(() => parseCron('0 0 * * FRI#2')).toThrow(/not supported/)
+  })
+
+  it('describes ranges with steps without dropping the range end', () => {
+    expect(describeCron('0-30/15 * * * *')).toBe('At minutes 0, 15 and 30')
+    expect(describeCron('0 9-17/2 * * *')).toBe('At 09:00, 11:00, 13:00, 15:00 and 17:00')
+    expect(describeCron('5-59/10 * * * *')).toBe('Every 10 minutes starting at minute 5')
+  })
+
+  it('ANDs day-of-month and day-of-week when one starts with * (Vixie cron)', () => {
+    // */2 day-of-month with Monday: only odd-numbered Mondays.
+    expect(iso(nextRuns('0 0 */2 * 1', from, 3, 'utc'))).toEqual(['2025-02-03T00:00', '2025-02-17T00:00', '2025-03-03T00:00'])
+    expect(describeCron('0 0 */2 * 1')).toBe('At 00:00, every 2nd day of the month, but only on Monday')
+    // Explicit lists on both still OR.
+    expect(describeCron('0 0 1 * 1')).toBe('At 00:00, on day 1 of the month or on Monday')
+  })
 })
