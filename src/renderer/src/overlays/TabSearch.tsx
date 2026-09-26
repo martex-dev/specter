@@ -38,6 +38,8 @@ export function TabSearch() {
   }, [q, open, activeWsId, closed])
 
   useEffect(() => setSel(0), [q])
+  // Closing tabs from the list shrinks it; keep the selection on a row.
+  useEffect(() => setSel((s) => Math.min(s, Math.max(0, rows.length - 1))), [rows.length])
   useEffect(() => {
     listRef.current?.querySelector('.palette-item.sel')?.scrollIntoView({ block: 'nearest' })
   }, [sel])
@@ -125,6 +127,9 @@ export function TabSearch() {
                 </span>
                 <button
                   className="icon-btn sm"
+                  // Keep focus in the search field: the button disappears with its
+                  // row, and keyboard navigation (Escape, arrows) lives on the input.
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation()
                     closeTab(t.id)
