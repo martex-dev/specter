@@ -23,5 +23,6 @@ md += `SPECTER also embeds **Electron** (MIT) and **Chromium** (BSD-3-Clause and
 md += `| Package | Version | License | Source |\n| --- | --- | --- | --- |\n`
 for (const [name, r] of rows) md += `| ${name} | ${r.version} | ${r.license} | ${r.homepage.replace(/^git\+/, '').replace(/\.git$/, '')} |\n`
 md += `\nCharts are rendered with TradingView **Lightweight Charts™** (Apache-2.0); attribution is shown in the chart UI as the license requires.\n`
+md += `\nThe ad blocker's filter lists (uBlock Origin filters, EasyList, EasyPrivacy, Peter Lowe's list) and scriptlet resources are **not shipped** with SPECTER: they are downloaded at run time from their maintainers and stay under their own licenses (uBlock Origin filters: GPL-3.0; EasyList / EasyPrivacy: GPL-3.0 or CC BY-SA 3.0).\n`
 writeFileSync('THIRD_PARTY_LICENSES.md', md)
 console.log(`${rows.length} packages listed`)

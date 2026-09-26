@@ -6,15 +6,46 @@ SPECTER also embeds **Electron** (MIT) and **Chromium** (BSD-3-Clause and others
 
 | Package | Version | License | Source |
 | --- | --- | --- | --- |
+| @ghostery/adblocker | 2.18.2 | MPL-2.0 | https://github.com/ghostery/adblocker#readme |
+| @ghostery/adblocker-content | 2.18.2 | MPL-2.0 | https://github.com/ghostery/adblocker#readme |
+| @ghostery/adblocker-electron-preload | 2.18.2 | MPL-2.0 | https://github.com/ghostery/adblocker#readme |
+| @ghostery/adblocker-extended-selectors | 2.18.2 | MPL-2.0 | https://github.com/ghostery/adblocker#readme |
+| @ghostery/url-parser | 1.3.1 | MPL-2.0 | https://github.com/ghostery/url-parser |
 | @mozilla/readability | 0.6.0 | Apache-2.0 | https://github.com/mozilla/readability |
+| @remusao/guess-url-type | 2.1.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| @remusao/small | 2.1.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| @remusao/smaz | 2.2.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| @remusao/smaz-compress | 2.2.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| @remusao/smaz-decompress | 2.2.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| @remusao/trie | 2.1.0 | MPL-2.0 | https://github.com/remusao/mono#readme |
+| argparse | 2.0.1 | Python-2.0 | nodeca/argparse |
+| builder-util-runtime | 9.7.0 | MIT | https://github.com/electron-userland/electron-builder |
+| debug | 4.4.3 | MIT | git://github.com/debug-js/debug |
 | dompurify | 3.4.16 | (MPL-2.0 OR Apache-2.0) | https://github.com/cure53/DOMPurify |
+| electron-updater | 6.8.9 | MIT | https://github.com/electron-userland/electron-builder |
 | fancy-canvas | 2.1.0 | MIT |  |
+| fs-extra | 10.1.0 | MIT | https://github.com/jprichardson/node-fs-extra |
+| graceful-fs | 4.2.11 | ISC | https://github.com/isaacs/node-graceful-fs |
+| js-yaml | 4.3.2 | MIT | nodeca/js-yaml |
+| jsonfile | 6.2.1 | MIT | git@github.com:jprichardson/node-jsonfile |
+| lazy-val | 1.0.5 | MIT | https://github.com/develar/lazy-val |
 | lightweight-charts | 5.2.1 | Apache-2.0 | https://www.tradingview.com/lightweight-charts/ |
+| lodash.escaperegexp | 4.1.2 | MIT | https://lodash.com/ |
+| lodash.isequal | 4.5.0 | MIT | https://lodash.com/ |
 | lucide-react | 1.48.0 | ISC | https://lucide.dev |
 | marked | 18.0.14 | MIT | https://marked.js.org |
+| ms | 2.1.3 | MIT | vercel/ms |
 | react | 19.3.0 | MIT | https://react.dev/ |
 | react-dom | 19.3.0 | MIT | https://react.dev/ |
+| sax | 1.6.1 | BlueOak-1.0.0 | ssh://git@github.com/isaacs/sax-js |
 | scheduler | 0.28.0 | MIT | https://react.dev/ |
+| semver | 6.3.1 | ISC | https://github.com/npm/node-semver |
+| tiny-typed-emitter | 2.1.0 | MIT | https://github.com/binier/tiny-typed-emitter |
+| tldts-core | 7.4.15 | MIT | https://github.com/remusao/tldts#readme |
+| tldts-experimental | 7.4.15 | MIT | https://github.com/remusao/tldts#readme |
+| universalify | 2.0.1 | MIT | https://github.com/RyanZim/universalify#readme |
 | zustand | 5.0.15 | MIT | https://github.com/pmndrs/zustand |
 
 Charts are rendered with TradingView **Lightweight Charts™** (Apache-2.0); attribution is shown in the chart UI as the license requires.
+
+The ad blocker's filter lists (uBlock Origin filters, EasyList, EasyPrivacy, Peter Lowe's list) and scriptlet resources are **not shipped** with SPECTER: they are downloaded at run time from their maintainers and stay under their own licenses (uBlock Origin filters: GPL-3.0; EasyList / EasyPrivacy: GPL-3.0 or CC BY-SA 3.0).
