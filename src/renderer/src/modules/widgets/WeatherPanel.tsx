@@ -158,6 +158,15 @@ export function WeatherView({ data, unit }: { data: WeatherData; unit: TempUnit 
   const c = data.current
   const w = wmoInfo(c.code)
   const today = data.daily[0]
+  // Next sun event: today's sunrise, today's sunset, or (after dark) tomorrow's sunrise.
+  const sun =
+    today?.sunrise && c.time < today.sunrise
+      ? { rise: true, at: today.sunrise }
+      : today?.sunset && c.time < today.sunset
+        ? { rise: false, at: today.sunset }
+        : data.daily[1]?.sunrise
+          ? { rise: true, at: data.daily[1].sunrise }
+          : { rise: false, at: today?.sunset ?? null }
   return (
     <>
       <div className="wg-wx-now">
@@ -203,9 +212,9 @@ export function WeatherView({ data, unit }: { data: WeatherData; unit: TempUnit 
           <b className="num">{today?.uvMax !== null && today?.uvMax !== undefined ? today.uvMax.toFixed(1) : '—'}</b>
         </div>
         <div>
-          {today?.sunrise && c.time < today.sunrise ? <Sunrise size={13} /> : <Sunset size={13} />}
-          <span className="label">{today?.sunrise && c.time < today.sunrise ? 'Sunrise' : 'Sunset'}</span>
-          <b className="num">{today?.sunrise && c.time < today.sunrise ? placeTime(today.sunrise, data.timezone) : today?.sunset ? placeTime(today.sunset, data.timezone) : '—'}</b>
+          {sun.rise ? <Sunrise size={13} /> : <Sunset size={13} />}
+          <span className="label">{sun.rise ? 'Sunrise' : 'Sunset'}</span>
+          <b className="num">{sun.at ? placeTime(sun.at, data.timezone) : '—'}</b>
         </div>
       </div>
       <div className="wg-sec-h">
