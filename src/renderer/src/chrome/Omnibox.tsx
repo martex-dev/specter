@@ -13,6 +13,7 @@ import { KIND_ICON, KIND_LABEL } from './omniboxProviders'
 import { openInput } from './openInput'
 import { contextualActions } from './contextual'
 import { SiteInfoPopover } from './SiteInfo'
+import { PasswordsButton } from './PasswordsButton'
 import { record } from '../lib/perf'
 
 const SCOPE_LABEL: Record<OmniboxScope, string> = {
@@ -349,6 +350,7 @@ export function Omnibox() {
                   <Sparkles size={14} />
                 </button>
               )}
+              <PasswordsButton tabId={tab.id} url={url} />
               <button className={'icon-btn omni-action' + (tab.reader ? ' on' : '')} onClick={() => runCommand('page.reader')} data-tip="Reader mode" data-kbd={shortcutFor('page.reader')} aria-label="Reader mode">
                 <BookOpen size={14} />
               </button>
