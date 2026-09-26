@@ -1,5 +1,5 @@
 // Automation rule editor (modal): trigger, conditions, ordered actions.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, FlaskConical, Plus, Workflow, X } from 'lucide-react'
 import {
   ACTION_LABELS,
@@ -17,6 +17,7 @@ import { invoke } from '../../lib/ipc'
 import { listCommands } from '../../lib/commands'
 import { sidePanels } from '../../lib/registry'
 import { Modal, Seg, Switch } from '../../components/ui'
+import { confirmAction } from '../../components/prompt'
 import { useBrowser } from '../../stores/browser'
 import { toast } from '../../stores/ui'
 import { commandAllowed, errorText, WEEKDAYS } from './util'
@@ -255,6 +256,19 @@ export function RuleEditor({ initial, onClose, onSaved }: { initial: AutomationR
     setRule({ ...rule, actions: next })
   }
 
+  // Escape (e.g. to dismiss a datalist) or a click on the backdrop must not silently discard edits.
+  const initialJson = useMemo(() => JSON.stringify(initial), [initial])
+  const confirming = useRef(false)
+  const requestClose = async () => {
+    if (confirming.current) return
+    if (JSON.stringify(rule) === initialJson) return onClose()
+    confirming.current = true
+    const discard = await confirmAction('Discard changes?', 'Your edits to this automation have not been saved.', 'Discard', true)
+    // Released after the current event: the same Escape also reaches this modal's listener.
+    setTimeout(() => (confirming.current = false), 0)
+    if (discard) onClose()
+  }
+
   const save = async () => {
     setBusy(true)
     setError('')
@@ -288,7 +302,7 @@ export function RuleEditor({ initial, onClose, onSaved }: { initial: AutomationR
     <Modal
       title={rule.id ? 'Edit automation' : 'New automation'}
       icon={<Workflow size={15} className="accent" />}
-      onClose={onClose}
+      onClose={requestClose}
       width={760}
       footer={
         <>
