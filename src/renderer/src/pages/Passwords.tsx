@@ -208,8 +208,8 @@ function LoginRow({ login, onEdit }: { login: SavedLogin; onEdit: () => void }) 
         <button
           className="icon-btn sm"
           onClick={() =>
-            invoke('passwords:reveal', login.id)
-              .then((p) => copy(p, 'Password'))
+            invoke('passwords:copy', login.id)
+              .then(() => toast({ kind: 'ok', title: 'Password copied', body: 'The clipboard clears itself in a minute.', ttl: 3000 }))
               .catch((err) => toast({ kind: 'error', title: 'Can’t copy this password', body: ipcErrorText(err) }))
           }
           data-tip="Copy password"
