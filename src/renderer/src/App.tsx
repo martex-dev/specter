@@ -79,7 +79,9 @@ export function App() {
   useEffect(() => {
     const index = bindingIndex(resolveBindings(bindings))
     const onKey = (e: KeyboardEvent) => {
-      const acc = eventToAccelerator({ key: e.key, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
+      // Settings is recording a new shortcut: the key belongs to it, not to a command.
+      if (document.documentElement.dataset.recordingShortcut) return
+      const acc = eventToAccelerator({ key: e.key, code: e.code, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
       if (!acc) return
       const cmd = index.get(acc)
       if (!cmd) return

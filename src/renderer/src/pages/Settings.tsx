@@ -558,11 +558,12 @@ function KeyboardSection() {
   const [q, setQ] = useState('')
   useEffect(() => {
     if (!recording) return
+    document.documentElement.dataset.recordingShortcut = '1'
     const onKey = (e: KeyboardEvent) => {
       e.preventDefault()
       e.stopPropagation()
       if (e.key === 'Escape') return setRecording(null)
-      const acc = eventToAccelerator({ key: e.key, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
+      const acc = eventToAccelerator({ key: e.key, code: e.code, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey })
       if (!acc) return
       const clash = Object.entries(bindings).find(([id, a]) => a === acc && id !== recording)
       const next = { ...overrides, [recording]: acc }
@@ -572,7 +573,10 @@ function KeyboardSection() {
       setRecording(null)
     }
     window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      delete document.documentElement.dataset.recordingShortcut
+    }
   }, [recording, bindings, overrides])
   const ids = [...new Set([...Object.keys(DEFAULT_KEYBINDINGS), ...listCommands().map((c) => c.id)])]
   const rows = ids
