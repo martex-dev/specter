@@ -65,9 +65,10 @@ function rendererUrl(hash = ''): { url?: string; file?: string; hash: string } {
 }
 
 export function themeColors(): { bg: string; fg: string } {
-  const theme = getSetting('appearance.theme')
-  if (theme === 'light' || theme === 'minimal') return theme === 'light' ? { bg: '#f4f5f7', fg: '#1d2026' } : { bg: '#fafafa', fg: '#202124' }
-  const map: Record<string, string> = { 'specter-dark': '#0c0d10', obsidian: '#0e0e10', midnight: '#0a0f1c', void: '#000000', terminal: '#050805' }
+  // Pre-paint colour before the UI applies the full theme (avoids a flash).
+  const theme = String(getSetting('appearance.theme'))
+  if (theme === 'paper' || theme === 'light' || theme === 'minimal') return { bg: '#efe9dd', fg: '#1d1a14' }
+  const map: Record<string, string> = { specter: '#0c0d10', neon: '#070709', aurora: '#070b17', terminal: '#020402', synthwave: '#12041f' }
   return { bg: map[theme] ?? '#0c0d10', fg: '#c9ccd4' }
 }
 
