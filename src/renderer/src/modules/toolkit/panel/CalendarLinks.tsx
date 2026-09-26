@@ -12,11 +12,13 @@ const dateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
 export default function CalendarLinks() {
   const start0 = new Date(Date.now() + 3600000)
   start0.setMinutes(0, 0, 0)
+  // One hour later — may be the next day (a 23:00 start ends at 00:00 tomorrow).
+  const end0 = new Date(start0.getTime() + 3600000)
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(dateStr(start0))
   const [time, setTime] = useState(`${pad(start0.getHours())}:00`)
-  const [endDate, setEndDate] = useState(dateStr(start0))
-  const [endTime, setEndTime] = useState(`${pad((start0.getHours() + 1) % 24)}:00`)
+  const [endDate, setEndDate] = useState(dateStr(end0))
+  const [endTime, setEndTime] = useState(`${pad(end0.getHours())}:00`)
   const [allDay, setAllDay] = useState(false)
   const [location, setLocation] = useState('')
   const [details, setDetails] = useState('')
