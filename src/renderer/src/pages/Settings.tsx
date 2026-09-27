@@ -562,6 +562,15 @@ function PasswordsSection() {
         <Toggle k="passwords.offerToSave" title="Offer to save passwords" desc="After you sign in, SPECTER asks whether to save the login." />
         <Toggle k="passwords.autofill" title="Suggest saved logins" desc="Sign-in fields list your saved logins; pick one to fill it in." />
       </Group>
+      <Group title="Addresses">
+        <Row title="Saved addresses" desc="Names, addresses, emails and phone numbers for filling forms.">
+          <button className="btn" onClick={() => document.dispatchEvent(new CustomEvent('specter:open-url', { detail: 'specter://addresses' }))}>
+            Manage addresses
+          </button>
+        </Row>
+        <Toggle k="autofill.addresses" title="Suggest saved addresses" desc="Address and contact fields list your saved addresses; pick one to fill the form." />
+        <Toggle k="autofill.saveAddresses" title="Offer to save addresses" desc="After you send a form with a new address, SPECTER asks whether to keep it." />
+      </Group>
       <Group title="Import from Chrome">
         <div style={{ padding: '12px 0' }}>
           <PasswordImport />
@@ -1197,7 +1206,7 @@ const CORE_SECTIONS: { id: string; title: string; icon: typeof Settings2; C: () 
   { id: 'search', title: 'Search', icon: Search, C: SearchSection },
   { id: 'privacy', title: 'Privacy', icon: Shield, C: PrivacySection },
   { id: 'security', title: 'Security', icon: Lock, C: SecuritySection },
-  { id: 'passwords', title: 'Passwords', icon: KeyRound, C: PasswordsSection },
+  { id: 'passwords', title: 'Passwords & autofill', icon: KeyRound, C: PasswordsSection },
   { id: 'profiles', title: 'Profiles', icon: Users, C: ProfilesSection },
   { id: 'ai', title: 'AI', icon: Bot, C: AISection },
   { id: 'workspaces', title: 'Workspaces', icon: Layers, C: WorkspacesSection },

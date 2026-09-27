@@ -22,6 +22,7 @@ import {
   Home,
   Keyboard,
   KeyRound,
+  MapPinned,
   Layers,
   Link2,
   LogOut,
@@ -307,6 +308,7 @@ export function registerCoreCommands(): void {
     },
     { id: 'browser.history', title: 'History', category: 'Browser', icon: Clock, run: () => newTab('specter://history') },
     { id: 'browser.passwords', title: 'Passwords', category: 'Browser', icon: KeyRound, run: () => newTab('specter://passwords') },
+    { id: 'browser.addresses', title: 'Addresses', category: 'Browser', icon: MapPinned, run: () => newTab('specter://addresses') },
     { id: 'browser.downloads', title: 'Downloads', category: 'Browser', icon: Download, run: () => toggleSidePanel('downloads') },
     {
       id: 'browser.devtools',

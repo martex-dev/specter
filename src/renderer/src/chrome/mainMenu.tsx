@@ -11,6 +11,7 @@ import {
   HelpCircle,
   Keyboard,
   KeyRound,
+  MapPinned,
   Layers,
   LogOut,
   Minus,
@@ -58,6 +59,7 @@ export function mainMenu(): MenuItem[] {
     cmd('browser.downloads', 'Downloads', <Download size={14} />),
     { label: 'Bookmarks', icon: <Bookmark size={14} />, run: () => newTab('specter://bookmarks') },
     cmd('browser.passwords', 'Passwords', <KeyRound size={14} />),
+    cmd('browser.addresses', 'Addresses', <MapPinned size={14} />),
     { separator: true },
     {
       label: `Zoom  ${zoom}%`,

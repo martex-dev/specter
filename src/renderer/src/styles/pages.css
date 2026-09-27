@@ -594,3 +594,18 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* ---------------------------------------------------------------- addresses */
+
+.ad-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+.ad-row + .ad-row {
+  border-top: 1px solid var(--line);
+}
+.ad-row:hover {
+  background: var(--bg-3);
+}

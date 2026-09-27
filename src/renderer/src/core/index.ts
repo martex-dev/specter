@@ -1,6 +1,6 @@
 // Registers SPECTER's core (tier 1/2) UI: commands, panels, pages, HUD, status.
 import { lazy } from 'react'
-import { Activity, Bell, Bookmark, Clock, Download, FileSearch, HelpCircle, KeyRound, Layers, Moon, ScrollText, Settings, Shield, ShieldCheck, Sparkles, Stethoscope, Hexagon } from 'lucide-react'
+import { Activity, Bell, Bookmark, Clock, Download, FileSearch, HelpCircle, KeyRound, Layers, MapPinned, Moon, ScrollText, Settings, Shield, ShieldCheck, Sparkles, Stethoscope, Hexagon } from 'lucide-react'
 import { registerCoreCommands } from '../commands/core'
 import { registerCoreOmniboxProviders } from '../chrome/omniboxProviders'
 import { registerCoreHud, registerCoreStatus } from '../chrome/Frame'
@@ -24,6 +24,7 @@ export function registerCore(): void {
   registerPage({ id: 'history', title: 'History', icon: Clock, component: lazyPage(() => import('../pages/History')), listed: true, category: 'Browser' })
   registerPage({ id: 'bookmarks', title: 'Bookmarks', icon: Bookmark, component: lazyPage(() => import('../pages/Bookmarks')), listed: true, category: 'Browser' })
   registerPage({ id: 'passwords', title: 'Passwords', icon: KeyRound, component: lazyPage(() => import('../pages/Passwords')), listed: true, category: 'Browser' })
+  registerPage({ id: 'addresses', title: 'Addresses', icon: MapPinned, component: lazyPage(() => import('../pages/Addresses')), listed: true, category: 'Browser' })
   registerPage({ id: 'downloads', title: 'Downloads', icon: Download, component: lazyPage(() => import('../pages/Downloads')), listed: true, category: 'Browser' })
   registerPage({ id: 'workspaces', title: 'Workspaces', icon: Layers, component: lazyPage(() => import('../pages/Workspaces')), listed: true, category: 'Browser' })
   registerPage({ id: 'privacy', title: 'Privacy Center', icon: Shield, component: lazyPage(() => import('../pages/Privacy')), listed: true, category: 'Privacy' })
