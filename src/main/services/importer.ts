@@ -40,7 +40,7 @@ function importedInto(sourceId: string, path: string): string | undefined {
 
 function chromiumProfiles(sourceId: string, base: string, single?: boolean): ImportSourceProfile[] {
   if (!existsSync(base)) return []
-  const hasData = (dir: string) => existsSync(join(dir, 'Bookmarks')) || existsSync(join(dir, 'History'))
+  const hasData = (dir: string) => [...CHROMIUM_BOOKMARK_FILES, 'History'].some((f) => existsSync(join(dir, f)))
   if (single) {
     // Opera keeps each edition's profile directly in its folder.
     return readdirSync(base)
@@ -149,11 +149,24 @@ function bookmarkPlan(profileId: string, sourceName: string): { plan: BookmarkPl
   return { plan: { bar: wrapper, other: wrapper }, wrapper: existing ? undefined : wrapper }
 }
 
+/**
+ * Chrome keeps bookmarks that live in the Google account (signed in without full
+ * sync) in AccountBookmarks, next to or instead of the local Bookmarks file; both
+ * are read, and a URL in both is added once. (EncryptedAccountBookmarks2, Chrome's
+ * newer encrypted copy, is not read.)
+ */
+const CHROMIUM_BOOKMARK_FILES = ['Bookmarks', 'AccountBookmarks']
+
 function importChromiumBookmarks(profilePath: string, profileId: string, plan: BookmarkPlan): number {
-  const file = join(profilePath, 'Bookmarks')
-  if (!existsSync(file)) return 0
-  const data = JSON.parse(readFileSync(file, 'utf8'))
   const w = new BookmarkWriter(profileId)
+  for (const name of CHROMIUM_BOOKMARK_FILES) {
+    const file = join(profilePath, name)
+    if (existsSync(file)) importChromiumBookmarkFile(JSON.parse(readFileSync(file, 'utf8')), w, plan)
+  }
+  return w.count
+}
+
+function importChromiumBookmarkFile(data: any, w: BookmarkWriter, plan: BookmarkPlan): void {
   const walk = (node: any, parent: string, depth: number) => {
     if (!node || depth > 100) return
     if (node.type === 'url' && typeof node.url === 'string') w.bookmark(node.name, node.url, parent)
@@ -167,7 +180,6 @@ function importChromiumBookmarks(profilePath: string, profileId: string, plan: B
     for (const c of data.roots?.bookmark_bar?.children ?? []) walk(c, plan.bar, 0)
     for (const key of ['other', 'synced']) for (const c of data.roots?.[key]?.children ?? []) walk(c, plan.other, 0)
   })
-  return w.count
 }
 
 // ---------------------------------------------------------------- history
