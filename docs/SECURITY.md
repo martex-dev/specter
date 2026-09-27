@@ -80,6 +80,14 @@ this PC can decrypt them. If DPAPI isn't available nothing is stored (there is n
   holds that password.
 - **Exporting** asks for confirmation and warns that the file is plain text.
 
+## Addresses (form autofill)
+
+Saved addresses (`specter://addresses`) are stored per profile in `specter.db`. A second page preload
+(isolated world, closed shadow root) recognises address and contact fields — by `autocomplete`, then
+by names and labels — and lists saved addresses by name and street only. The full address is sent to a
+page only after a real click or key press on one, and only into empty fields plus the focused one.
+Email fields of sign-in forms are left to the password manager, and card fields are never touched.
+
 ## Reporting
 
 Please report vulnerabilities privately to the maintainers rather than in a public issue.

@@ -32,6 +32,7 @@ The title bar doubles as an instrument panel: live CPU / RAM / GPU, local-AI sta
 - Session restore (lazy — only visible tabs load), crash recovery, reopen closed tabs
 - Import bookmarks & history from **Chrome, Edge, Brave, Vivaldi, Opera and Firefox** — each browser profile into the open SPECTER profile or a SPECTER profile of its own (named and coloured like the original), with its passwords from the browser's export
 - **Password manager** — offers to save logins after you sign in, lists them under sign-in fields for one-click filling, suggests strong passwords on sign-up forms, and imports Chrome / Google Password Manager exports (plus Edge, Firefox, Bitwarden, 1Password, LastPass). Passwords are encrypted with Windows data protection and never leave your PC
+- **Address autofill** — saves the addresses you enter in checkout and sign-up forms and fills names, addresses, emails and phone numbers (including drop-downs) with one click (`specter://addresses`)
 - Fully customisable keyboard shortcuts that also work inside web pages
 
 ### SPECTER core (tier 2)
@@ -149,7 +150,7 @@ No analytics, telemetry or accounts. Everything is stored locally; every network
 ## Testing
 
 - **Unit** — URL/omnibox parsing, fuzzy matching, key bindings, privacy rules, storage (history FTS, bookmarks round-trip, workspaces), and every module's pure logic (AI context budgeting, market math and paper trading, system parsers, knowledge ranking, git/ANSI parsers, toolkit algorithms, automation engine).
-- **End-to-end** — the product acceptance flow against the built app: launch → tabs → navigate → search → groups → workspaces → move tabs → split → bookmark → download → history → close/reopen → restart → session restore → palette → AI / research / markets / system panels → DevTools. `npm run test:e2e:profiles` imports a fake two-profile Chrome into two SPECTER profiles. `npm run test:e2e:passwords` covers the password manager: saving after sign-in, suggestions and filling, updates, failed / single-page / two-step sign-ins, per-site isolation, CSV import and export.
+- **End-to-end** — the product acceptance flow against the built app: launch → tabs → navigate → search → groups → workspaces → move tabs → split → bookmark → download → history → close/reopen → restart → session restore → palette → AI / research / markets / system panels → DevTools. `npm run test:e2e:addresses` fills local checkout forms. `npm run test:e2e:profiles` imports a fake two-profile Chrome into two SPECTER profiles. `npm run test:e2e:passwords` covers the password manager: saving after sign-in, suggestions and filling, updates, failed / single-page / two-step sign-ins, per-site isolation, CSV import and export.
 
 ## Roadmap
 
