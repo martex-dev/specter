@@ -7,13 +7,15 @@ import { app } from 'electron'
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { ImportResult, ImportSource, ImportSourceProfile, ImportTarget, ProfileImportResult } from '@shared/ipc'
+import type { ImportResult, ImportSource, ImportSourceProfile, ImportTarget, ImportWhat, ProfileImportResult } from '@shared/ipc'
+import { addressFromChromeTokens, type Address, type AddressKey } from '@shared/addresses'
 import { chromiumProfileInfo, profileDisplayName, PROFILE_COLORS } from '@shared/browserImport'
 import { hostname } from '@shared/url'
 import { all, get, registerMigrations, run, tx } from '../db'
-import { handle } from '../ipc'
+import { broadcast, handle } from '../ipc'
 import { addBookmark, barFolderId, bookmarkBatch, ensureBookmarkRoots, otherFolderId, removeBookmark } from './bookmarks'
 import { activeProfileId, createProfile, getProfile, listProfiles } from './profiles'
+import { addAddress } from './addresses'
 import { createLogger } from '../logger'
 
 const log = createLogger('import')
@@ -201,7 +203,7 @@ function importChromiumHistory(profilePath: string, profileId: string): number {
   }
 }
 
-function importFirefox(profilePath: string, what: { bookmarks: boolean; history: boolean }, profileId: string, plan: BookmarkPlan | null): ImportResult {
+function importFirefox(profilePath: string, what: ImportWhat, profileId: string, plan: BookmarkPlan | null): ImportResult {
   const result: ImportResult = { bookmarks: 0, history: 0, errors: [] }
   const { db, cleanup } = openCopy(join(profilePath, 'places.sqlite'))
   try {
@@ -244,6 +246,69 @@ function importFirefox(profilePath: string, what: { bookmarks: boolean; history:
   return result
 }
 
+// ---------------------------------------------------------------- addresses
+
+/**
+ * Chromium's saved addresses (Web Data). Only the address tables are read — the
+ * payment and login tables in the same file are never queried. The table names
+ * changed over the years (contact_info / local_addresses → addresses), so every
+ * layout that exists is read.
+ */
+function importChromiumAddresses(profilePath: string, profileId: string): number {
+  const file = join(profilePath, 'Web Data')
+  if (!existsSync(file)) return 0
+  const { db, cleanup } = openCopy(file)
+  try {
+    const tables = new Set((db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[]).map((r) => r.name))
+    const layouts: [string, string][] = [
+      ['addresses', 'address_type_tokens'],
+      ['local_addresses', 'local_addresses_type_tokens'],
+      ['contact_info', 'contact_info_type_tokens']
+    ]
+    let added = 0
+    tx(() => {
+      for (const [main, tokens] of layouts) {
+        if (!tables.has(main) || !tables.has(tokens)) continue
+        const rows = db.prepare(`SELECT t.guid AS guid, t.type AS type, t.value AS value FROM "${tokens}" t JOIN "${main}" m ON m.guid = t.guid`).all() as { guid: string; type: number; value: string | null }[]
+        const byGuid = new Map<string, { type: number; value: string | null }[]>()
+        for (const r of rows) byGuid.set(r.guid, [...(byGuid.get(r.guid) ?? []), { type: Number(r.type), value: r.value }])
+        for (const t of byGuid.values()) if (addAddress(addressFromChromeTokens(t), profileId)) added++
+      }
+    })
+    return added
+  } finally {
+    cleanup()
+  }
+}
+
+/** Firefox keeps addresses in autofill-profiles.json (its card entries are not read). */
+function importFirefoxAddresses(profilePath: string, profileId: string): number {
+  const file = join(profilePath, 'autofill-profiles.json')
+  if (!existsSync(file)) return 0
+  const list = (JSON.parse(readFileSync(file, 'utf8'))?.addresses ?? []) as Record<string, unknown>[]
+  let added = 0
+  const s = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  tx(() => {
+    for (const r of list) {
+      if (r.deleted) continue
+      const name = s(r.name) || [s(r['given-name']), s(r['additional-name']), s(r['family-name'])].filter(Boolean).join(' ')
+      const a: Pick<Address, AddressKey> = {
+        name,
+        organization: s(r.organization),
+        street: s(r['street-address']),
+        city: s(r['address-level2']),
+        state: s(r['address-level1']),
+        postalCode: s(r['postal-code']),
+        country: s(r.country),
+        email: s(r.email),
+        phone: s(r.tel)
+      }
+      if (addAddress(a, profileId)) added++
+    }
+  })
+  return added
+}
+
 // ---------------------------------------------------------------- running an import
 
 function resolveTarget(source: ImportSource, profile: ImportSourceProfile, target: ImportTarget): { profileId: string; created: boolean } {
@@ -260,7 +325,7 @@ function resolveTarget(source: ImportSource, profile: ImportSourceProfile, targe
   return { profileId: createProfile(name, color).id, created: true }
 }
 
-function runImport(sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }, target: ImportTarget): ProfileImportResult {
+function runImport(sourceId: ImportSource['id'], profilePath: string, what: ImportWhat, target: ImportTarget): ProfileImportResult {
   const source = detectSources().find((s) => s.id === sourceId)
   const profile = source?.profiles.find((p) => p.path === profilePath)
   if (!source || !profile) throw new Error('Unknown import source')
@@ -294,6 +359,14 @@ function runImport(sourceId: ImportSource['id'], profilePath: string, what: { bo
       }
     }
   }
+  if (what.addresses) {
+    try {
+      result.addresses = sourceId === 'firefox' ? importFirefoxAddresses(profilePath, profileId) : importChromiumAddresses(profilePath, profileId)
+      if (result.addresses) broadcast('addresses:changed', undefined)
+    } catch (err: any) {
+      result.errors.push('Addresses: ' + (err?.message ?? err))
+    }
+  }
   // Don't leave an empty "Imported from …" folder behind when there was nothing to bring over.
   if (bm?.wrapper && result.bookmarks === 0) removeBookmark(bm.wrapper)
   run(
@@ -302,15 +375,15 @@ function runImport(sourceId: ImportSource['id'], profilePath: string, what: { bo
     profileId,
     Date.now()
   )
-  log.info('import finished', { sourceId, profileId, created, bookmarks: result.bookmarks, history: result.history, errors: result.errors.length })
+  log.info('import finished', { sourceId, profileId, created, bookmarks: result.bookmarks, history: result.history, addresses: result.addresses, errors: result.errors.length })
   return result
 }
 
 export function registerImportIpc(): void {
   handle('import:sources', () => detectSources())
   handle('import:run', (_e, sourceId, profilePath, what): ImportResult => {
-    const { bookmarks, history, errors } = runImport(sourceId, profilePath, what, 'current')
-    return { bookmarks, history, errors }
+    const { bookmarks, history, addresses, errors } = runImport(sourceId, profilePath, what, 'current')
+    return { bookmarks, history, addresses, errors }
   })
   handle('import:toProfile', (_e, sourceId, profilePath, what, target) => runImport(sourceId, profilePath, what, target))
 }

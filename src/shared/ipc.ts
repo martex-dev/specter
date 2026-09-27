@@ -100,7 +100,16 @@ export interface ImportSourceProfile {
 export interface ImportResult {
   bookmarks: number
   history: number
+  /** Addresses added (when asked for). */
+  addresses?: number
   errors: string[]
+}
+
+/** What to bring over; addresses default to off for callers that don't ask. */
+export interface ImportWhat {
+  bookmarks: boolean
+  history: boolean
+  addresses?: boolean
 }
 
 /** Where an import goes: the open profile, a new SPECTER profile, or an existing profile id. */
@@ -363,8 +372,8 @@ export interface IpcContract {
 
   // Import
   'import:sources': () => ImportSource[]
-  'import:run': (sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }) => ImportResult
-  'import:toProfile': (sourceId: ImportSource['id'], profilePath: string, what: { bookmarks: boolean; history: boolean }, target: ImportTarget) => ProfileImportResult
+  'import:run': (sourceId: ImportSource['id'], profilePath: string, what: ImportWhat) => ImportResult
+  'import:toProfile': (sourceId: ImportSource['id'], profilePath: string, what: ImportWhat, target: ImportTarget) => ProfileImportResult
 
   // Notifications center
   'notifications:list': () => NotificationItem[]
