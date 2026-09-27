@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertOctagon, Camera, Clock, Globe, Mic, MonitorUp, Bell, MapPin, ClipboardPaste, ExternalLink, ShieldAlert, WifiOff, Zap, Moon, KeyRound, X } from 'lucide-react'
+import { AlertOctagon, Camera, Clock, Globe, Mic, MonitorUp, Bell, MapPin, ClipboardPaste, ExternalLink, ShieldAlert, WifiOff, Zap, Moon, KeyRound, X, MapPinned } from 'lucide-react'
 import type { PermissionRequest } from '@shared/types'
 import type { PasswordOffer } from '@shared/passwords'
 import { hostname } from '@shared/url'
 import { invoke } from '../lib/ipc'
 import { formatBytes } from '../lib/format'
 import { tabIdForWcId } from '../lib/webviews'
-import { reload, resolvePermissionRequest, respondPasswordOffer, updateTab, wakeTab, type RuntimeTab } from '../stores/browser'
+import { reload, resolvePermissionRequest, respondAddressOffer, respondPasswordOffer, updateTab, wakeTab, type RuntimeTab } from '../stores/browser'
 
 const PERM_LABEL: Record<string, { text: string; icon: JSX.Element }> = {
   camera: { text: 'use your camera', icon: <Camera size={15} /> },
@@ -125,6 +125,20 @@ export function PaneBars({ tab }: { tab: RuntimeTab }) {
   return (
     <>
       {tab.passwordOffer && <SavePasswordBar key={tab.passwordOffer.offerId} tabId={tab.id} offer={tab.passwordOffer} />}
+      {tab.addressOffer && !tab.passwordOffer && (
+        <div className="infobar" role="alertdialog" aria-label="Save address">
+          <MapPinned size={15} className="accent" />
+          <span className="grow ellipsis">
+            Save this address for next time? <span className="muted">{tab.addressOffer.summary}</span>
+          </span>
+          <button className="btn sm primary" onClick={() => respondAddressOffer(tab.id, 'save')}>
+            Save
+          </button>
+          <button className="icon-btn sm" onClick={() => respondAddressOffer(tab.id, 'dismiss')} aria-label="Not now" data-tip="Not now">
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {(tab.permissionRequests ?? []).slice(0, 1).map((r) => (
         <PermissionBar key={r.requestId} tabId={tab.id} req={r} />
       ))}

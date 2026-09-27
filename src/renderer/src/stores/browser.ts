@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import type { InitialSession } from '@shared/ipc'
 import type { PasswordOffer } from '@shared/passwords'
+import type { AddressOffer } from '@shared/addresses'
 import type { GroupColor, PermissionRequest, Profile, SplitLayout, SplitPreset, TabGroup, TabState, Workspace, WorkspaceState } from '@shared/types'
 import { detectPageKind, interpretInput, isInternal } from '@shared/url'
 import { searchUrl, SUSPEND_MS } from '@shared/settings'
@@ -24,6 +25,8 @@ export interface RuntimeTab extends TabState {
   permissionRequests?: PermissionRequest[]
   /** "Save password?" prompt after signing in; kept across the sign-in navigation. */
   passwordOffer?: PasswordOffer
+  /** "Save address?" prompt after an address form was sent. */
+  addressOffer?: AddressOffer
   reader?: boolean
   devtoolsDocked?: boolean
   /** Private memory (KB) measured right before the tab was suspended. */
@@ -980,6 +983,24 @@ export function respondPasswordOffer(tabId: string, action: 'save' | 'never' | '
   if (!offer) return
   updateTab(tabId, { passwordOffer: undefined })
   invoke('passwords:respondOffer', offer.offerId, action, username).catch(() => undefined)
+}
+
+// ---------------------------------------------------------------- address prompts
+
+export function setAddressOffer(offer: AddressOffer, tabId: string): void {
+  if (findTab(tabId)) updateTab(tabId, { addressOffer: offer })
+}
+
+export function dropAddressOffer(offerId: string): void {
+  for (const ws of Object.values(useBrowser.getState().open))
+    for (const tab of ws.tabs) if (tab.addressOffer?.offerId === offerId) updateTab(tab.id, { addressOffer: undefined })
+}
+
+export function respondAddressOffer(tabId: string, action: 'save' | 'dismiss'): void {
+  const offer = findTab(tabId)?.tab.addressOffer
+  if (!offer) return
+  updateTab(tabId, { addressOffer: undefined })
+  invoke('addresses:respondOffer', offer.offerId, action).catch(() => undefined)
 }
 
 export function resolvePermissionRequest(tabId: string, requestId: string, decision: 'allow' | 'deny', remember: boolean): void {

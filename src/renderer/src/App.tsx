@@ -6,7 +6,7 @@ import { isInternal } from '@shared/url'
 import { invoke, invokeRaw, on, takeEarlyCommands } from './lib/ipc'
 import { runCommand } from './lib/commands'
 import { applyTheme, titleBarColors } from './lib/themes'
-import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, dropPermissionRequest, dropPasswordOffer, setPasswordOffer, updateTab } from './stores/browser'
+import { applyRestoreChoice, dismissRestorePrompt, flushAll, newTab, runSuspensionPass, useActiveTab, useBrowser, addPermissionRequest, dropPermissionRequest, dropPasswordOffer, setPasswordOffer, dropAddressOffer, setAddressOffer, updateTab } from './stores/browser'
 import { useSetting, useSettingsStore } from './stores/settings'
 import { closeOverlay, toast, useUi } from './stores/ui'
 import { tabIdForWcId } from './lib/webviews'
@@ -135,6 +135,12 @@ export function App() {
         else invoke('passwords:respondOffer', offer.offerId, 'dismiss')
       }),
       on('passwords:offerCancelled', ({ offerId }) => dropPasswordOffer(offerId)),
+      on('addresses:offer', (offer) => {
+        const tabId = tabIdForWcId(offer.webContentsId)
+        if (tabId) setAddressOffer(offer, tabId)
+        else invoke('addresses:respondOffer', offer.offerId, 'dismiss')
+      }),
+      on('addresses:offerCancelled', ({ offerId }) => dropAddressOffer(offerId)),
       on('window:state', (ws) => useUi.setState({ windowState: ws })),
       on('privacy:blocked', ({ perTab }) => {
         if (!perTab) return
