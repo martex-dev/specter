@@ -139,14 +139,71 @@ interface BookmarkPlan {
   other: string
 }
 
-function bookmarkPlan(profileId: string, sourceName: string): { plan: BookmarkPlan; wrapper?: string } {
+/** True when a folder (at any depth) holds at least one bookmark. */
+function holdsBookmarks(folderId: string, depth = 0): boolean {
+  if (depth > 100) return false
+  if (get("SELECT 1 FROM bookmarks WHERE parent_id = ? AND kind = 'bookmark' LIMIT 1", folderId)) return true
+  return all<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder'", folderId).some((f) => holdsBookmarks(f.id, depth + 1))
+}
+
+/** "Imported from …" folders with nothing in them (left by earlier imports that found no bookmarks). */
+function removeEmptyImportFolders(profileId: string): void {
+  for (const f of all<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title LIKE 'Imported from %' AND profile_id = ?", otherFolderId(profileId), profileId))
+    if (!holdsBookmarks(f.id)) removeBookmark(f.id)
+}
+
+/**
+ * Where imported bookmarks go. The browser's bookmarks bar goes onto SPECTER's bar when that is
+ * empty (or already holds this browser profile's bookmarks), and its other bookmarks into Other
+ * bookmarks likewise; whatever would land among unrelated bookmarks goes into one "Imported from …" folder.
+ */
+function bookmarkPlan(profileId: string, sourceName: string, again: boolean): { plan: BookmarkPlan; wrapper?: string } {
   ensureBookmarkRoots(profileId)
-  const empty = !get("SELECT 1 FROM bookmarks WHERE profile_id = ? AND parent_id IS NOT NULL LIMIT 1", profileId)
-  if (empty) return { plan: { bar: barFolderId(profileId), other: otherFolderId(profileId) } }
+  removeEmptyImportFolders(profileId)
+  const bar = barFolderId(profileId)
+  const other = otherFolderId(profileId)
+  const barEmpty = !get('SELECT 1 FROM bookmarks WHERE parent_id = ? LIMIT 1', bar)
+  const otherEmpty = !get('SELECT 1 FROM bookmarks WHERE parent_id = ? LIMIT 1', other)
+  // Importing the same browser profile again fills the same places as the first time.
+  if ((barEmpty && otherEmpty) || again) return { plan: { bar, other } }
   const title = `Imported from ${sourceName}`
-  const existing = get<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title = ? AND profile_id = ?", otherFolderId(profileId), title, profileId)
-  const wrapper = existing?.id ?? addBookmark({ kind: 'folder', title, parentId: otherFolderId(profileId) }, profileId).id
-  return { plan: { bar: wrapper, other: wrapper }, wrapper: existing ? undefined : wrapper }
+  const existing = get<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title = ? AND profile_id = ?", other, title, profileId)
+  const wrapper = existing?.id ?? addBookmark({ kind: 'folder', title, parentId: other }, profileId).id
+  return { plan: { bar: barEmpty ? bar : wrapper, other: wrapper }, wrapper: existing ? undefined : wrapper }
+}
+
+/**
+ * An earlier import put this browser's bookmarks into an "Imported from …" folder while
+ * the bookmarks bar stayed empty: move the browser's bar items (in its order) onto the bar,
+ * and its other items up into Other bookmarks, so the result looks like the original.
+ */
+function rehomeEarlierImport(profileId: string, sourceName: string, files: any[]): boolean {
+  const bar = barFolderId(profileId)
+  const other = otherFolderId(profileId)
+  if (get('SELECT 1 FROM bookmarks WHERE parent_id = ? LIMIT 1', bar)) return false
+  const barOrder = new Map<string, number>()
+  for (const data of files)
+    for (const n of data?.roots?.bookmark_bar?.children ?? []) {
+      const key = n.type === 'url' ? 'u:' + n.url : 'f:' + (n.name || 'Folder')
+      if (!barOrder.has(key)) barOrder.set(key, barOrder.size)
+    }
+  if (!barOrder.size) return false
+  const wrappers = all<{ id: string }>("SELECT id FROM bookmarks WHERE parent_id = ? AND kind = 'folder' AND title = ? AND profile_id = ?", other, `Imported from ${sourceName}`, profileId)
+  if (!wrappers.length) return false
+  bookmarkBatch(() => {
+    let nextOther = (get<{ m: number }>('SELECT COALESCE(MAX(sort), -1) AS m FROM bookmarks WHERE parent_id = ?', other)?.m ?? -1) + 1
+    for (const w of wrappers) {
+      for (const c of all<{ id: string; kind: string; title: string; url: string | null }>('SELECT id, kind, title, url FROM bookmarks WHERE parent_id = ? ORDER BY sort, created_at', w.id)) {
+        const pos = barOrder.get(c.kind === 'bookmark' ? 'u:' + c.url : 'f:' + c.title)
+        if (pos !== undefined) run('UPDATE bookmarks SET parent_id = ?, sort = ? WHERE id = ?', bar, pos, c.id)
+        else run('UPDATE bookmarks SET parent_id = ?, sort = ? WHERE id = ?', other, nextOther++, c.id)
+      }
+      // Emptied just above (inside this transaction, so not removeBookmark, which opens its own).
+      run('DELETE FROM bookmarks WHERE id = ?', w.id)
+    }
+  })
+  log.info('moved an earlier import onto the bookmarks bar', { profileId, folders: wrappers.length })
+  return true
 }
 
 /**
@@ -157,12 +214,15 @@ function bookmarkPlan(profileId: string, sourceName: string): { plan: BookmarkPl
  */
 const CHROMIUM_BOOKMARK_FILES = ['Bookmarks', 'AccountBookmarks']
 
-function importChromiumBookmarks(profilePath: string, profileId: string, plan: BookmarkPlan): number {
+function readChromiumBookmarkFiles(profilePath: string): any[] {
+  return CHROMIUM_BOOKMARK_FILES.map((name) => join(profilePath, name))
+    .filter((file) => existsSync(file))
+    .map((file) => JSON.parse(readFileSync(file, 'utf8')))
+}
+
+function importChromiumBookmarks(files: any[], profileId: string, plan: BookmarkPlan): number {
   const w = new BookmarkWriter(profileId)
-  for (const name of CHROMIUM_BOOKMARK_FILES) {
-    const file = join(profilePath, name)
-    if (existsSync(file)) importChromiumBookmarkFile(JSON.parse(readFileSync(file, 'utf8')), w, plan)
-  }
+  for (const data of files) importChromiumBookmarkFile(data, w, plan)
   return w.count
 }
 
@@ -343,7 +403,17 @@ function runImport(sourceId: ImportSource['id'], profilePath: string, what: Impo
   if (!source || !profile) throw new Error('Unknown import source')
   const { profileId, created } = resolveTarget(source, profile, target)
   const result: ProfileImportResult = { bookmarks: 0, history: 0, errors: [], profileId, profileName: getProfile(profileId)?.name ?? '', created }
-  const bm = what.bookmarks ? bookmarkPlan(profileId, source.name) : null
+  let chromiumBookmarks: any[] = []
+  let again = profile.importedInto === profileId
+  if (what.bookmarks && sourceId !== 'firefox') {
+    try {
+      chromiumBookmarks = readChromiumBookmarkFiles(profilePath)
+      if (rehomeEarlierImport(profileId, source.name, chromiumBookmarks)) again = true
+    } catch (err: any) {
+      result.errors.push('Bookmarks: ' + (err?.message ?? err))
+    }
+  }
+  const bm = what.bookmarks ? bookmarkPlan(profileId, source.name, again) : null
 
   if (sourceId === 'firefox') {
     try {
@@ -358,7 +428,7 @@ function runImport(sourceId: ImportSource['id'], profilePath: string, what: Impo
   } else {
     if (bm) {
       try {
-        result.bookmarks = importChromiumBookmarks(profilePath, profileId, bm.plan)
+        result.bookmarks = importChromiumBookmarks(chromiumBookmarks, profileId, bm.plan)
       } catch (err: any) {
         result.errors.push('Bookmarks: ' + (err?.message ?? err))
       }
