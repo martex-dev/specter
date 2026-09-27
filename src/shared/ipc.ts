@@ -427,6 +427,7 @@ export const IPC_DOMAINS = [
   'diagnostics',
   'import',
   'passwords',
+  'addresses',
   'notifications',
   'extensions',
   'ai',

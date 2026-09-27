@@ -182,6 +182,10 @@ export interface Settings {
   'passwords.offerToSave': boolean
   /** Show saved logins under sign-in fields. */
   'passwords.autofill': boolean
+  /** Show saved addresses under address and contact fields. */
+  'autofill.addresses': boolean
+  /** Offer to save addresses entered in forms. */
+  'autofill.saveAddresses': boolean
 }
 
 export type SettingKey = keyof Settings
@@ -320,7 +324,9 @@ export const DEFAULT_SETTINGS: Settings = {
   'advanced.updateRepo': 'martex-dev/specter',
 
   'passwords.offerToSave': true,
-  'passwords.autofill': true
+  'passwords.autofill': true,
+  'autofill.addresses': true,
+  'autofill.saveAddresses': true
 }
 
 export const SUSPEND_MS: Record<SuspendAfter, number> = {
