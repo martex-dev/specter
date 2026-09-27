@@ -15,14 +15,15 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     resolve: { alias: { '@shared': shared } },
-    // index: SPECTER's own UI. adblock / video / passwords: preloads for web pages (sandboxed, so each must stay a single file).
+    // index: SPECTER's own UI. adblock / video / passwords / autofill: preloads for web pages (sandboxed, so each must stay a single file).
     build: {
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/preload/index.ts'),
           adblock: resolve(__dirname, 'src/preload/adblock.ts'),
           video: resolve(__dirname, 'src/preload/video.ts'),
-          passwords: resolve(__dirname, 'src/preload/passwords.ts')
+          passwords: resolve(__dirname, 'src/preload/passwords.ts'),
+          autofill: resolve(__dirname, 'src/preload/autofill.ts')
         }
       }
     }
