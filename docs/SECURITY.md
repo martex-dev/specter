@@ -88,6 +88,11 @@ by names and labels — and lists saved addresses by name and street only. The f
 page only after a real click or key press on one, and only into empty fields plus the focused one.
 Email fields of sign-in forms are left to the password manager, and card fields are never touched.
 
+Importing addresses from a Chromium browser copies its `Web Data` file and queries only the address
+tables (`addresses` / `local_addresses` / `contact_info` and their `*_type_tokens`); the payment and
+login tables in the same file are never read. From Firefox, only the `addresses` list of
+`autofill-profiles.json` is read.
+
 ## Reporting
 
 Please report vulnerabilities privately to the maintainers rather than in a public issue.
