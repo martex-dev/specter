@@ -114,6 +114,16 @@ await step('Chrome profiles are found with their names, accounts and colours', a
   )
 })
 
+await step('Setup: leftovers of earlier imports (three empty folders, one holding an old import)', async () => {
+  const add = (b) => invoke('bookmarks:add', b)
+  for (let i = 0; i < 3; i++) await add({ kind: 'folder', title: 'Imported from Google Chrome', parentId: 'other_default' })
+  const old = await add({ kind: 'folder', title: 'Imported from Google Chrome', parentId: 'other_default' })
+  await add({ kind: 'bookmark', title: 'Mail', url: 'https://mail.example.test/', parentId: old.id })
+  const dev = await add({ kind: 'folder', title: 'Dev', parentId: old.id })
+  await add({ kind: 'bookmark', title: 'Docs', url: 'https://docs.example.test/', parentId: dev.id })
+  await add({ kind: 'bookmark', title: 'Recipes', url: 'https://recipes.example.test/', parentId: old.id })
+})
+
 await step('Settings → Profiles suggests: first into this profile, the other as a new one', async () => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('evt:command:run', { id: 'browser.openUrl', args: { url: 'specter://settings/profiles' } }))
   await win.waitForSelector('.pi-row', { timeout: 8000 })
