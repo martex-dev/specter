@@ -26,6 +26,7 @@ import { registerAppIpc, loadStoredExtensions } from './services/app'
 import { registerSearchIpc } from './services/search'
 import { registerImportIpc } from './services/importer'
 import { attachPasswords, registerPasswordsIpc } from './services/passwords'
+import { attachAutofill, registerAddressesIpc } from './services/addresses'
 import { registerNotificationsIpc } from './services/notifications'
 import { registerDiagnosticsIpc } from './services/diagnostics'
 import { registerUpdatesIpc } from './services/updates'
@@ -113,6 +114,7 @@ function attachSessionHandlers(): void {
   attachDownloads(ses)
   attachCertificateCapture(ses)
   attachPasswords(ses)
+  attachAutofill(ses)
   ses.setSpellCheckerLanguages(['en-US'])
 }
 
@@ -134,6 +136,7 @@ function registerIpc(): void {
   registerSearchIpc()
   registerImportIpc()
   registerPasswordsIpc()
+  registerAddressesIpc()
   registerNotificationsIpc()
   registerDiagnosticsIpc()
   registerUpdatesIpc()

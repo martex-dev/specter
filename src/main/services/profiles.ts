@@ -72,8 +72,8 @@ export function registerProfilesIpc(): void {
     } catch {
       /* webapps module not initialised */
     }
-    // Saved passwords and "never save" sites (tables owned by the password manager).
-    for (const table of ['logins', 'login_never']) {
+    // Saved passwords, "never save" sites and addresses (tables owned by optional services).
+    for (const table of ['logins', 'login_never', 'addresses']) {
       try {
         run(`DELETE FROM ${table} WHERE profile_id = ?`, id)
       } catch {
