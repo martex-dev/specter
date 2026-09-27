@@ -990,7 +990,7 @@ function ProfilesSection() {
       </Group>
       <Group title="Bring over your browser profiles">
         <div className="muted" style={{ fontSize: 12, padding: '12px 0 8px', lineHeight: 1.5 }}>
-          Each Chrome profile (or Edge, Brave, Firefox…) can become a SPECTER profile of its own, with its bookmarks, history and passwords. Signed-in sessions can’t be copied from other browsers — you sign in to each site once, and your imported passwords fill it in.
+          Each Chrome profile (or Edge, Brave, Firefox…) can become a SPECTER profile of its own, with its bookmarks, history, addresses and passwords. Signed-in sessions can’t be copied from other browsers — you sign in to each site once, and your imported passwords fill it in.
         </div>
         <div style={{ paddingBottom: 12 }}>
           <ProfileImport onDone={load} />

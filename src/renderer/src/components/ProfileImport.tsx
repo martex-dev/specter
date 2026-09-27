@@ -37,7 +37,7 @@ export function ProfileImport({ onDone }: { onDone?: () => void }) {
   const [sources, setSources] = useState<ImportSource[] | null>(null)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [choices, setChoices] = useState<Record<string, Choice>>({})
-  const [what, setWhat] = useState({ bookmarks: true, history: true })
+  const [what, setWhat] = useState({ bookmarks: true, history: true, addresses: true })
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<Record<string, ProfileImportResult>>({})
   const [chromeInstalled, setChromeInstalled] = useState(false)
@@ -125,7 +125,8 @@ export function ProfileImport({ onDone }: { onDone?: () => void }) {
                   <div className="row" style={{ gap: 6 }}>
                     <Check size={13} className="ok" />
                     <span>
-                      {res.bookmarks.toLocaleString()} bookmarks and {res.history.toLocaleString()} history entries → <b>{res.profileName}</b>
+                      {res.bookmarks.toLocaleString()} bookmarks, {res.history.toLocaleString()} history entries
+                      {res.addresses !== undefined ? ` and ${res.addresses} address${res.addresses === 1 ? '' : 'es'}` : ''} → <b>{res.profileName}</b>
                       {res.created ? ' (new profile)' : ''}
                     </span>
                   </div>
@@ -153,8 +154,11 @@ export function ProfileImport({ onDone }: { onDone?: () => void }) {
         <label className="row">
           <Switch on={what.history} onChange={(v) => setWhat({ ...what, history: v })} /> History
         </label>
+        <label className="row">
+          <Switch on={what.addresses} onChange={(v) => setWhat({ ...what, addresses: v })} /> Addresses
+        </label>
         <span className="spacer" />
-        <button className="btn primary" disabled={busy || !picked.length || (!what.bookmarks && !what.history)} onClick={run}>
+        <button className="btn primary" disabled={busy || !picked.length || (!what.bookmarks && !what.history && !what.addresses)} onClick={run}>
           {busy ? 'Importing…' : `Import ${picked.length} profile${picked.length === 1 ? '' : 's'}`}
         </button>
       </div>

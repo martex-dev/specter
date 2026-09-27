@@ -146,7 +146,7 @@ function StepImport() {
         <Download size={17} /> Bring over your browser?
       </h2>
       <p className="muted" style={{ margin: 0, lineHeight: 1.5 }}>
-        Each Chrome profile can come over into a SPECTER profile of its own — bookmarks and history right away, then its passwords from Chrome’s export. You can do this later in Settings → Profiles.
+        Each Chrome profile can come over into a SPECTER profile of its own — bookmarks, history and addresses right away, then its passwords from Chrome’s export. You can do this later in Settings → Profiles.
       </p>
       <ProfileImport />
     </div>
