@@ -53,6 +53,18 @@ chromeProfile('Default', [{ name: 'Mail', url: 'https://mail.example.test/' }, {
   ['https://mail.example.test/', 'Mail'],
   ['https://news.example.test/', 'News']
 ])
+// Chrome's Web Data: one saved address (current layout) next to a card table that must not be read.
+{
+  const w = new DatabaseSync(join(userData, 'Default', 'Web Data'))
+  w.exec(`CREATE TABLE addresses (guid VARCHAR PRIMARY KEY, use_count INTEGER NOT NULL DEFAULT 0, use_date INTEGER NOT NULL DEFAULT 0, date_modified INTEGER NOT NULL DEFAULT 0, language_code VARCHAR, label VARCHAR, initial_creator_id INTEGER DEFAULT 0, record_type INTEGER);
+    CREATE TABLE address_type_tokens (guid VARCHAR, type INTEGER, value VARCHAR, verification_status INTEGER DEFAULT 0, observations BLOB, PRIMARY KEY (guid, type));
+    CREATE TABLE credit_cards (guid VARCHAR PRIMARY KEY, name_on_card VARCHAR, card_number_encrypted BLOB);
+    INSERT INTO addresses(guid, record_type) VALUES('g1', 0);
+    INSERT INTO credit_cards VALUES('c1', 'Should Not Import', x'00');`)
+  const t = w.prepare('INSERT INTO address_type_tokens(guid, type, value) VALUES(?,?,?)')
+  for (const [type, value] of [[7, 'Anna Smith'], [77, '1 Main St\nApt 4'], [33, 'Springfield'], [34, 'IL'], [35, '62701'], [36, 'US'], [9, 'anna@example.test'], [14, '+15550100']]) t.run('g1', type, value)
+  w.close()
+}
 chromeProfile('Profile 1', [{ name: 'Jira', url: 'https://jira.work.test/' }], [], [['https://jira.work.test/browse/X-1', 'X-1'], ['https://wiki.work.test/', 'Wiki'], ['https://ci.work.test/', 'CI']])
 writeFileSync(
   join(userData, 'Local State'),
@@ -123,13 +135,17 @@ await step('Importing fills this profile and creates "Work"', async () => {
   assert.deepEqual(q('SELECT title FROM bookmarks WHERE parent_id = ?', 'bar_' + workId).map((r) => r.title), ['Jira'])
   assert.equal(q("SELECT COUNT(*) n FROM history WHERE profile_id = 'default'")[0].n, 2)
   assert.equal(q('SELECT COUNT(*) n FROM history WHERE profile_id = ?', workId)[0].n, 3)
-  return `Personal: 3 bookmarks, 2 visits · Work: 1 bookmark, 3 visits`
+  const ad = q("SELECT name, street, city, state, postal_code, country, email, phone FROM addresses WHERE profile_id = 'default'")
+  assert.deepEqual(ad.map((r) => ({ ...r })), [{ name: 'Anna Smith', street: '1 Main St\nApt 4', city: 'Springfield', state: 'IL', postal_code: '62701', country: 'US', email: 'anna@example.test', phone: '+15550100' }])
+  assert.equal(q("SELECT COUNT(*) n FROM addresses WHERE name LIKE '%Should Not%'")[0].n, 0)
+  return `Personal: 3 bookmarks, 2 visits, 1 address · Work: 1 bookmark, 3 visits`
 })
 
 await step('Importing again adds nothing and reuses "Work"', async () => {
   const chrome = (await invoke('import:sources')).find((s) => s.id === 'chrome')
   assert.equal(chrome.profiles[1].importedInto, workId, 'remembered')
-  const a = await invoke('import:toProfile', 'chrome', chrome.profiles[0].path, { bookmarks: true, history: true }, 'current')
+  const a = await invoke('import:toProfile', 'chrome', chrome.profiles[0].path, { bookmarks: true, history: true, addresses: true }, 'current')
+  assert.equal(a.addresses, 0, 'address not duplicated')
   const b = await invoke('import:toProfile', 'chrome', chrome.profiles[1].path, { bookmarks: true, history: true }, 'new')
   assert.deepEqual([a.bookmarks, a.history, b.bookmarks, b.history, b.profileId, b.created], [0, 0, 0, 0, workId, false])
   assert.equal((await invoke('profiles:list')).length, 2)
