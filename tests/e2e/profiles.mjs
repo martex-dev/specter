@@ -5,7 +5,7 @@
 // profile removes its data. Uses a throwaway profile and LOCALAPPDATA.
 // Run after `npm run build`: node tests/e2e/profiles.mjs
 import { _electron as electron } from 'playwright'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, renameSync, writeFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -66,6 +66,10 @@ chromeProfile('Default', [{ name: 'Mail', url: 'https://mail.example.test/' }, {
   w.close()
 }
 chromeProfile('Profile 1', [{ name: 'Jira', url: 'https://jira.work.test/' }], [], [['https://jira.work.test/browse/X-1', 'X-1'], ['https://wiki.work.test/', 'Wiki'], ['https://ci.work.test/', 'CI']])
+// Google-account bookmarks (signed in without full sync) live in AccountBookmarks: Default has both files
+// (one URL in both), Work has only the account file.
+writeFileSync(join(userData, 'Default', 'AccountBookmarks'), JSON.stringify({ roots: { bookmark_bar: { type: 'folder', children: [{ type: 'url', name: 'Mail', url: 'https://mail.example.test/' }, { type: 'url', name: 'Photos', url: 'https://photos.example.test/' }] }, other: { type: 'folder', children: [] }, synced: { type: 'folder', children: [] } } }))
+renameSync(join(userData, 'Profile 1', 'Bookmarks'), join(userData, 'Profile 1', 'AccountBookmarks'))
 writeFileSync(
   join(userData, 'Local State'),
   JSON.stringify({ profile: { info_cache: { Default: { name: 'Your Chrome', user_name: '' }, 'Profile 1': { name: 'Work', user_name: 'me@work.test', profile_highlight_color: -12627531 } } } })
@@ -130,7 +134,7 @@ await step('Importing fills this profile and creates "Work"', async () => {
   workId = work.id
   // Chrome's bookmarks bar became each profile's bookmarks bar (no "Imported from" folder in an empty profile).
   const bar = q("SELECT title FROM bookmarks WHERE parent_id = 'bar_default' ORDER BY sort").map((r) => r.title)
-  assert.deepEqual(bar, ['Mail', 'Dev'])
+  assert.deepEqual(bar, ['Mail', 'Dev', 'Photos'])
   assert.deepEqual(q("SELECT title FROM bookmarks WHERE parent_id = 'other_default'").map((r) => r.title), ['Recipes'])
   assert.deepEqual(q('SELECT title FROM bookmarks WHERE parent_id = ?', 'bar_' + workId).map((r) => r.title), ['Jira'])
   assert.equal(q("SELECT COUNT(*) n FROM history WHERE profile_id = 'default'")[0].n, 2)
@@ -138,7 +142,7 @@ await step('Importing fills this profile and creates "Work"', async () => {
   const ad = q("SELECT name, street, city, state, postal_code, country, email, phone FROM addresses WHERE profile_id = 'default'")
   assert.deepEqual(ad.map((r) => ({ ...r })), [{ name: 'Anna Smith', street: '1 Main St\nApt 4', city: 'Springfield', state: 'IL', postal_code: '62701', country: 'US', email: 'anna@example.test', phone: '+15550100' }])
   assert.equal(q("SELECT COUNT(*) n FROM addresses WHERE name LIKE '%Should Not%'")[0].n, 0)
-  return `Personal: 3 bookmarks, 2 visits, 1 address · Work: 1 bookmark, 3 visits`
+  return `Personal: 4 bookmarks, 2 visits, 1 address · Work: 1 bookmark, 3 visits`
 })
 
 await step('Importing again adds nothing and reuses "Work"', async () => {
@@ -159,7 +163,7 @@ await step('A profile with bookmarks gets an "Imported from" folder instead', as
   await invoke('import:toProfile', 'chrome', (await invoke('import:sources'))[0].profiles[0].path, { bookmarks: true, history: false }, { profileId: other.id })
   const folder = q("SELECT id FROM bookmarks WHERE profile_id = ? AND title = 'Imported from Google Chrome'", other.id)
   assert.equal(folder.length, 1)
-  assert.deepEqual(q('SELECT title FROM bookmarks WHERE parent_id = ? ORDER BY sort', folder[0].id).map((r) => r.title), ['Mail', 'Dev', 'Recipes'])
+  assert.deepEqual(q('SELECT title FROM bookmarks WHERE parent_id = ? ORDER BY sort', folder[0].id).map((r) => r.title), ['Mail', 'Dev', 'Recipes', 'Photos'])
   await invoke('profiles:delete', other.id)
 })
 
